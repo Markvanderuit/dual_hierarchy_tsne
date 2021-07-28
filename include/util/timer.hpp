@@ -50,6 +50,9 @@ namespace dh::util {
     // Stop recording an interval of time
     virtual void tock() = 0;
 
+    // Poll results (OpenGL/CUDA, blocking if handled poorly)
+    virtual void poll() = 0;
+
     // Return a type of recorded time
     template <TimerValue value = TimerValue::eLast, typename Duration = std::chrono::milliseconds>
     Duration get() const {
@@ -83,6 +86,10 @@ namespace dh::util {
       _values(TimerValue::eTotal) += _values(TimerValue::eLast);
       _values(TimerValue::eAverage) = _values(TimerValue::eAverage)
         + (_values(TimerValue::eLast) - _values(TimerValue::eAverage)) / (++_iterations);
+    }
+
+    void poll() override {
+      // not handled ...
     }
   private:
     using Time = std::chrono::time_point<std::chrono::system_clock>;

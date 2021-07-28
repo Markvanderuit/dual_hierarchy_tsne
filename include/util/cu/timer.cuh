@@ -25,26 +25,25 @@
 #pragma once
 
 #include <utility>
-#include "glad/glad.h"
+#include <cuda_runtime.h>
 #include "util/timer.hpp"
 
 namespace dh::util {
-  // Simple wrapper around a OpenGL timer query object
-  class GLTimer : public Timer {
+  class CUTimer : public Timer {
   public:
-    GLTimer();
-    ~GLTimer();
+    CUTimer();
+    ~CUTimer();
 
-    // Copy constr/assignment is explicitly deleted (no copying OpenGL objects)
-    GLTimer(const GLTimer&) = delete;
-    GLTimer& operator=(const GLTimer&) = delete;
+    // Copy constr/assignment is explicitly deleted (no copying handles)
+    CUTimer(const CUTimer&) = delete;
+    CUTimer& operator=(const CUTimer&) = delete;
 
     // Move constr/operator moves resource handles
-    GLTimer(GLTimer&&) noexcept;
-    GLTimer& operator=(GLTimer&&) noexcept;
+    CUTimer(CUTimer&&) noexcept;
+    CUTimer& operator=(CUTimer&&) noexcept;
 
     // Swap internals with another timer object
-    void swap(GLTimer& other) noexcept;
+    void swap(CUTimer& other) noexcept;
 
     // Override and implement for this specific timer
     void tick() override;
@@ -52,8 +51,7 @@ namespace dh::util {
     void poll() override;
 
   private:
-    // Pair of timer queries that can be swapped
-    GLuint _frontQuery;
-    GLuint _backQuery;
-  };
-} // dh
+    void *_startHandle;
+    void *_stopHandle;
+  }
+} // dh::util
