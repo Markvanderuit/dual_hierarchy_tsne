@@ -29,6 +29,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include "util/error.hpp"
 #include "util/gl/window.hpp"
 
 namespace dh::util {
@@ -40,9 +41,7 @@ namespace dh::util {
   GLWindow::GLWindow(GLWindowInfo windowInfo, GLContextInfo contextInfo)
   : _isInit(true)  {
     // Initialize GLFW on first window creation
-    if (_nrHandles == 0u && !glfwInit()) {
-      throw std::runtime_error("glfwInit() failed");
-    }
+    runtimeAssert(_nrHandles != 0u || glfwInit(), "glfwInit() failed");
 
     // Set context creation hints based on bit flags and version
     unsigned prf = contextInfo.profile == GLProfileType::eCore
@@ -82,17 +81,13 @@ namespace dh::util {
     }
 
     // Check if window creation was successful
-    if (!_handle) {
-      throw std::runtime_error("glfwCreateWindow() failed");
-    }
+    runtimeAssert(_handle, "glfwCreateWindow() failed");
 
     // Initialize GLAD
     // Requires new context to become current
     if (_nrHandles == 0u) {
       makeCurrent();
-      if (!gladLoadGL()) {
-        throw std::runtime_error("gladLoadGL() failed");
-      }
+      runtimeAssert(gladLoadGL(), "gladLoadGL() failed");
     }
 
     _nrHandles++;

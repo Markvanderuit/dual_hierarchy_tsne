@@ -24,6 +24,17 @@
 
 #pragma once
 
+#include <limits>
+#include "aligned.hpp"
+
 namespace dh {
+  // Shorthand, matches glsl
   using uint = unsigned;
+  
+  // Rounded up division of some n by div
+  template <typename genType> 
+  inline
+  genType ceilDiv(genType n, genType div) {
+    return (n + div - 1) / div;
+  }
 } // dh

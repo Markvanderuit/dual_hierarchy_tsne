@@ -26,6 +26,7 @@
 #include <exception>
 #include <sstream>
 #include <glm/glm.hpp>
+#include "util/error.hpp"
 #include "util/gl/program.hpp"
 
 namespace dh::util {
@@ -47,15 +48,15 @@ namespace dh::util {
   std::string to_string(GLShaderType type) {
     switch (type) {
       case GLShaderType::eVertex:
-        return "eVertex";
+        return "Vertex";
       case GLShaderType::eFragment:
-        return "eFragment";
+        return "Fragment";
       case GLShaderType::eGeometry:
-        return "eGeometry";
+        return "Geometry";
       case GLShaderType::eCompute:
-        return "eCompute";
+        return "Compute";
       default:
-        return "eCompute";
+        return "Compute";
     }
   }
   
@@ -99,32 +100,26 @@ namespace dh::util {
 
     // Check compilation success
     GLint success = 0;
-    glGetShaderiv(_handle, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
     if (success == GL_FALSE) {
       // Compilation failed, obtain error log
       GLint length = 0;
-      glGetShaderiv(_handle, GL_INFO_LOG_LENGTH, &length);
+      glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &length);
       std::string info(length, ' ');
-      glGetShaderInfoLog(_handle, GLint(info.size()), nullptr, info.data());
+      glGetShaderInfoLog(handle, GLint(info.size()), nullptr, info.data());
 
-      // Construct detailed exception message with attached error log
+      // Construct error message with attached error log
+      RuntimeError error("Shader compilation failed");
       std::stringstream ss;
-      ss << "\n  " << std::left << std::setw(12) << "Src"
-         << "Shader compilation";
-      ss << "\n  " << std::left << std::setw(12) << "Shader" << to_string(type) << "";
-      ss << "\n  " << std::left << std::setw(12) << "Log";
-
-      // Format error log
-      {
-        std::stringstream infss(info);
-        for (std::string line; std::getline(infss, line);) {
-          if (!line.empty() && line.find_first_not_of(' ') != std::string::npos) {
-            ss << "\n    " << line;
-          }
+      std::stringstream infss(info);
+      for (std::string line; std::getline(infss, line);) {
+        if (!line.empty() && line.find_first_not_of(' ') != std::string::npos) {
+          ss << '\n' << std::string(16, ' ') << line;
         }
       }
+      error.log = ss.str();
 
-      throw std::runtime_error(ss.str());
+      throw error;
     }
 
     // Store handle for linking
@@ -150,23 +145,18 @@ namespace dh::util {
       std::string info(length, ' ');
       glGetProgramInfoLog(_handle, GLint(info.size()), nullptr, info.data());
 
-      // Construct detailed exception message with attached error log
+      // Construct error message with attached error log
+      RuntimeError error("Program linking failed");
       std::stringstream ss;
-      ss << "  " << std::left << std::setw(24) << "Exception:"
-         << "Program linking failed\n";
-      ss << "  " << std::left << std::setw(24) << "Linking log:";
-
-      // Format error log
-      {
-        std::stringstream infss(info);
-        for (std::string line; std::getline(infss, line);) {
-          if (!line.empty() && line.find_first_not_of(' ') != std::string::npos) {
-            ss << "\n    " << line;
-          }
+      std::stringstream infss(info);
+      for (std::string line; std::getline(infss, line);) {
+        if (!line.empty() && line.find_first_not_of(' ') != std::string::npos) {
+          ss << '\n' << std::string(16, ' ') << line;
         }
       }
+      error.log = ss.str();
 
-      throw std::runtime_error(ss.str());
+      throw error;
     }
 
     // Detach and delete shaders
@@ -185,12 +175,7 @@ namespace dh::util {
 
       // Assert that uniform does exist
       if (i == -1) {
-        // Construct detailed exception message
-        std::stringstream ss;
-        ss << "  " << std::left << std::setw(24) << "Exception:"
-           << "Uniform location not found\n";
-        ss << "  " << std::left << std::setw(24) << "Uniform:" << s;
-        throw std::runtime_error(ss.str());
+        throw RuntimeError("Uniform location " + s + " not found");
       }
 
       _locations[s] = i;

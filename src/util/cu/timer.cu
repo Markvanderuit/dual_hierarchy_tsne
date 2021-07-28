@@ -22,54 +22,56 @@
  * SOFTWARE.
  */
 
-#include <utility>
-#include "util/gl/timer.hpp"
+#include "util/cu/timer.cuh"
 
 namespace dh::util {
-  GLTimer::GLTimer() : Timer() {
-    glCreateQueries(GL_TIME_ELAPSED, 1, &_frontQuery);
-    glCreateQueries(GL_TIME_ELAPSED, 1, &_backQuery);
+  CUTimer::CUTimer() : Timer() {
+    cudaEventCreate((cudaEvent_t *) &_startHandle);
+    cudaEventCreate((cudaEvent_t *) &_stopHandle);
   }
 
-  GLTimer::~GLTimer() {
-    glDeleteQueries(1, &_frontQuery);
-    glDeleteQueries(1, &_backQuery);
+  CUTimer::~CUTimer() {
+    cudaEventDestroy((cudaEvent_t) _startHandle);
+    cudaEventDestroy((cudaEvent_t) _stopHandle);
   }
 
-  GLTimer::GLTimer(GLTimer&& other) noexcept {
+  CUTimer::CUTimer(CUTimer&& other) noexcept {
     swap(other);
   }
 
-  GLTimer& GLTimer::operator=(GLTimer&& other) noexcept {
+  CUTimer& CUTimer::operator=(CUTimer&& other) noexcept {
     swap(other);
     return *this;
   }
 
-  void GLTimer::swap(GLTimer& other) noexcept {
+  void CUTimer::swap(CUTimer& other) noexcept {
     std::swap(_values, other._values);
     std::swap(_iterations, other._iterations);
-    std::swap(_frontQuery, other._frontQuery);
-    std::swap(_backQuery, other._backQuery);
+    std::swap(_startHandle, other._startHandle);
+    std::swap(_stopHandle, other._stopHandle);
   }
 
-  void GLTimer::tick() {
-    glBeginQuery(GL_TIME_ELAPSED, _frontQuery);
+  void CUTimer::tick() {
+    cudaEventRecord((cudaEvent_t) _startHandle);
   }
 
-  void GLTimer::tock() {
-    glEndQuery(GL_TIME_ELAPSED);
+  void CUTimer::tock() {
+    cudaEventRecord((cudaEvent_t) _stopHandle);
   }
 
-  void GLTimer::poll() {
-    // Swap timer queries
-    std::swap(_frontQuery, _backQuery);
+  void CUTimer::poll() {
+    float fElapsed;
+    long long elapsed;
     
-    // Query result of previous timer which likely already finished
-    GLint64 elapsed;
-    glGetQueryObjecti64v(_frontQuery, GL_QUERY_RESULT, &elapsed);
+    // Query elapsed time (maximum microsecond resolution)
+    cudaEventSynchronize((cudaEvent_t) _stop);
+    cudaEventElapsedTime(&felapsed, (cudaEvent_t) _start, (cudaEvent_t) _stop);
+    elapsed = static_cast<long long>(1000000.f * fElapsed);
+
+    // Update last, total, average times
     _values(TimerValue::eLast) = std::chrono::nanoseconds(elapsed);
     _values(TimerValue::eTotal) += _values(TimerValue::eLast);
     _values(TimerValue::eAverage) = _values(TimerValue::eAverage)
       + (_values(TimerValue::eLast) - _values(TimerValue::eAverage)) / (++_iterations);
   }
-} // dh
+}
