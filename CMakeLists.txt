@@ -6,18 +6,25 @@ project(DualHierarchytSNE LANGUAGES CXX CUDA)
 # Add third party libraries
 add_subdirectory(third_party/resource_embed)
 add_subdirectory(third_party/glad)
+add_subdirectory(third_party/glm)
+add_subdirectory(third_party/glfw)
 
-# Add tsne libraries
-add_library(util 
-  include/util/timer.hpp
-  include/util/enum.hpp
-  include/util/types.hpp
-  include/util/gl/timer.hpp
-  src/util/gl/timer.cpp
-)
-target_link_libraries(util glad)
-target_include_directories(util PUBLIC include)
-target_compile_features(util PUBLIC cxx_std_17)
+# Function to add a library while recursively globbing its files
+function(add_library_recurse target dir)
+  file(GLOB_RECURSE sources
+    src/${dir}/*.cpp
+  )
+  file(GLOB_RECURSE headers
+    include/${dir}/*.hpp
+  )
+  add_library(${target} ${headers} ${sources})
+  target_compile_features(${target} PUBLIC cxx_std_17)
+  target_include_directories(${target} PUBLIC include)
+endfunction()
+
+# Add and link project libraries
+add_library_recurse(util util)
+target_link_libraries(util glad glm glfw)
 
 # Add test executable
 add_executable(foo src/app/foo.cpp)
