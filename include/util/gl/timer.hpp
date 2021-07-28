@@ -1,59 +1,57 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #pragma once
 
 #include <utility>
 #include "glad/glad.h"
 #include "util/timer.hpp"
 
-namespace tsne {
-  class GLTimer : public AbstractTimer {
+namespace dh::util {
+  // Simple wrapper around a OpenGL timer query object
+  class GLTimer : public Timer {
   public:
-    GLTimer() : AbstractTimer() { }
-    ~GLTimer() {
-      if (_isInit) {
-        dstr();
-      }
-    }
+    GLTimer();
+    ~GLTimer();
 
-    void init() override {
-      if (_isInit) {
-        return;
-      }
-      glCreateQueries(GL_TIME_ELAPSED, 1, &_front);
-      glCreateQueries(GL_TIME_ELAPSED, 1, &_back);
-      _iterations = 0;
-      _isInit = true;
-    }
+    // Copy constr/assignment is explicitly deleted (no copying OpenGL objects)
+    GLTimer(const GLTimer&) = delete;
+    GLTimer& operator=(const GLTimer&) = delete;
 
-    void dstr() override {
-      if (!_isInit) {
-        return;
-      }
-      glDeleteQueries(1, &_front);
-      glDeleteQueries(1, &_back);
-      _iterations = 0;
-      _isInit = false;
-    }
+    // Move constr/operator moves resource handles
+    GLTimer(GLTimer&&) noexcept;
+    GLTimer& operator=(GLTimer&&) noexcept;
 
-    void tick() override {
-      glBeginQuery(GL_TIME_ELAPSED, _front);
-    }
+    // Swap internals with another timer object
+    void swap(GLTimer& other) noexcept;
 
-    void tock() override {
-      glEndQuery(GL_TIME_ELAPSED);
-    }
-
-    void record() override {
-      GLint64 elapsed;
-      glGetQueryObjecti64v(_back, GL_QUERY_RESULT, &elapsed);
-      _values(OutputValue::eLast) = std::chrono::nanoseconds(elapsed);
-      _values(OutputValue::eTotal) += _values(OutputValue::eLast);
-      _values(OutputValue::eAverage) = _values(OutputValue::eAverage)
-        + (_values(OutputValue::eLast) - _values(OutputValue::eAverage)) / (++_iterations);
-
-      std::swap(_front, _back);
-    }
+    // Override and implement for this specific timer
+    void tick() override;
+    void tock() override;
   private:
-    GLuint _front;
-    GLuint _back;
+    // Pair of timer queries that can be swapped
+    GLuint _frontQuery;
+    GLuint _backQuery;
   };
-} // tsne
+} // dh
