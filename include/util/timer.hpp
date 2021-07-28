@@ -1,95 +1,92 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #pragma once
 
 #include <chrono>
-#include "util/types.hpp"
+#include "types.hpp"
 #include "util/enum.hpp"
 
-namespace tsne {
+namespace dh::util {
+  // Types of recorded time the timer stores
+  enum class TimerValue {
+    eLast,    // Last time recorded
+    eAverage, // Average of times recorded over n iterations
+    eTotal,   // Sum of times recorded over n iterations
+
+    Length
+  };
+  
   class Timer {
   public:
-    // Types of durations the timer stores and tracks
-    enum class OutputValue {
-      eLast,
-      eAverage,
-      eTotal,
-
-      Length
-    };
-
-    Timer() : _isInit(false), _iterations(0) {
+    Timer() : _iterations(0) {
       _values.fill(std::chrono::nanoseconds(0));
     }
-  
-    virtual void init() = 0;
-    virtual void dstr() = 0;
-    virtual void tick() = 0;
-    virtual void tock() = 0;
-    virtual void record() = 0;
 
-    template <OutputValue value, typename Duration = std::chrono::milliseconds>
+    // Start recording an interval of time
+    virtual void tick() = 0;
+
+    // Stop recording an interval of time
+    virtual void tock() = 0;
+
+    // Return a type of recorded time
+    template <TimerValue value = TimerValue::eLast, typename Duration = std::chrono::milliseconds>
     Duration get() const {
       return std::chrono::duration_cast<Duration>(_values(value));
     }
 
-    bool isInit() const {
-      return _isInit;
-    }
-
+    // Return number of recorded iterations
     uint iterations() const {
       return _iterations;
     }
 
   protected:
-    EnumArray<OutputValue, std::chrono::nanoseconds> _values;
-    bool _isInit;
+    EnumArray<TimerValue, std::chrono::nanoseconds> _values;
     uint _iterations;
   };
-
+  
+  // Simple std::chrono based timer for cpu side timings
   class CppTimer : public Timer {
   public:
     CppTimer() : Timer() { }
-    ~CppTimer() {
-      if (_isInit) {
-        dstr();
-      }
-    }
-
-    void init() override {
-      if (_isInit) {
-        return;
-      }
-      // _elapsed = 0;
-      _iterations = 0;
-      _isInit = true;
-    }
-
-    void dstr() override {
-      if (!_isInit) {
-        return;
-      }
-      _iterations = 0;
-      _isInit = false;
-    }
+    ~CppTimer() { }
 
     void tick() override {
-      _values(OutputValue::eLast) = std::chrono::nanoseconds(0);
+      _values(TimerValue::eLast) = std::chrono::nanoseconds(0);
       _start = std::chrono::system_clock::now();
     }
 
     void tock() override {
       _stop = std::chrono::system_clock::now();
-      _values(OutputValue::eLast) = _stop - _start;
+      _values(TimerValue::eLast) = _stop - _start;
+      _values(TimerValue::eTotal) += _values(TimerValue::eLast);
+      _values(TimerValue::eAverage) = _values(TimerValue::eAverage)
+        + (_values(TimerValue::eLast) - _values(TimerValue::eAverage)) / (++_iterations);
     }
-
-    void record() override {
-      _values(OutputValue::eTotal) += _values(OutputValue::eLast);
-      _values(OutputValue::eAverage) = _values(OutputValue::eAverage)
-        + (_values(OutputValue::eLast) - _values(OutputValue::eAverage)) / (++_iterations);
-    }
-
   private:
     using Time = std::chrono::time_point<std::chrono::system_clock>;
     Time _start;
     Time _stop;
   };
-} // tsne
+} // dh::util
