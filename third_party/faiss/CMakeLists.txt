@@ -14,23 +14,6 @@ else(NOT MSVC)
 endif(NOT MSVC)
 add_definitions(-DFINTEGER=int)
 
-# Specify FAISS header files
-# file(GLOB faiss_headers
-#   include/faiss/*.h
-#   include/faiss/impl/*.h
-#   include/faiss/utils/*.h
-# )
-
-# Specify GPUFAISS header files
-# file(GLOB faiss_headers
-#   include/faiss/gpu/*.h
-#   include/faiss/gpu/*.cuh
-#   include/faiss/gpu/impl/*.h
-#   include/faiss/gpu/impl/*.cuh
-#   include/faiss/gpu/utils/*.h
-#   include/faiss/gpu/utils/*.cuh
-# )
-
 # Specify FAISS source files
 file(GLOB faiss_sources
   src/*.cpp
@@ -56,7 +39,7 @@ file(GLOB gpufaiss_sources
 
 # Specify FAISS library
 add_library(faiss STATIC ${faiss_sources})
-target_link_libraries(faiss openblas)
+target_link_libraries(faiss OpenBLAS::OpenBLAS LAPACK::LAPACK)
 target_include_directories(faiss PUBLIC include)
 
 # Specify gpuFAISS library
