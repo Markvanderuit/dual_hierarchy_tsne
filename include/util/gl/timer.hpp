@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <utility>
 #include "glad/glad.h"
 #include "util/timer.hpp"
 
@@ -44,7 +43,7 @@ namespace dh::util {
     GLTimer& operator=(GLTimer&&) noexcept;
 
     // Swap internals with another timer object
-    void swap(GLTimer& other) noexcept;
+    friend void swap(GLTimer& a, GLTimer& b) noexcept;
 
     // Override and implement for this specific timer
     void tick() override;
@@ -56,4 +55,12 @@ namespace dh::util {
     GLuint _frontQuery;
     GLuint _backQuery;
   };
+
+  // Helper function to poll a number of timers
+  inline
+  void glPollTimers(GLsizei n, GLTimer *timers) {
+    for (GLsizei i = 0; i < n; ++i) {
+      timers[i].poll();
+    }
+  }
 } // dh

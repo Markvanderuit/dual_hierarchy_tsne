@@ -24,8 +24,6 @@
 
 #pragma once
 
-#include <utility>
-#include <cuda_runtime.h>
 #include "util/timer.hpp"
 
 namespace dh::util {
@@ -43,7 +41,7 @@ namespace dh::util {
     CUTimer& operator=(CUTimer&&) noexcept;
 
     // Swap internals with another timer object
-    void swap(CUTimer& other) noexcept;
+    friend void swap(CUTimer& a, CUTimer& b) noexcept;
 
     // Override and implement for this specific timer
     void tick() override;
@@ -53,5 +51,5 @@ namespace dh::util {
   private:
     void *_startHandle;
     void *_stopHandle;
-  }
+  };
 } // dh::util

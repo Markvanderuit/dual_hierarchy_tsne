@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <utility>>
 #include <chrono>
 #include "types.hpp"
 #include "util/enum.hpp"
@@ -90,6 +91,14 @@ namespace dh::util {
 
     void poll() override {
       // not handled ...
+    }
+
+    friend void swap(CppTimer& a, CppTimer& b) noexcept {
+      using std::swap;
+      swap(a._values, b._values);
+      swap(a._iterations, b._iterations);
+      swap(a._start, b._start);
+      swap(a._stop, b._stop);
     }
   private:
     using Time = std::chrono::time_point<std::chrono::system_clock>;

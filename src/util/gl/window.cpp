@@ -23,7 +23,6 @@
  */
 
 #include <algorithm>
-#include <iostream>
 #include <stdexcept>
 #include <utility>
 #define GLFW_INCLUDE_NONE
@@ -39,7 +38,7 @@ namespace dh::util {
   GLWindow::GLWindow() : _isInit(false) { }
 
   GLWindow::GLWindow(GLWindowInfo windowInfo, GLContextInfo contextInfo)
-  : _isInit(true)  {
+  : _isInit(false)  {
     // Initialize GLFW on first window creation
     runtimeAssert(_nrHandles != 0u || glfwInit(), "glfwInit() failed");
 
@@ -91,6 +90,7 @@ namespace dh::util {
     }
 
     _nrHandles++;
+    _isInit = true;
   }
 
   GLWindow::~GLWindow() {
@@ -114,22 +114,23 @@ namespace dh::util {
 
   GLWindow::GLWindow(GLWindow&& other) noexcept
   {
-    swap(other);
+    swap(*this, other);
   }
 
   GLWindow& GLWindow::operator=(GLWindow&& other) noexcept
   {
-    swap(other);
+    swap(*this, other);
     return *this;
   }
 
-  void GLWindow::swap(GLWindow& other) noexcept
+  void swap(GLWindow& a, GLWindow& b) noexcept
   {
-    std::swap(_isInit, other._isInit);
-    std::swap(_handle, other._handle);
-    std::swap(_size, other._size);
-    if (_currentWindow == &other) {
-      _currentWindow = this;
+    using std::swap;
+    swap(a._isInit, b._isInit);
+    swap(a._handle, b._handle);
+    swap(a._size, b._size);
+    if (a._currentWindow == &b) {
+      a._currentWindow = &a;
     }
   }
 

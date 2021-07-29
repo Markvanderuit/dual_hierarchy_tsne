@@ -23,10 +23,9 @@
  */
 
 #include <iomanip>
-#include <exception>
 #include <sstream>
 #include <glm/glm.hpp>
-#include "util/error.hpp"
+#include "util/gl/error.hpp"
 #include "util/gl/program.hpp"
 
 namespace dh::util {
@@ -62,31 +61,31 @@ namespace dh::util {
   
   GLProgram::GLProgram() {
     _handle = glCreateProgram();
+    glAssert();
   }
 
   GLProgram::~GLProgram() {
-    glDeleteProgram(_handle);
     for (auto& handle : _shaderHandles) {
       glDeleteShader(handle);
     }
+    glDeleteProgram(_handle);
   }
 
   GLProgram::GLProgram(GLProgram&& other) noexcept {
-    swap(other);
+    swap(*this, other);
   }
 
-  GLProgram& GLProgram::operator=(GLProgram&& other) noexcept
-  {
-    swap(other);
+  GLProgram& GLProgram::operator=(GLProgram&& other) noexcept {
+    swap(*this, other);
     return *this;
   }
 
-  void GLProgram::swap(GLProgram& other) noexcept {
-    std::swap(_handle, other._handle);
-    std::swap(_shaderHandles, other._shaderHandles);
-    std::swap(_locations, other._locations);
+  void swap(GLProgram& a, GLProgram& b) noexcept {
+    using std::swap;
+    swap(a._handle, b._handle);
+    swap(a._shaderHandles, b._shaderHandles);
+    swap(a._locations, b._locations);
   }
-
 
   void GLProgram::addShader(GLShaderType type, const std::string& src) {
     // Obtain handle to shader object for specified type
@@ -184,6 +183,10 @@ namespace dh::util {
     }
 
     return i;
+  }
+
+  void GLProgram::bind() {
+    glUseProgram(_handle);
   }
 
   template <>

@@ -53,13 +53,17 @@ namespace dh::util {
     GLProgram& operator=(GLProgram&&) noexcept;
 
     // Swap internals with another progam object
-    void swap(GLProgram& other) noexcept;
+    // void swap(GLProgram& other) noexcept;
+    friend void swap(GLProgram& a, GLProgram& b) noexcept;
 
     // Compile shader from source, then store for later linking
     void addShader(GLShaderType type, const std::string& src);
 
     // Once all shaders are compiled, link the program object
     void link();
+
+    // Bind program object for execution or rendering state
+    void bind();
 
     // Set uniform at location s to value t.
     // Backed by implementations for float/int/uint and glm::vec/mat types

@@ -24,10 +24,11 @@
 
 #pragma once
 
+#include <iostream>
 #include <glad/glad.h>
 #include "util/error.hpp"
 
-namespace hdi::util {
+namespace dh::util {
   inline
   std::string glReadableError(GLenum err) {
     switch (err) {
@@ -56,7 +57,7 @@ namespace hdi::util {
 
   namespace detail {
     inline
-    void glAssertImpl(const char *msg, const char *file, int line) {
+    void glAssertImpl(const char *file, int line) {
       GLenum err;
       while ((err = glGetError()) != GL_NO_ERROR) {
         RuntimeError error("OpenGL error");
@@ -67,7 +68,7 @@ namespace hdi::util {
       }
     }
   }
-} // hdi::util
+} // dh::util
 
 // Simple OpenGL assert with message, file name and line nr. attached. Throws RuntimeError
-#define glAssert(message) dh::util::detail::glAssertImpl(message, __FILE__, __LINE__);
+#define glAssert() dh::util::detail::glAssertImpl(__FILE__, __LINE__);

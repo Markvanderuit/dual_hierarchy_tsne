@@ -51,5 +51,9 @@ namespace dh::util {
     Ty& operator()(ETy e) {
       return this->operator[](detail::underlying<ETy>(e));
     }
+    
+    friend void swap(EnumArray<ETy, Ty>& a, EnumArray<ETy, Ty>& b) noexcept {
+      a.swap(b);
+    }
   };
 } // dh::util

@@ -37,19 +37,20 @@ namespace dh::util {
   }
 
   GLTimer::GLTimer(GLTimer&& other) noexcept {
-    swap(other);
+    swap(*this, other);
   }
 
   GLTimer& GLTimer::operator=(GLTimer&& other) noexcept {
-    swap(other);
+    swap(*this, other);
     return *this;
   }
 
-  void GLTimer::swap(GLTimer& other) noexcept {
-    std::swap(_values, other._values);
-    std::swap(_iterations, other._iterations);
-    std::swap(_frontQuery, other._frontQuery);
-    std::swap(_backQuery, other._backQuery);
+  void swap(GLTimer& a, GLTimer& b) noexcept {
+    using std::swap;
+    swap(a._values, b._values);
+    swap(a._iterations, b._iterations);
+    swap(a._frontQuery, b._frontQuery);
+    swap(a._backQuery, b._backQuery);
   }
 
   void GLTimer::tick() {

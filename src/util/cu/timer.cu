@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+#include <utility>
+#include <cuda_runtime.h>
 #include "util/cu/timer.cuh"
 
 namespace dh::util {
@@ -36,19 +38,20 @@ namespace dh::util {
   }
 
   CUTimer::CUTimer(CUTimer&& other) noexcept {
-    swap(other);
+    swap(*this, other);
   }
 
   CUTimer& CUTimer::operator=(CUTimer&& other) noexcept {
-    swap(other);
+    swap(*this, other);
     return *this;
   }
 
-  void CUTimer::swap(CUTimer& other) noexcept {
-    std::swap(_values, other._values);
-    std::swap(_iterations, other._iterations);
-    std::swap(_startHandle, other._startHandle);
-    std::swap(_stopHandle, other._stopHandle);
+  void swap(CUTimer& a, CUTimer& b) noexcept {
+    using std::swap;
+    swap(a._values, b._values);
+    swap(a._iterations, b._iterations);
+    swap(a._startHandle, b._startHandle);
+    swap(a._stopHandle, b._stopHandle);
   }
 
   void CUTimer::tick() {
@@ -61,12 +64,11 @@ namespace dh::util {
 
   void CUTimer::poll() {
     float fElapsed;
-    long long elapsed;
     
     // Query elapsed time (maximum microsecond resolution)
-    cudaEventSynchronize((cudaEvent_t) _stop);
-    cudaEventElapsedTime(&felapsed, (cudaEvent_t) _start, (cudaEvent_t) _stop);
-    elapsed = static_cast<long long>(1000000.f * fElapsed);
+    cudaEventSynchronize((cudaEvent_t) _stopHandle);
+    cudaEventElapsedTime(&fElapsed, (cudaEvent_t) _startHandle, (cudaEvent_t) _stopHandle);
+    long long elapsed = static_cast<long long>(1000000.f * fElapsed);
 
     // Update last, total, average times
     _values(TimerValue::eLast) = std::chrono::nanoseconds(elapsed);
