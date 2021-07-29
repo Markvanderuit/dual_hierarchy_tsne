@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <utility>>
+#include <utility>
 #include <chrono>
 #include "types.hpp"
 #include "util/enum.hpp"
