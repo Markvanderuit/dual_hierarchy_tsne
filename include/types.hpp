@@ -24,9 +24,6 @@
 
 #pragma once
 
-#include <limits>
-#include "aligned.hpp"
-
 namespace dh {
   // Shorthand, matches glsl
   using uint = unsigned;

@@ -23,8 +23,8 @@
  */
 
 #pragma once
+#include <exception>
 #include <iomanip>
-#include <stdexcept>
 #include <sstream>
 #include <string>
 #include "types.hpp"
