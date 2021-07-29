@@ -8,13 +8,15 @@ set(CMAKE_TOOLCHAIN_FILE
 # Define project leveraging C++ and CUDA
 project(DualHierarchytSNE LANGUAGES CXX CUDA)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources/cmake/Modules/ ${CMAKE_MODULE_PATH})
+# Include vcpkg third party libraries
+find_package(OpenBLAS CONFIG REQUIRED)
+find_package(LAPACK CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
-# Add included third party libraries
+# Include source third party libraries
 add_subdirectory(third_party/resource_embed)
 add_subdirectory(third_party/glad)
-add_subdirectory(third_party/glm)
-add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/cub)
 add_subdirectory(third_party/faiss)
 
@@ -28,18 +30,18 @@ endfunction()
 # Specify util library
 add_library_recurse(util util)
 target_compile_features(util PRIVATE cxx_std_17)
-target_link_libraries(util PRIVATE glad glm glfw)
+target_link_libraries(util PUBLIC glad glm::glm glfw)
 target_include_directories(util PUBLIC include)
 
 # Specify sne library
 add_library_recurse(sne sne)
 target_compile_features(sne PRIVATE cxx_std_17)
-target_link_libraries(sne PRIVATE glad glm util cub ResourceEmbed gpufaiss)
+target_link_libraries(sne PUBLIC glad glm::glm util cub ResourceEmbed gpufaiss)
 target_include_directories(sne PUBLIC include)
 rsrcs_embed(sne ${CMAKE_SOURCE_DIR}/resources/shaders)
 
 # Add test executable
 add_executable(foo src/app/foo.cpp)
 target_compile_features(foo PRIVATE cxx_std_17)
-target_link_libraries(foo ResourceEmbed glad glm glfw util sne)
+target_link_libraries(foo PUBLIC util sne)
 rsrcs_embed(foo ${CMAKE_SOURCE_DIR}/resources/shaders)
