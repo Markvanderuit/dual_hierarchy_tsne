@@ -1,0 +1,12 @@
+{
+  "name": "dual-hierarchy-tsne",
+  "version-string": "0.1.0",
+  "dependencies": [
+    {
+      "name": "lapack"
+    },
+    {
+      "name": "openblas"
+    }
+  ]
+}
