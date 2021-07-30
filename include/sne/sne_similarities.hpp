@@ -70,19 +70,19 @@ namespace dh::sne {
 
   private:
     enum class ProgramType {
-      eSimilarities,
-      eExpand,
-      eLayout,
-      eNeighbors,
+      eCompSimilarities,
+      eCompExpand,
+      eCompLayout,
+      eCompNeighbors,
       
       Length
     };
 
     enum class TimerType {
-      eSimilarities,
-      eExpand,
-      eLayout,
-      eNeighbors,
+      eCompSimilarities,
+      eCompExpand,
+      eCompLayout,
+      eCompNeighbors,
       
       Length
     };
@@ -102,13 +102,14 @@ namespace dh::sne {
   public:
     friend void swap(SNESimilarities<D>& a, SNESimilarities<D>& b) noexcept {
       using std::swap;
+      swap(a._isInit, b._isInit);
+      swap(a._params, b._params);
+      swap(a._dataPtr, b._dataPtr);
+      swap(a._logger, b._logger);
       swap(a._buffers, b._buffers);
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);
       swap(a._knnTimer, b._knnTimer);
-      swap(a._isInit, b._isInit);
-      swap(a._params, b._params);
-      swap(a._dataPtr, b._dataPtr);
     }
   };
 } // dh::sne

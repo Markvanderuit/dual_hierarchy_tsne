@@ -27,6 +27,7 @@
 #include <resource_embed/resource_embed.hpp>
 #include "util/inclusive_scan.cuh"
 #include "util/gl/error.hpp"
+#include "util/gl/metric.hpp"
 #include "sne/sne_similarities.hpp"
 
 namespace dh::sne {
@@ -47,14 +48,17 @@ namespace dh::sne {
     util::log(_logger, "[SNESimilarities] Initializing...");
 
     // Initialize shader programs
-    _programs(ProgramType::eSimilarities).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/similarities.glsl"));
-    _programs(ProgramType::eExpand).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/expand.glsl"));
-    _programs(ProgramType::eLayout).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/layout.glsl"));
-    _programs(ProgramType::eNeighbors).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/neighbors.glsl"));
-    for (auto& program : _programs) {
-      program.link();
+    {
+      util::log(_logger, "[SNESimilarities]   Creating shader programs");
+      _programs(ProgramType::eCompSimilarities).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/compSimilarities.glsl"));
+      _programs(ProgramType::eCompExpand).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/compExpand.glsl"));
+      _programs(ProgramType::eCompLayout).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/compLayout.glsl"));
+      _programs(ProgramType::eCompNeighbors).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/compNeighbors.glsl"));
+      for (auto& program : _programs) {
+        program.link();
+      }
+      glAssert();
     }
-    glAssert();
 
     // Initialize buffer object handles
     // Allocation is performed in SNESimilarities<D>::comp() as the required
@@ -88,6 +92,7 @@ namespace dh::sne {
   template <uint D>
   void SNESimilarities<D>::comp() {
     runtimeAssert(_isInit, "SNESimilarities<D>::comp() called without proper initialization");
+    util::log(_logger, "[SNESimilarities] Computing...");
 
     // Data size, dimensionality, requested nearest neighbours
     const uint n = _params.n;
@@ -100,7 +105,7 @@ namespace dh::sne {
     std::vector<float> knnSquareDistances(n * k);
     std::vector<faiss::Index::idx_t> knnIndices(n * k);
 
-    util::log(_logger, "[SNESimilarities] Performing KNN search");
+    util::log(_logger, "[SNESimilarities]   Performing KNN search");
 
     // 1.
     // Compute approximate KNN of each point using FAISS
@@ -147,11 +152,7 @@ namespace dh::sne {
       faissIndex.reclaimMemory();
     }
     
-    // Preset buffer data
-    const std::vector<uint> empty(n * k, 0);
-    const std::vector<uint> indices(knnIndices.begin(), knnIndices.end());
-  
-    // Construct temporary OpenGL buffer objects
+    // Define temporary buffer objects
     enum class TBufferType {
       eDistances,
       eNeighbors,
@@ -162,24 +163,37 @@ namespace dh::sne {
       Length
     };
     util::EnumArray<TBufferType, GLuint> tempBuffers;
-    glCreateBuffers(tempBuffers.size(), tempBuffers.data());
-    glNamedBufferStorage(tempBuffers(TBufferType::eDistances), n * k * sizeof(float), knnSquareDistances.data(), 0);
-    glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors), n * k * sizeof(uint), indices.data(), 0);
-    glNamedBufferStorage(tempBuffers(TBufferType::eSimilarities), n * k * sizeof(float), empty.data(), 0);
-    glNamedBufferStorage(tempBuffers(TBufferType::eSizes), n * sizeof(uint), empty.data(), 0);
-    glNamedBufferStorage(tempBuffers(TBufferType::eScan), n * sizeof(uint), nullptr, 0);
-    glAssert();
 
-    util::log(_logger, "[SNESimilarities] Performing similarity computation");
+    // Initialize temporary buffer objects
+    {
+      util::log(_logger, "[SNESimilarities]   Creating temporary buffer storage");
+
+      const std::vector<uint> zeroes(n * k, 0);
+      const std::vector<uint> indices(knnIndices.begin(), knnIndices.end());
+
+      glCreateBuffers(tempBuffers.size(), tempBuffers.data());
+      glNamedBufferStorage(tempBuffers(TBufferType::eDistances), n * k * sizeof(float), knnSquareDistances.data(), 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors), n * k * sizeof(uint), indices.data(), 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eSimilarities), n * k * sizeof(float), zeroes.data(), 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eSizes), n * sizeof(uint), zeroes.data(), 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eScan), n * sizeof(uint), nullptr, 0);
+      glAssert();
+
+      // Report buffer storage size
+      const GLuint size = util::glGetBuffersSize(tempBuffers.size(), tempBuffers.data());
+      util::logValue(_logger, "[SNESimilarities]   Temporary buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+    }
+
+    util::log(_logger, "[SNESimilarities]   Performing similarity computation");
 
     // 2.
     // Compute similarities over generated KNN. This is pretty much a direct copy of the formulation
     // used in BH-SNE, and seems to also be used in CUDA-tSNE.
     {
-      auto& timer = _timers(TimerType::eSimilarities);
+      auto& timer = _timers(TimerType::eCompSimilarities);
       timer.tick();
       
-      auto& program = _programs(ProgramType::eSimilarities);
+      auto& program = _programs(ProgramType::eCompSimilarities);
       program.bind();
 
       // Set uniforms
@@ -202,16 +216,16 @@ namespace dh::sne {
       glAssert();
     }
 
-    util::log(_logger, "[SNESimilarities] Symmetrizing KNN data");
+    util::log(_logger, "[SNESimilarities]   Symmetrizing KNN data");
 
     // 3.
     // Expand KNN data so it becomes symmetric. That is, every neigbor referred by a point
     // itself refers to that point as a neighbor.
     {
-      auto& timer = _timers(TimerType::eExpand);
+      auto& timer = _timers(TimerType::eCompExpand);
       timer.tick();
       
-      auto& program = _programs(ProgramType::eExpand);
+      auto& program = _programs(ProgramType::eCompExpand);
       program.bind();
       
       // Set uniforms
@@ -240,23 +254,31 @@ namespace dh::sne {
       glGetNamedBufferSubData(tempBuffers(TBufferType::eScan), (n - 1) * sizeof(uint), sizeof(uint), &symmetricSize);
     }
 
-    // Construct permanent OpenGL buffer objects
-    glNamedBufferStorage(_buffers(BufferType::eSimilarities), symmetricSize * sizeof(float), nullptr, 0);
-    glNamedBufferStorage(_buffers(BufferType::eLayout), n * 2 * sizeof(uint), nullptr, 0);
-    glNamedBufferStorage(_buffers(BufferType::eNeighbors), symmetricSize * sizeof(uint), nullptr, 0);
-    // TODO are these necessary? Think not
-    glClearNamedBufferData(_buffers(BufferType::eNeighbors), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glClearNamedBufferData(_buffers(BufferType::eLayout), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glClearNamedBufferData(_buffers(BufferType::eSimilarities), GL_R32F, GL_RED, GL_FLOAT, nullptr);
-    glAssert();
+    // Initialize permanent buffer objects
+    {
+      util::log(_logger, "[SNESimilarities]   Creating buffer storage");
+
+      glNamedBufferStorage(_buffers(BufferType::eSimilarities), symmetricSize * sizeof(float), nullptr, 0);
+      glNamedBufferStorage(_buffers(BufferType::eLayout), n * 2 * sizeof(uint), nullptr, 0);
+      glNamedBufferStorage(_buffers(BufferType::eNeighbors), symmetricSize * sizeof(uint), nullptr, 0);
+      // TODO are these necessary? Think not
+      glClearNamedBufferData(_buffers(BufferType::eNeighbors), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+      glClearNamedBufferData(_buffers(BufferType::eLayout), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+      glClearNamedBufferData(_buffers(BufferType::eSimilarities), GL_R32F, GL_RED, GL_FLOAT, nullptr);
+      glAssert();
+    
+      // Report buffer storage size
+      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+      util::logValue(_logger, "[SNESimilarities]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+    }
 
     // 5.
     // Fill layout buffer
     {
-      auto& timer = _timers(TimerType::eLayout);
+      auto& timer = _timers(TimerType::eCompLayout);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eLayout);
+      auto& program = _programs(ProgramType::eCompLayout);
       program.bind();
 
       // Set uniforms
@@ -274,19 +296,19 @@ namespace dh::sne {
       glAssert();
     }
 
-    util::log(_logger, "[SNESimilarities] Symmetrizing similarities");
+    util::log(_logger, "[SNESimilarities]   Symmetrizing similarities");
 
     // 6.
     // Generate expanded similarities and neighbor buffers, symmetrized and ready for
     // use during the minimization
     {
-      auto& timer = _timers(TimerType::eNeighbors);
+      auto& timer = _timers(TimerType::eCompNeighbors);
       timer.tick();
 
       // Clear sizes buffer, we recycle it as an atomic counter
       glClearNamedBufferData(tempBuffers(TBufferType::eSizes), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 
-      auto &program = _programs(ProgramType::eNeighbors);
+      auto &program = _programs(ProgramType::eCompNeighbors);
       program.bind();
 
       program.uniform<uint>("nPoints", n);
@@ -315,6 +337,7 @@ namespace dh::sne {
     // Poll twice so front/back timers are swapped
     glPollTimers(_timers.size(), _timers.data());
     glPollTimers(_timers.size(), _timers.data());
+    util::log(_logger, "[SNESimilarities] Computed");
   }
 
   // Template instantiations for 2/3 dimensions
