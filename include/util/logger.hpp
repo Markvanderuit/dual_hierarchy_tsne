@@ -75,7 +75,7 @@ namespace dh::util {
   void logValue(Logger* ptr, const std::string& str, T t) {
     if (ptr) {
       std::stringstream ss;
-      ss << str << " : " << std::to_string(value);
+      ss << str << " : " << std::to_string(t);
       ptr->writeLine(ss.str());
       if constexpr (flush) {
         ptr->flush();
