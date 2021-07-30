@@ -69,7 +69,7 @@ namespace dh::util {
     // Backed by implementations for float/int/uint and glm::vec/mat types
     template <typename T>
     void uniform(const std::string& s, T t);
-
+    
   private:
     // Cache uniform locations in an unordered map for lookup
     int location(const std::string& s);

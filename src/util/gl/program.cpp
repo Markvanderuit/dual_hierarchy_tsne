@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <sstream>
 #include <glm/glm.hpp>
+#include "aligned.hpp"
 #include "util/gl/error.hpp"
 #include "util/gl/program.hpp"
 
@@ -189,73 +190,42 @@ namespace dh::util {
     glUseProgram(_handle);
   }
 
-  template <>
-  void GLProgram::uniform<bool>(const std::string& s, bool v) {
-    glProgramUniform1ui(_handle, location(s), v ? 1 : 0);
-  }
+  // Template specializations for base types
+  template <> void GLProgram::uniform<bool>(const std::string& s, bool v) { glProgramUniform1ui(_handle, location(s), v ? 1 : 0); }
+  template <> void GLProgram::uniform<uint>(const std::string& s, uint v) { glProgramUniform1ui(_handle, location(s), v); }
+  template <> void GLProgram::uniform<int>(const std::string& s, int v) { glProgramUniform1i(_handle, location(s), v); }
+  template <> void GLProgram::uniform<float>(const std::string& s, float v) {  glProgramUniform1f(_handle, location(s), v); }
 
-  template <>
-  void GLProgram::uniform<unsigned>(const std::string& s, unsigned v) {
-    glProgramUniform1ui(_handle, location(s), v);
-  }
+  // Template specializations for glm::vec<2, *> types
+  template <> void GLProgram::uniform<glm::bvec2>(const std::string& s, glm::bvec2 v) { glProgramUniform2ui(_handle, location(s), v.x, v.y); }
+  template <> void GLProgram::uniform<glm::uvec2>(const std::string& s, glm::uvec2 v) { glProgramUniform2ui(_handle, location(s), v.x, v.y); }
+  template <> void GLProgram::uniform<glm::ivec2>(const std::string& s, glm::ivec2 v) { glProgramUniform2i(_handle, location(s), v.x, v.y); }
+  template <> void GLProgram::uniform<glm::vec2>(const std::string& s, glm::vec2 v) { glProgramUniform2f(_handle, location(s), v.x, v.y); }
+  template <> void GLProgram::uniform<AlignedVec<2, bool>>(const std::string& s, AlignedVec<2, bool> v) { glProgramUniform2ui(_handle, location(s), v.x, v.y); }
+  template <> void GLProgram::uniform<AlignedVec<2, uint>>(const std::string& s, AlignedVec<2, uint> v) { glProgramUniform2ui(_handle, location(s), v.x, v.y); }
+  template <> void GLProgram::uniform<AlignedVec<2, int>>(const std::string& s, AlignedVec<2, int> v) { glProgramUniform2i(_handle, location(s), v.x, v.y); }
+  template <> void GLProgram::uniform<AlignedVec<2, float>>(const std::string& s, AlignedVec<2, float> v) { glProgramUniform2f(_handle, location(s), v.x, v.y); }
 
-  template <>
-  void GLProgram::uniform<int>(const std::string& s, int v) {
-    glProgramUniform1i(_handle, location(s), v);
-  }
+  // Template specializations for glm::vec<3, *> types
+  template <> void GLProgram::uniform<glm::bvec3>(const std::string& s, glm::bvec3 v) { glProgramUniform3ui(_handle, location(s), v.x, v.y, v.z); }
+  template <> void GLProgram::uniform<glm::uvec3>(const std::string& s, glm::uvec3 v) { glProgramUniform3ui(_handle, location(s), v.x, v.y, v.z); }
+  template <> void GLProgram::uniform<glm::ivec3>(const std::string& s, glm::ivec3 v) { glProgramUniform3i(_handle, location(s), v.x, v.y, v.z); }
+  template <> void GLProgram::uniform<glm::vec3>(const std::string& s, glm::vec3 v) { glProgramUniform3f(_handle, location(s), v.x, v.y, v.z); }
+  template <> void GLProgram::uniform<AlignedVec<3, bool>>(const std::string& s, AlignedVec<3, bool> v) { glProgramUniform3ui(_handle, location(s), v.x, v.y, v.z); }
+  template <> void GLProgram::uniform<AlignedVec<3, uint>>(const std::string& s, AlignedVec<3, uint> v) { glProgramUniform3ui(_handle, location(s), v.x, v.y, v.z); }
+  template <> void GLProgram::uniform<AlignedVec<3, int>>(const std::string& s, AlignedVec<3, int> v) { glProgramUniform3i(_handle, location(s), v.x, v.y, v.z); }
+  template <> void GLProgram::uniform<AlignedVec<3, float>>(const std::string& s, AlignedVec<3, float> v) { glProgramUniform3f(_handle, location(s), v.x, v.y, v.z); }
 
-  template <>
-  void GLProgram::uniform<float>(const std::string& s, float v) {
-    glProgramUniform1f(_handle, location(s), v);
-  }
+  // Template specializations for glm::vec<4, *> types
+  template <> void GLProgram::uniform<glm::bvec4>(const std::string& s, glm::bvec4 v) { glProgramUniform4ui(_handle, location(s), v.x, v.y, v.z, v.w); }
+  template <> void GLProgram::uniform<glm::uvec4>(const std::string& s, glm::uvec4 v) { glProgramUniform4ui(_handle, location(s), v.x, v.y, v.z, v.w); }
+  template <> void GLProgram::uniform<glm::ivec4>(const std::string& s, glm::ivec4 v) { glProgramUniform4i(_handle, location(s), v.x, v.y, v.z, v.w); }
+  template <> void GLProgram::uniform<glm::vec4>(const std::string& s, glm::vec4 v) { glProgramUniform4f(_handle, location(s), v.x, v.y, v.z, v.w); }
+  template <> void GLProgram::uniform<AlignedVec<4, bool>>(const std::string& s, AlignedVec<4, bool> v) { glProgramUniform4ui(_handle, location(s), v.x, v.y, v.z, v.w); }
+  template <> void GLProgram::uniform<AlignedVec<4, uint>>(const std::string& s, AlignedVec<4, uint> v) { glProgramUniform4ui(_handle, location(s), v.x, v.y, v.z, v.w); }
+  template <> void GLProgram::uniform<AlignedVec<4, int>>(const std::string& s, AlignedVec<4, int> v) { glProgramUniform4i(_handle, location(s), v.x, v.y, v.z, v.w); }
+  template <> void GLProgram::uniform<AlignedVec<4, float>>(const std::string& s, AlignedVec<4, float> v) { glProgramUniform4f(_handle, location(s), v.x, v.y, v.z, v.w); }
 
-  template <>
-  void GLProgram::uniform<glm::uvec2>(const std::string& s, glm::uvec2 v) {
-    glProgramUniform2ui(_handle, location(s), v.x, v.y);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::ivec2>(const std::string& s, glm::ivec2 v) {
-    glProgramUniform2i(_handle, location(s), v.x, v.y);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::vec2>(const std::string& s, glm::vec2 v) {
-    glProgramUniform2f(_handle, location(s), v.x, v.y);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::uvec3>(const std::string& s, glm::uvec3 v) {
-    glProgramUniform3ui(_handle, location(s), v.x, v.y, v.z);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::ivec3>(const std::string& s, glm::ivec3 v) {
-    glProgramUniform3i(_handle, location(s), v.x, v.y, v.z);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::vec3>(const std::string& s, glm::vec3 v) {
-    glProgramUniform3f(_handle, location(s), v.x, v.y, v.z);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::uvec4>(const std::string& s, glm::uvec4 v) {
-    glProgramUniform4ui(_handle, location(s), v.x, v.y, v.z, v.w);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::ivec4>(const std::string& s, glm::ivec4 v) {
-    glProgramUniform4i(_handle, location(s), v.x, v.y, v.z, v.w);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::vec4>(const std::string& s, glm::vec4 v) {
-    glProgramUniform4f(_handle, location(s), v.x, v.y, v.z, v.w);
-  }
-
-  template <>
-  void GLProgram::uniform<glm::mat4>(const std::string& s, glm::mat4 v) {
-    glProgramUniformMatrix4fv(_handle, location(s), 1, GL_FALSE, &v[0][0]);
-  }
+  // Other specializations
+  template <> void GLProgram::uniform<glm::mat4>(const std::string& s, glm::mat4 v) { glProgramUniformMatrix4fv(_handle, location(s), 1, GL_FALSE, &v[0][0]); }
 }
