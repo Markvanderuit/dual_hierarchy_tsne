@@ -1,0 +1,172 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#version 460 core
+
+struct Bounds {
+  vec2 min;
+  vec2 max;
+  vec2 range;
+  vec2 invRange;
+};
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Buffer, sampler and image bindings
+layout(binding = 0, std430) restrict readonly buffer Node0 { vec4 node0Buffer[]; };
+layout(binding = 1, std430) restrict readonly buffer Node1 { vec4 node1Buffer[]; };
+layout(binding = 2, std430) restrict readonly buffer Posit { vec2 posBuffer[]; };
+layout(binding = 3, std430) restrict readonly buffer Bound { Bounds bounds; };
+layout(binding = 4, std430) restrict readonly buffer Queue { uvec2 queueBuffer[]; };
+layout(binding = 5, std430) restrict readonly buffer QHead { uint queueHead; }; 
+layout(binding = 0, rgba32f) restrict writeonly uniform image2D fieldImage;
+
+// Uniforms
+layout(location = 0) uniform uint nPos;         // nr of points
+layout(location = 1) uniform uint nLvls;        // Nr of tree levels
+layout(location = 2) uniform float theta2;      // Squared approximation param
+layout(location = 3) uniform uvec2 textureSize; // Size of fields texture
+layout(location = 4) uniform bool doBhCrit;     // Use new Barnes-Hut criterion
+
+// Constants
+#define BVH_KNODE_2D 4
+#define BVH_LOGK_2D 2
+#define BVH_KLEAF_2D 4
+
+// Fun stuff for fast modulo and division and stuff
+const uint bitmask = ~((~0u) << BVH_LOGK_2D);
+
+// Traversal data
+uint lvl = 1u; // We start a level lower, as the root node will probably never approximate
+uint loc = 1u;
+uint stack = 1u | (bitmask << (BVH_LOGK_2D * lvl));
+
+void descend() {
+  // Move down tree
+  lvl++;
+  loc = loc * BVH_KNODE_2D + 1u;
+
+  // Push unvisited locations on stack
+  stack |= (bitmask << (BVH_LOGK_2D * lvl));
+}
+
+void ascend() {
+  // Find distance to next level on stack
+  uint nextLvl = findMSB(stack) / BVH_LOGK_2D;
+  uint dist = lvl - nextLvl;
+
+  // Move dist up to where next available stack position is
+  // and one to the right
+  if (dist > 0) {
+    loc >>= BVH_LOGK_2D * dist;
+  } else {
+    loc++;
+  }
+  lvl = nextLvl;
+
+  // Pop visited location from stack
+  uint shift = BVH_LOGK_2D * lvl;
+  uint b = (stack >> shift) - 1;
+  stack &= ~(bitmask << shift);
+  stack |= b << shift;
+}
+
+bool approx(vec2 pos, inout vec3 field) {
+  // Fetch node data for each invoc
+  const vec4 node0 = node0Buffer[loc];
+  const vec4 node1 = node1Buffer[loc];
+
+  // Unpack node data
+  const vec2 center = node0.xy;
+  const uint mass = uint(node0.w);
+  const vec2 diam = node1.xy;
+  const uint begin = uint(node1.w);
+  
+  // Distance between node and pixel position
+  const vec2 t = pos - center;
+  const float t2 = dot(t, t);
+
+  // Barnes-Hut criterion.
+  vec2 ext;
+  if (doBhCrit) {
+    // Align the distance vector so it is always coming from the same part of the axis
+    // such that the largest possible diameter of the bounding box is visible
+    const vec2 b = abs(t) * vec2(-1, 1);
+    const vec2 b_ = normalize(b);
+    // Compute squared diameter, adjusted for viewing angle
+    // This is the vector rejection of diam onto unit vector b_
+    ext = diam - b_ * dot(diam, b_); 
+  } else {
+    // Old Barnes-Hut criterion
+    ext = diam;
+  }
+
+  // Tangens of the angle should not exceed theta
+  if (dot(ext, ext) / t2 < theta2) { 
+    // If BH-approximation passes, compute approximated value
+    float tStud = 1.f / (1.f + t2);
+    field += mass * vec3(tStud, t * (tStud * tStud));
+    return true;
+  } else if (mass <= BVH_KLEAF_2D || lvl == nLvls - 1) {
+    // Iterate over all leaf points (hi, thread divergence here)
+    for (uint i = begin; i < begin + mass; ++i) {
+      vec2 t = pos - posBuffer[i];
+      float tStud = 1.f / (1.f +  dot(t, t));
+      field += vec3(tStud, t * (tStud * tStud));
+    }
+    return true;
+  }
+  return false;
+}
+
+vec3 traverse(vec2 pos) {
+  vec3 field = vec3(0);
+
+  do {
+    if (approx(pos, field)) {
+      ascend();
+    } else {
+      descend();
+    }
+  } while (lvl > 0u);
+
+  return field;
+}
+
+void main() {
+  // Read pixel position from work queue. Make sure not to exceed queue head
+  const uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+  if (i >= queueHead) {
+    return;
+  }
+  const uvec2 px = queueBuffer[i];
+
+  // Compute pixel position in [0, 1]
+  // Then map pixel position to domain bounds
+  vec2 pos = (vec2(px) + 0.5) / vec2(textureSize);
+  pos = pos * bounds.range + bounds.min;
+
+  // Traverse tree and store result
+  imageStore(fieldImage, ivec2(px), vec4(traverse(pos), 0));
+}

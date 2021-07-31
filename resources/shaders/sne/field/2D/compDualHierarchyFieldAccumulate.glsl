@@ -1,0 +1,82 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#version 460 core
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Buffer bindings
+layout(binding = 0, std430) restrict readonly buffer VPixe { uvec2 pixelsBuffer[]; };
+layout(binding = 1, std430) restrict readonly buffer VFiel { vec3 fieldBuffer[]; };
+
+// Uniforms
+layout(location = 0) uniform uint nPixels;
+layout(location = 1) uniform uint fLvls;
+layout(location = 2) uniform uint startLvl;
+
+// Image bindings
+layout(binding = 0, rgba32f) restrict writeonly uniform image2D fieldImage;
+
+// Constants
+#define BVH_KNODE_2D 4
+#define BVH_LOGK_2D 2
+const uint offset = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (fLvls - 1));
+const uint stop = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (startLvl));
+
+uint expandBits15(uint i) {
+  i = (i | (i << 8u)) & 0x00FF00FFu;
+  i = (i | (i << 4u)) & 0x0F0F0F0Fu;
+  i = (i | (i << 2u)) & 0x33333333u;
+  i = (i | (i << 1u)) & 0x55555555u;
+  return i;
+}
+
+uint encode(uvec2 v) {
+  uint x = expandBits15(v.x);
+  uint y = expandBits15(v.y);
+  return x | (y << 1);
+}
+
+void main() {
+  // Check if invoc is within nr of items on leaf queue
+  const uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+  if (i >= nPixels) {
+    return;
+  }
+
+  // Read pixel's position
+  const uvec2 px = pixelsBuffer[i];
+
+  // Push forces down by ascending up tree to root
+  // ignore root, it will never approximate
+  vec3 field = vec3(0);
+  for (uint k = offset + encode(px); 
+        k >= stop; 
+        k = (k - 1) >> BVH_LOGK_2D) {
+    field += fieldBuffer[k];
+  }
+
+  // Store resulting value in field image at pixel's position
+  imageStore(fieldImage, ivec2(px), vec4(field, 0));
+}
