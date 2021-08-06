@@ -32,6 +32,7 @@
 #include "util/gl/program.hpp"
 #include "util/cu/timer.cuh"
 #include "sne/sne_params.hpp"
+#include "sne/buffers/sne_similarities_buffers.hpp"
 
 namespace dh::sne {
   template <uint D> // Dimension of produced embedding
@@ -53,9 +54,7 @@ namespace dh::sne {
     // Compute similarities
     void comp();
 
-    bool isInit() const { return _isInit; }
-
-  public:
+  private:
     enum class BufferType {
       eSimilarities,
       eLayout,
@@ -64,11 +63,6 @@ namespace dh::sne {
       Length
     };
 
-    GLuint buffer(BufferType type) const {
-      return _buffers(type);
-    }
-
-  private:
     enum class ProgramType {
       eCompSimilarities,
       eCompExpand,
@@ -98,8 +92,19 @@ namespace dh::sne {
     util::EnumArray<ProgramType, util::GLProgram> _programs;
     util::EnumArray<TimerType, util::GLTimer> _timers;
     util::CUTimer _knnTimer;
-
+  
   public:
+    // Getters
+    SNESimilaritiesBuffers buffers() const {
+      return {
+        _buffers(BufferType::eSimilarities),
+        _buffers(BufferType::eLayout),
+        _buffers(BufferType::eNeighbors),
+      };
+    }
+    bool isInit() const { return _isInit; }
+
+    // std::swap impl
     friend void swap(SNESimilarities<D>& a, SNESimilarities<D>& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);

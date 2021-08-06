@@ -111,7 +111,6 @@ namespace dh::sne {
     // Compute approximate KNN of each point using FAISS
     // Produce a fixed number (perplexity * 3 + 1) of neighbors
     {
-
       // Nr. of inverted lists used by FAISS. O(sqrt(n)) is apparently reasonable
       // src: https://github.com/facebookresearch/faiss/issues/112
       uint nLists = nListMult * static_cast<uint>(std::sqrt(n)); 
@@ -152,7 +151,7 @@ namespace dh::sne {
       faissIndex.reclaimMemory();
     }
     
-    // Define temporary buffer objects
+    // Define temporary buffer object handles
     enum class TBufferType {
       eDistances,
       eNeighbors,
@@ -244,6 +243,16 @@ namespace dh::sne {
       glAssert();
     }
 
+    /* { // DEBUG: REMOVE
+      std::vector<uint> buffer(64, 0);
+      glGetNamedBufferSubData(tempBuffers(TBufferType::eScan), 0, buffer.size() * sizeof(uint), buffer.data());
+
+      for (uint i = 0; i < buffer.size(); ++i) {
+        std::cout << buffer[i] << ", ";
+      }
+      std::cout << std::endl;
+    } // DEBUG: REMOVE */
+
     // 4.
     // Determine sizes of expanded neighborhoods in memory through prefix sum
     // Leverages CUDA CUB library underneath
@@ -262,9 +271,9 @@ namespace dh::sne {
       glNamedBufferStorage(_buffers(BufferType::eLayout), n * 2 * sizeof(uint), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eNeighbors), symmetricSize * sizeof(uint), nullptr, 0);
       // TODO are these necessary? Think not
-      glClearNamedBufferData(_buffers(BufferType::eNeighbors), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-      glClearNamedBufferData(_buffers(BufferType::eLayout), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
       glClearNamedBufferData(_buffers(BufferType::eSimilarities), GL_R32F, GL_RED, GL_FLOAT, nullptr);
+      glClearNamedBufferData(_buffers(BufferType::eLayout), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+      glClearNamedBufferData(_buffers(BufferType::eNeighbors), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
       glAssert();
     
       // Report buffer storage size
