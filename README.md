@@ -1,2 +1,2 @@
-# dual_hierarchy_tsne
-Dual-hierarchy t-SNE algorithm library and demo program
+# Dual-hierarchy t-SNE
+Dual-hierarchy t-SNE library and demo program
