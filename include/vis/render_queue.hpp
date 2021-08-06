@@ -1,0 +1,123 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#pragma once
+
+#include <memory>
+#include <utility>
+#include <set>
+#include <type_traits>
+#include <glad/glad.h>
+#include "types.hpp"
+#include "aligned.hpp"
+
+namespace dh::vis {
+  class RenderTask {
+  private:
+    using Pointer = std::shared_ptr<RenderTask>;
+
+  public:
+    // Constr
+    RenderTask(int priority = -1);
+
+    // Override and implement task to be performed
+    virtual void render(glm::mat4 transform, GLuint labelsHandle) = 0;
+
+    // Getters
+    int priority() const { return _priority; }
+
+    friend bool cmpRenderTask(const RenderTask * const a, const RenderTask * const b);
+
+  private:
+    int _priority;
+
+  public:
+    friend bool cmp(const Pointer& a, const Pointer& b) {
+      return a->priority() < b->priority() && a != b;
+    }
+
+    friend void swap(RenderTask& a, RenderTask& b) noexcept {
+      using std::swap;
+      swap(a._priority, b._priority);
+    }
+  };
+
+  // inline
+  // bool cmpRenderTask2(const std::shared_ptr<RenderTask> a, const std::shared_ptr<RenderTask> b) {
+  //   return a->priority() < b->priority() && a != b;
+  // }
+
+  class RenderQueue {
+  private:
+    using Pointer = std::shared_ptr<RenderTask>;
+    using Queue = std::set<Pointer, decltype(&cmp)>;
+
+  public:
+    // Accessor; there is one RenderQueue used by the vis library
+    // Ergo, RenderQueue is a singleton pattern
+    static RenderQueue& instance() {
+      static RenderQueue instance;
+      return instance;
+    }
+
+    // Setup/teardown functions
+    void init();
+    void dstr();
+
+    // Insert render task, return a pointer to provide later access to task
+    template <class DerivedTask,
+              typename = std::enable_if_t<std::is_base_of_v<RenderTask, DerivedTask>>>
+    Pointer insert(DerivedTask&& task) {
+      if (!_isInit) {
+        return nullptr;
+      }
+      auto [iter, ins] = _queue.insert(std::make_shared<DerivedTask>(std::move(task)));
+      return *iter;
+    }
+
+    // Erase render task from queue, assuming a pointer for access is available
+    void erase(Pointer ptr) {
+      if (!_isInit) {
+        return;
+      }
+
+      if (auto i = _queue.find(ptr); i != _queue.end()) {
+        _queue.erase(i);
+      }
+    }
+
+    // Getters
+    bool isInit() const { return _isInit; }
+    Queue queue() { return _queue; }
+
+  private:
+    // Hidden constr/destr
+    RenderQueue();
+    ~RenderQueue();
+    
+    // State
+    bool _isInit;
+    Queue _queue;
+  };
+} // dh::vis
