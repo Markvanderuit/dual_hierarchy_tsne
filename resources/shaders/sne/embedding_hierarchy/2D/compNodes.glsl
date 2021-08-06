@@ -55,7 +55,6 @@ layout(binding = 3, std430) restrict buffer Bound { Bounds bounds; };
 // Uniforms
 layout(location = 0) uniform uint rangeBegin;
 layout(location = 1) uniform uint rangeEnd;
-layout(location = 2) uniform uint lvl;
 
 // Shared memory
 const uint groupSize = gl_WorkGroupSize.x;
@@ -111,41 +110,6 @@ Node reduce(Node l, Node r, uint idx) {
 
   return Node(vec4(center, 0, mass), vec4(diam, 0, begin), minb);
 }
-
-// Quadtree version
-/* Node reduce(Node l, Node r, uint idx) {
-  // Determine node level
-  uint lvl = 0;
-  {
-    uint _i = idx;
-    do { lvl++; } while ((_i = (_i - 1) >> BVH_LOGK_2D) > 0);
-  }
-
-  // Quadtree implicit bounding boxes
-  const uvec2 cpos = decode(idx - (0x2AAAAAAAu >> (31u - BVH_LOGK_2D * lvl)));
-  vec2 diam = bounds.range / vec2(1u << lvl);
-  vec2 minb = bounds.min + diam * vec2(cpos);
-
-  if (r.node0.w == 0 && l.node0.w != 0) {
-    l.minb = minb;
-    l.node1.xy = diam;
-    return l;
-  } else if (l.node0.w == 0 && r.node0.w != 0) {
-    r.minb = minb;
-    r.node1.xy = diam;
-    return r;
-  } else if (l.node0.w == 0 && r.node0.w == 0) {
-    return Node(vec4(0), vec4(0), vec2(0));
-  }
-
-  // Center of mass
-  float mass = l.node0.w + r.node0.w;
-  float begin = min(l.node1.w, r.node1.w);
-  vec2 center = (l.node0.xy * l.node0.w + r.node0.xy * r.node0.w)
-                / mass;
-
-  return Node(vec4(center, 0, mass), vec4(diam, 0, begin), minb);
-} */
 
 void main() {
   const uint i = rangeBegin 

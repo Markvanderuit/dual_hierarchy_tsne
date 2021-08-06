@@ -53,9 +53,6 @@ layout(binding = 4, std430) restrict readonly buffer Leaf { uint leafBuffer[]; }
 layout(binding = 5, std430) restrict readonly buffer Head { uint leafHead; };
 layout(binding = 6, std430) restrict readonly buffer Bound { Bounds bounds; };
 
-// Uniforms
-layout(location = 0) uniform uint nNodes;
-
 Node read(uint i) {
   // If node has no mass, return early with empty node
   vec4 node0 = node0Buffer[i];
