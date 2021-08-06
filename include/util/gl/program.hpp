@@ -71,12 +71,21 @@ namespace dh::util {
     void uniform(const std::string& s, T t);
     
   private:
-    // Cache uniform locations in an unordered map for lookup
-    int location(const std::string& s);
-    std::unordered_map<std::string, int> _locations;
-
-    // Program and shader object handles
+    // State
     GLuint _handle;
     std::vector<GLuint> _shaderHandles;
+    std::unordered_map<std::string, int> _locations;
+  
+    // Cache uniform locations in an unordered map for lookup
+    int location(const std::string& s);
+
+  public:
+    // std::swap impl
+    friend void swap(GLProgram& a, GLProgram& b) noexcept {
+      using std::swap;
+      swap(a._handle, b._handle);
+      swap(a._shaderHandles, b._shaderHandles);
+      swap(a._locations, b._locations);
+    }
   };
 } // dh

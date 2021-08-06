@@ -24,7 +24,8 @@
 
 #include <iomanip>
 #include <sstream>
-#include <glm/glm.hpp>
+#include "aligned.hpp"
+#include <glm/gtc/type_ptr.hpp>
 #include "aligned.hpp"
 #include "util/gl/error.hpp"
 #include "util/gl/program.hpp"
@@ -79,13 +80,6 @@ namespace dh::util {
   GLProgram& GLProgram::operator=(GLProgram&& other) noexcept {
     swap(*this, other);
     return *this;
-  }
-
-  void swap(GLProgram& a, GLProgram& b) noexcept {
-    using std::swap;
-    swap(a._handle, b._handle);
-    swap(a._shaderHandles, b._shaderHandles);
-    swap(a._locations, b._locations);
   }
 
   void GLProgram::addShader(GLShaderType type, const std::string& src) {
@@ -164,19 +158,20 @@ namespace dh::util {
       glDetachShader(_handle,  handle);
       glDeleteShader(handle);
     }
+    
     _shaderHandles.clear();
+    
+    glAssert();
   }
 
   int GLProgram::location(const std::string& s) {
     int i;
     auto f = _locations.find(s);
     if (f == _locations.end()) {
-      i = glGetUniformLocation(_handle, s.data());
-
-      // Assert that uniform does exist
-      if (i == -1) {
-        throw RuntimeError("Uniform location " + s + " not found");
-      }
+      i = glGetUniformLocation(_handle, s.c_str());
+      glAssert();
+      runtimeAssert(i != -1, "Uniform location " + s + " does not exist");
+      
 
       _locations[s] = i;
     } else {
@@ -188,6 +183,7 @@ namespace dh::util {
 
   void GLProgram::bind() {
     glUseProgram(_handle);
+    glAssert();
   }
 
   // Template specializations for base types
@@ -195,6 +191,9 @@ namespace dh::util {
   template <> void GLProgram::uniform<uint>(const std::string& s, uint v) { glProgramUniform1ui(_handle, location(s), v); }
   template <> void GLProgram::uniform<int>(const std::string& s, int v) { glProgramUniform1i(_handle, location(s), v); }
   template <> void GLProgram::uniform<float>(const std::string& s, float v) {  glProgramUniform1f(_handle, location(s), v); }
+
+  // Matrix specializations
+  template <> void GLProgram::uniform<glm::mat4>(const std::string& s, glm::mat4 v) { glProgramUniformMatrix4fv(_handle, location(s), 1, GL_FALSE, glm::value_ptr(v)); }
 
   // Template specializations for glm::vec<2, *> types
   template <> void GLProgram::uniform<glm::bvec2>(const std::string& s, glm::bvec2 v) { glProgramUniform2ui(_handle, location(s), v.x, v.y); }
@@ -225,7 +224,4 @@ namespace dh::util {
   template <> void GLProgram::uniform<AlignedVec<4, uint>>(const std::string& s, AlignedVec<4, uint> v) { glProgramUniform4ui(_handle, location(s), v.x, v.y, v.z, v.w); }
   template <> void GLProgram::uniform<AlignedVec<4, int>>(const std::string& s, AlignedVec<4, int> v) { glProgramUniform4i(_handle, location(s), v.x, v.y, v.z, v.w); }
   template <> void GLProgram::uniform<AlignedVec<4, float>>(const std::string& s, AlignedVec<4, float> v) { glProgramUniform4f(_handle, location(s), v.x, v.y, v.z, v.w); }
-
-  // Other specializations
-  template <> void GLProgram::uniform<glm::mat4>(const std::string& s, glm::mat4 v) { glProgramUniformMatrix4fv(_handle, location(s), 1, GL_FALSE, &v[0][0]); }
 }
