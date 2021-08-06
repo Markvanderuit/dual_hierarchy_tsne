@@ -1,0 +1,72 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#version 460 core
+
+// Constants
+#define BVH_KNODE_2D 4
+#define BVH_LOGK_2D 2
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Buffer bindings
+layout(binding = 0, std430) restrict writeonly buffer Nod { uint nodeBuffer[]; };
+layout(binding = 1, std430) restrict readonly buffer Pixe { uvec3 pixelsBuffer[]; };
+
+// Uniforms
+layout(location = 0) uniform uint nPixels;
+layout(location = 1) uniform uint lvl;
+
+uint expandBits10(uint i) {
+  i = (i | (i << 16u)) & 0x030000FF;
+  i = (i | (i <<  8u)) & 0x0300F00F;
+  i = (i | (i <<  4u)) & 0x030C30C3;
+  i = (i | (i <<  2u)) & 0x09249249;
+  return i;
+}
+
+uint encode(uvec3 v) {
+  uint x = expandBits10(v.x);
+  uint y = expandBits10(v.y);
+  uint z = expandBits10(v.z);
+  return x | (y << 1) | (z << 2);
+}
+
+void main() {
+  // Check if invoc is within nr of selected pixels
+  uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+  if (i >= nPixels) {
+    return;
+  }
+
+  // Read pixel coordinates
+  const uvec3 px = pixelsBuffer[i];
+
+  // Address of pixel in hierarchy's leaf level
+  const uint offset = (0x24924924u >> (32u - BVH_LOGK_3D * lvl));
+  const uint j = offset + encode(px);
+
+  // Store node as leaf with address to self encoded within 30 msb
+  nodeBuffer[j] = (j << 2u) | 1u;
+}

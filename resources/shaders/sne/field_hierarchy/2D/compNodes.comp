@@ -1,0 +1,63 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#version 460 core
+
+#extension GL_KHR_shader_subgroup_clustered : require // subgroupClusteredAdd(...) support
+
+// Constants
+#define BVH_KNODE_2D 4
+#define BVH_LOGK_2D 2
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Buffer bindings
+layout(binding = 0, std430) restrict buffer Nod { uint nodeBuffer[]; };
+
+// Uniforms
+layout(location = 0) uniform uint lvl;
+
+void main() {
+  // Offset and range of addresses for current level
+  const uint offset = (0x2AAAAAAAu >> (31u - BVH_LOGK_2D * lvl));
+  const uint range = offset + (1u << (BVH_LOGK_2D * lvl));
+
+  // Check if invoc is in range of addresses
+  const uint i = offset + gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+  if (i >= range) {
+    return;
+  }
+
+  // Read in node mass per child and reduce to a single parent node
+  const uint child = nodeBuffer[i];
+  
+  // Least significant 2 bits form type, remaining 30 form leaf address to skip singleton chains
+  const uint type = min(3u, subgroupClusteredAdd(child & 3u, BVH_KNODE_2D)); // extract and add together types
+  const uint j = (type > 1u) ? 0u : subgroupClusteredAnd(child >> 2u, BVH_KNODE_2D); 
+
+  // Write parent node
+  if (gl_LocalInvocationID.x % BVH_KNODE_2D == 0) {
+    nodeBuffer[(i - 1) >> BVH_LOGK_2D] = (j << 2u) | type;
+  }
+}
