@@ -39,7 +39,7 @@ namespace dh::util {
   : _isInit(false), _n(n), _tempHandle(nullptr), _tempSize(0) {      
     // Set up temp memory
     cub::DeviceScan::InclusiveSum<uint *, uint *>(nullptr, _tempSize, nullptr, nullptr, _n);
-    cuAssert(cudaMalloc(&_tempHandle, _tempSize), "InclusiveScan::InclusiveScan");
+    cuAssert(cudaMalloc(&_tempHandle, _tempSize));
 
     // Set up OpenGL-CUDA interoperability
     _interopBuffers(BufferType::eInputBuffer) = CUGLInteropBuffer(inputBuffer, CUGLInteropType::eReadOnly);

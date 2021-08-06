@@ -43,12 +43,12 @@ namespace dh::util {
     const int msb = 30;
     const int lsb = msb - _bits;
     cub::DeviceRadixSort::SortPairs<uint, uint>(nullptr, _tempSize, nullptr, nullptr, nullptr, nullptr, _n, lsb, msb);
-    cuAssert(cudaMalloc(&_tempHandle, _tempSize), "KeySort::KeySort");
+    cuAssert(cudaMalloc(&_tempHandle, _tempSize));
 
     // Set up order memory to get a mapping of the sort
     std::vector<uint> order(_n);
     std::iota(order.begin(), order.end(), 0u);
-    cuAssert(cudaMalloc(&_orderHandle, order.size() * sizeof(uint)), "KeySort::KeySort");
+    cuAssert(cudaMalloc(&_orderHandle, order.size() * sizeof(uint)));
     cudaMemcpy(_orderHandle, order.data(), order.size() * sizeof(uint), cudaMemcpyHostToDevice);
 
     // Set up OpenGL-CUDA interoperability

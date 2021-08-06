@@ -70,7 +70,7 @@ namespace dh::util {
 
   namespace detail {
     inline
-    void runtimeAssertImpl(bool statement, const char* message, const char *file, int line) {
+    void runtimeAssertImpl(bool statement, const std::string& message, const char *file, int line) {
       if (!statement) {
         RuntimeError error(message);
         error.file = file;

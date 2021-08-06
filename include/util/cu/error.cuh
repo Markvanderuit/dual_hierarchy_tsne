@@ -30,7 +30,7 @@
 namespace dh::util {
   namespace detail {
     inline 
-    void cuAssertImpl(cudaError_t err, const char *msg, const char *file, int line) {
+    void cuAssertImpl(cudaError_t err, const char *file, int line) {
       if (err != cudaSuccess) {
         RuntimeError error("CUDA error");
         error.code = cudaGetErrorString(err);
@@ -43,4 +43,4 @@ namespace dh::util {
 } // dh::util
 
 // Simple CUDA assert with message, file name and line nr. attached. Throws RuntimeError
-#define cuAssert(error, message) dh::util::detail::cuAssertImpl(error, message, __FILE__, __LINE__);
+#define cuAssert(error) dh::util::detail::cuAssertImpl(error, __FILE__, __LINE__);

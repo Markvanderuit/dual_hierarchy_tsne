@@ -83,6 +83,19 @@ namespace dh::util {
     }
   }
 
+  template <class Logger, bool flush = false>
+  inline
+  void logString(Logger* ptr, const std::string& str, std::string &str2) {
+    if (ptr) {
+      std::stringstream ss;
+      ss << str << " : " << str2;
+      ptr->writeLine(ss.str());
+      if constexpr (flush) {
+        ptr->flush();
+      }
+    }
+  }
+
   template <class Logger, typename Duration = std::chrono::milliseconds, bool flush = false>
   inline
   void logTime(Logger* ptr, const std::string& str, Duration duration) {

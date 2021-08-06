@@ -49,7 +49,7 @@ namespace dh::util {
         flag = cudaGraphicsRegisterFlagsWriteDiscard;  
         break;
     };
-    cuAssert(cudaGraphicsGLRegisterBuffer(&_cuResource, _glHandle, flag), "CUGLInteropBuffer::CUGLInteropBuffer();");
+    cuAssert(cudaGraphicsGLRegisterBuffer(&_cuResource, _glHandle, flag));
     
     _isInit = true;
   }
@@ -59,7 +59,7 @@ namespace dh::util {
       if (_isMapped) {
         unmap();
       }
-      cuAssert(cudaGraphicsUnregisterResource(_cuResource), "CUGLInteropBuffer::~CUGLInteropBuffer();");
+      cuAssert(cudaGraphicsUnregisterResource(_cuResource));
     }
   }
 
@@ -85,8 +85,8 @@ namespace dh::util {
     if (_isMapped) {
       return;
     }
-    cuAssert(cudaGraphicsMapResources(1, &_cuResource), "CUGLInteropBuffer::map();");
-    cuAssert(cudaGraphicsResourceGetMappedPointer(&_cuHandle, nullptr, _cuResource), "CUGLInteropBuffer::map();");
+    cuAssert(cudaGraphicsMapResources(1, &_cuResource));
+    cuAssert(cudaGraphicsResourceGetMappedPointer(&_cuHandle, nullptr, _cuResource));
     _isMapped = true;
   }
 
@@ -94,7 +94,7 @@ namespace dh::util {
     if (!_isMapped) {
       return;
     }
-    cuAssert(cudaGraphicsUnmapResources(1, &_cuResource), "CUGLInteropBuffer::unmap();");
+    cuAssert(cudaGraphicsUnmapResources(1, &_cuResource));
     _isMapped = false;
   }
   
