@@ -44,7 +44,19 @@ target_link_libraries(sne PUBLIC util cub ResourceEmbed gpufaiss)
 target_include_directories(sne PUBLIC include)
 target_sources(sne PRIVATE ${shaders})
 
+# Specify vis library
+add_library_recurse(vis vis)
+target_compile_features(vis PRIVATE cxx_std_17)
+target_link_libraries(vis PUBLIC util sne ResourceEmbed)
+target_include_directories(vis PUBLIC include)
+target_sources(vis PRIVATE ${shaders})
+
+# Add sne_cmd demo executable
+add_executable(sne_cmd src/app/sne_cmd.cpp)
+target_compile_features(sne_cmd PRIVATE cxx_std_17)
+target_link_libraries(sne_cmd PRIVATE util sne vis)
+
 # Add test executable
 add_executable(foo src/app/foo.cpp)
 target_compile_features(foo PRIVATE cxx_std_17)
-target_link_libraries(foo PUBLIC util sne)
+target_link_libraries(foo PUBLIC util sne vis)
