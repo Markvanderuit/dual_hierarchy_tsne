@@ -47,9 +47,8 @@ layout(binding = 3, std430) restrict writeonly buffer Queue { uvec2 queueBuffer[
 layout(binding = 4, std430) restrict coherent buffer QHead { uint queueHead; }; 
 
 // Uniforms
-layout(location = 0) uniform uint nPos;      // nr of points
-layout(location = 1) uniform uint nLvls;     // Nr of tree levels
-layout(location = 2) uniform uvec2 textureSize;
+layout(location = 0) uniform uint nLvls;     // Nr of tree levels
+layout(location = 1) uniform uvec2 textureSize;
 
 // Constants
 #define BVH_KNODE_2D 4

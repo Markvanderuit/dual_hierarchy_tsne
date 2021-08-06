@@ -43,11 +43,10 @@ layout(binding = 5, std430) restrict readonly buffer QHead { uint queueHead; };
 layout(binding = 0, rgba32f) restrict writeonly uniform image2D fieldImage;
 
 // Uniforms
-layout(location = 0) uniform uint nPos;         // nr of points
-layout(location = 1) uniform uint nLvls;        // Nr of tree levels
-layout(location = 2) uniform float theta2;      // Squared approximation param
-layout(location = 3) uniform uvec2 textureSize; // Size of fields texture
-layout(location = 4) uniform bool doBhCrit;     // Use new Barnes-Hut criterion
+layout(location = 0) uniform uint nLvls;        // Nr of tree levels
+layout(location = 1) uniform float theta2;      // Squared approximation param
+layout(location = 2) uniform uvec2 textureSize; // Size of fields texture
+layout(location = 3) uniform bool doBhCrit;     // Use new Barnes-Hut criterion
 
 // Constants
 #define BVH_KNODE_2D 4

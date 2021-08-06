@@ -22,29 +22,6 @@
  * SOFTWARE.
  */
 
-#version 460 core
+#pragma once
 
-layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
-layout(binding = 0, std430) restrict readonly buffer Pos { vec2 Positions[]; };
-layout(binding = 1, std430) restrict writeonly buffer Val { vec3 Values[]; };
-layout(binding = 2, std430) restrict readonly buffer Bounds { 
-  vec2 minBounds;
-  vec2 maxBounds;
-  vec2 range;
-  vec2 invRange;
-};
-layout(location = 0) uniform uint num_points;
-layout(location = 1) uniform sampler2D fields_texture;
-
-void main() {
-  uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
-  if (i >= num_points) {
-    return;
-  }
-
-  // Map position of point to [0, 1]
-  vec2 position = (Positions[i] - minBounds) * invRange;
-
-  // Sample texture at mapped position
-  Values[i] = texture(fields_texture, position).xyz;
-}
+// ...
