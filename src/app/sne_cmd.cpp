@@ -31,7 +31,6 @@
 #include "util/timer.hpp"
 #include "util/gl/window.hpp"
 #include "vis/renderer.hpp"
-#include "vis/test_render_task.hpp"
 #include "sne/sne.hpp"
 
 using uint = unsigned;
