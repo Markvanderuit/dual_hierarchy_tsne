@@ -31,7 +31,7 @@
 #include "util/gl/error.hpp"
 #include "util/gl/metric.hpp"
 #include "sne/sne_minimization.hpp"
-#include "sne/sne_field_2d.hpp"
+#include "sne/field/field_2d.hpp"
 
 namespace dh::sne {
   // Constants
@@ -62,12 +62,12 @@ namespace dh::sne {
   }();
 
   // Constr/destr
-  SNEField2D::SNEField2D()
+  Field2D::Field2D()
   : _isInit(false), _logger(nullptr) {
     // ...
   }
 
-  SNEField2D::SNEField2D(SNEMinimizationBuffers minimization, SNEParams params, util::Logger* logger)
+  Field2D::Field2D(SNEMinimizationBuffers minimization, SNEParams params, util::Logger* logger)
   : _isInit(false),
     _minimization(minimization),
     _params(params),
@@ -76,14 +76,14 @@ namespace dh::sne {
     _size(0),
     _useEmbeddingHierarchy(params.singleHierarchyTheta > 0.0f),
     _useFieldHierarchy(params.dualHierarchyTheta > 0.0f) {
-    util::log(_logger, "[SNEField2D] Initializing...");
+    util::log(_logger, "[Field2D] Initializing...");
       
     // Data size
     const uint n = _params.n;
 
     // Initialize shader programs
     {
-      util::log(_logger, "[SNEField2D]   Creating shader programs");
+      util::log(_logger, "[Field2D]   Creating shader programs");
       
       _programs(ProgramType::eDispatch).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/dispatch.glsl"));
       _programs(ProgramType::eQueryField).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/queryField.glsl"));
@@ -106,7 +106,7 @@ namespace dh::sne {
 
     // Initialize buffer objects
     {
-      util::log(_logger, "[SNEField2D]   Creating buffer storage");
+      util::log(_logger, "[Field2D]   Creating buffer storage");
       
       glCreateBuffers(_buffers.size(), _buffers.data());
       glNamedBufferStorage(_buffers(BufferType::eDispatch), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
@@ -137,12 +137,12 @@ namespace dh::sne {
       
       // Report buffer storage size
       const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[SNEField2D]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+      util::logValue(_logger, "[Field2D]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
     }
 
     // Initialize other components
     {
-      util::log(_logger, "[SNEField2D]   Creating other components");
+      util::log(_logger, "[Field2D]   Creating other components");
       
       glCreateTextures(GL_TEXTURE_2D, _textures.size(), _textures.data());
       glCreateFramebuffers(1, &_stencilFBOHandle);
@@ -179,10 +179,10 @@ namespace dh::sne {
     }
 
     _isInit = true;
-    util::log(_logger, "[SNEField2D] Initialized");
+    util::log(_logger, "[Field2D] Initialized");
   }
 
-  SNEField2D::~SNEField2D() {
+  Field2D::~Field2D() {
     if (_isInit) {
       glDeleteBuffers(_buffers.size(), _buffers.data());
       glDeleteTextures(_textures.size(), _textures.data());
@@ -192,16 +192,16 @@ namespace dh::sne {
     }
   }
 
-  SNEField2D::SNEField2D(SNEField2D&& other) noexcept {
+  Field2D::Field2D(Field2D&& other) noexcept {
     swap(*this, other);
   }
 
-  SNEField2D& SNEField2D::operator=(SNEField2D&& other) noexcept {
+  Field2D& Field2D::operator=(Field2D&& other) noexcept {
     swap(*this, other);
     return *this;
   }
   
-  void SNEField2D::comp(uvec size, uint iteration) {
+  void Field2D::comp(uvec size, uint iteration) {
     // Resize field if necessary
     if (_size != size) {
       _size = size;
@@ -249,7 +249,7 @@ namespace dh::sne {
     }
   }
 
-  void SNEField2D::compResize(uint iteration) {
+  void Field2D::compResize(uint iteration) {
     _hierarchyRebuildIterations = 0;
 
     // (re-)create field texture
@@ -281,11 +281,11 @@ namespace dh::sne {
     glNamedBufferStorage(_buffers(BufferType::ePixelQueue), product(_size) * sizeof(uvec), nullptr, 0);
     glAssert();
 
-    util::logString(_logger, "[SNEField2D]   Resized field", dh::to_string(_size));
+    util::logString(_logger, "[Field2D]   Resized field", dh::to_string(_size));
   }
 
 
-  void SNEField2D::compCompact(uint iteration) {
+  void Field2D::compCompact(uint iteration) {
     auto &timer = _timers(TimerType::eCompCompact);
     timer.tick();
 
@@ -366,7 +366,7 @@ namespace dh::sne {
     glAssert();
   }
 
-  void SNEField2D::compFullField(uint iteration) {
+  void Field2D::compFullField(uint iteration) {
     auto& timer = _timers(TimerType::eCompField);
     timer.tick();
 
@@ -395,7 +395,7 @@ namespace dh::sne {
     glAssert();
   }
 
-  void SNEField2D::compSingleHierarchyField(uint iteration) {
+  void Field2D::compSingleHierarchyField(uint iteration) {
     auto& timer = _timers(TimerType::eCompField);
     timer.tick();
 
@@ -443,11 +443,11 @@ namespace dh::sne {
     glAssert();
   }
 
-  void SNEField2D::compDualHierarchyField(uint iteration) {
+  void Field2D::compDualHierarchyField(uint iteration) {
     // ...
   }
 
-  void SNEField2D::queryField(uint iteration) {
+  void Field2D::queryField(uint iteration) {
     auto& timer = _timers(TimerType::eQueryField);
     timer.tick();
 

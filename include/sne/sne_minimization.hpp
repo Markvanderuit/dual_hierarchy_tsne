@@ -24,17 +24,15 @@
 
 #pragma once
 
-#include <memory>
 #include "types.hpp"
 #include "aligned.hpp"
 #include "util/enum.hpp"
 #include "util/logger.hpp"
 #include "util/gl/timer.hpp"
 #include "util/gl/program.hpp"
-#include "vis/embedding_render_task.hpp"
 #include "sne/sne_params.hpp"
 #include "sne/sne_similarities.hpp"
-#include "sne/sne_field_2d.hpp"
+#include "sne/field/field_2d.hpp"
 #include "sne/buffers/sne_minimization_buffers.hpp"
 #include "sne/buffers/sne_similarities_buffers.hpp"
 
@@ -113,9 +111,7 @@ namespace dh::sne {
     util::EnumArray<TimerType, util::GLTimer> _timers;
 
     // Subcomponents
-    SNEField2D _field2D;
-    // vis::EmbeddingRenderTask<D> _embeddingRenderTask;
-    std::shared_ptr<vis::RenderTask> _embeddingRenderTask;
+    Field2D _field2D;
 
   public:
     // Getters
@@ -139,7 +135,6 @@ namespace dh::sne {
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);
       swap(a._field2D, b._field2D);
-      swap(a._embeddingRenderTask, b._embeddingRenderTask);
     }
   };
 } // dh::sne

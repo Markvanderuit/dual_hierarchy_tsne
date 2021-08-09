@@ -36,7 +36,7 @@
 #include "sne/buffers/sne_minimization_buffers.hpp"
 
 namespace dh::sne {
-  class SNEField2D {
+  class Field2D {
     // aligned types
     using Bounds = AlignedBounds<2>;
     using vec = AlignedVec<2, float>;
@@ -44,17 +44,17 @@ namespace dh::sne {
 
   public:
     // Constr/destr
-    SNEField2D();
-    SNEField2D(SNEMinimizationBuffers minimization, SNEParams params, util::Logger* logger = nullptr);
-    ~SNEField2D();
+    Field2D();
+    Field2D(SNEMinimizationBuffers minimization, SNEParams params, util::Logger* logger = nullptr);
+    ~Field2D();
 
     // Copy constr/assignment is explicitly deleted
-    SNEField2D(const SNEField2D&) = delete;
-    SNEField2D& operator=(const SNEField2D&) = delete;
+    Field2D(const Field2D&) = delete;
+    Field2D& operator=(const Field2D&) = delete;
 
     // Move constr/operator moves handles
-    SNEField2D(SNEField2D&&) noexcept;
-    SNEField2D& operator=(SNEField2D&&) noexcept;
+    Field2D(Field2D&&) noexcept;
+    Field2D& operator=(Field2D&&) noexcept;
 
     // Compute the field for a size (resolution) and iteration (determines technique)
     void comp(uvec size, uint iteration);
@@ -62,7 +62,7 @@ namespace dh::sne {
     bool isInit() const { return _isInit; }
 
   private:
-    // Functions called by SNEField2D::comp(uint);
+    // Functions called by Field2D::comp(uint);
     void compResize(uint iteration);
     void compCompact(uint iteration);
     void compFullField(uint iteration);
@@ -162,7 +162,7 @@ namespace dh::sne {
     EmbeddingHierarchy<2> _embeddingHierarchy;
 
   public:
-    friend void swap(SNEField2D& a, SNEField2D& b) noexcept {
+    friend void swap(Field2D& a, Field2D& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
       swap(a._minimization, b._minimization);
