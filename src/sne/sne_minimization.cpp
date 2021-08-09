@@ -29,6 +29,7 @@
 #include <resource_embed/resource_embed.hpp>
 #include "util/gl/error.hpp"
 #include "util/gl/metric.hpp"
+#include "vis/embedding_render_task.hpp"
 #include "sne/sne_minimization.hpp"
 
 namespace dh::sne {
@@ -133,7 +134,7 @@ namespace dh::sne {
 
     // Setup field subcomponent
     if constexpr (D == 2) {
-      _field2D = SNEField2D(buffers(), _params, _logger);
+      _field2D = Field2D(buffers(), _params, _logger);
     } else if constexpr (D == 3) {
       // ...
     }

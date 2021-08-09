@@ -34,39 +34,32 @@
 
 namespace dh::vis {
   class RenderTask {
-  private:
-    using Pointer = std::shared_ptr<RenderTask>;
-
   public:
     // Constr
     RenderTask(int priority = -1);
 
-    // Override and implement task to be performed
+    // Override and implement a render task to be performed by the renderer
     virtual void render(glm::mat4 transform, GLuint labelsHandle) = 0;
-
-    // Getters
-    int priority() const { return _priority; }
-
-    friend bool cmpRenderTask(const RenderTask * const a, const RenderTask * const b);
-
+    
   private:
     int _priority;
 
   public:
+    // Getters
+    int priority() const { return _priority; }
+
+    // Compare function for sortable insertion
+    using Pointer = std::shared_ptr<RenderTask>;
     friend bool cmp(const Pointer& a, const Pointer& b) {
       return a->priority() < b->priority() && a != b;
     }
-
+    
+    // std::swap impl
     friend void swap(RenderTask& a, RenderTask& b) noexcept {
       using std::swap;
       swap(a._priority, b._priority);
     }
   };
-
-  // inline
-  // bool cmpRenderTask2(const std::shared_ptr<RenderTask> a, const std::shared_ptr<RenderTask> b) {
-  //   return a->priority() < b->priority() && a != b;
-  // }
 
   class RenderQueue {
   private:
@@ -75,7 +68,9 @@ namespace dh::vis {
 
   public:
     // Accessor; there is one RenderQueue used by the vis library
-    // Ergo, RenderQueue is a singleton pattern
+    // Ergo, RenderQueue implements a singleton pattern, but
+    // with controllable initialization/destruction. It is not 
+    // functional for the sne lib until RenderQueue::instance().init() has been called.
     static RenderQueue& instance() {
       static RenderQueue instance;
       return instance;
