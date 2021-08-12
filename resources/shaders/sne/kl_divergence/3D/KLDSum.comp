@@ -1,0 +1,90 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#version 460 core
+
+struct Layout {
+  uint offset;
+  uint size;
+};
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+// Buffer bindings
+layout(binding = 0, std430) restrict readonly buffer Posi { vec3 posBuffer[]; };
+layout(binding = 1, std430) restrict readonly buffer SumQ { float sumQBuffer; };
+layout(binding = 2, std430) restrict readonly buffer Layo { Layout layoutsBuffer[]; };
+layout(binding = 3, std430) restrict readonly buffer Neig { uint neighboursBuffer[]; };
+layout(binding = 4, std430) restrict readonly buffer Simi { float similaritiesBuffer[]; };
+layout(binding = 5, std430) restrict writeonly buffer KLD { float klBuffer[]; };
+
+// Uniform values
+layout(location = 0) uniform uint nPoints;
+layout(location = 1) uniform uint begin;
+
+const uint groupSize = gl_WorkGroupSize.x;
+const uint halfGroupSize = groupSize / 2;
+shared float reductionArray[halfGroupSize];
+
+void main() {
+  const uint gid = begin + gl_WorkGroupID.x;
+  const uint lid = gl_LocalInvocationID.x;
+
+  // Load buffer data
+  float invSumQ = 1.0 / sumQBuffer;
+  vec3 pos = posBuffer[gid];
+  Layout l = layoutsBuffer[gid];
+
+  // Sum over nearest neighbours data with a full workgroup
+  float klc = 0.0;
+  for (uint k = l.offset + lid; k < l.offset + l.size; k += groupSize) {
+    const float p_ij = similaritiesBuffer[k] / (2.f * float(nPoints));
+    if (p_ij == 0.f) {
+      continue;
+    }
+    vec3 t = pos - posBuffer[neighboursBuffer[k]];
+    float q_ij = 1.0 / (1.0 + dot(t, t));
+    float v = p_ij / (q_ij * invSumQ);
+    klc += p_ij * log(v);
+  }
+
+  // Reduce add to a single value
+  if (lid >= halfGroupSize) {
+    reductionArray[lid - halfGroupSize] = klc;
+  }
+  barrier();
+  if (lid < halfGroupSize) {
+    reductionArray[lid] += klc;
+  }
+  for (uint i = halfGroupSize / 2; i > 1; i /= 2) {
+    barrier();
+    if (lid < i) {
+      reductionArray[lid] += reductionArray[lid + i];
+    }
+  }
+  barrier();
+  if (lid < 1) {
+    klBuffer[gid] = reductionArray[0] + reductionArray[1];
+  }
+}
