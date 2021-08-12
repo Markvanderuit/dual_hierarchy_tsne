@@ -208,7 +208,7 @@ namespace dh::sne {
       // Determine field texture size
       const vec range = bounds.range();
       const float ratio = (D == 2) ? _params.fieldScaling2D : _params.fieldScaling3D;
-      uvec size = dh::max(uvec(range * ratio), uvec(fieldMinSize));
+      uvec size = dh::util::max(uvec(range * ratio), uvec(fieldMinSize));
 
       // Size becomes nearest larger power of two
       size = uvec(glm::pow(2, glm::ceil(glm::log(static_cast<float>(size.x)) / glm::log(2.f))));

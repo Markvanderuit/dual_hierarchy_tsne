@@ -25,7 +25,7 @@
 #pragma once
 
 #include "dh/types.hpp"
-#include "dh/aligned.hpp"
+#include "dh/util/aligned.hpp"
 #include "dh/util/enum.hpp"
 #include "dh/util/logger.hpp"
 #include "dh/util/gl/program.hpp"
@@ -37,8 +37,8 @@ namespace dh::sne {
   template <uint D>
   class FieldHierarchy {
     // Aligned types
-    using vec = AlignedVec<D, float>;
-    using uvec = AlignedVec<D, uint>;
+    using vec = util::AlignedVec<D, float>;
+    using uvec = util::AlignedVec<D, uint>;
 
   public:
     // Wrapper class for hierarchy's layout data

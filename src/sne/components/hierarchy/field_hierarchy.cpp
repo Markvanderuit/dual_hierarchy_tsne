@@ -114,7 +114,7 @@ namespace dh::sne {
       util::log(_logger, "[FieldHierarchy]   Expanding field hierarchy");
 
       // Compute new layout as nearest larger power of two
-      const uvec newSize = uvec(dh::max(vec(glm::pow(vec(2), glm::ceil(glm::log(vec(_compLayout.size)) / vec(glm::log(2)))))));  
+      const uvec newSize = uvec(dh::util::max(vec(glm::pow(vec(2), glm::ceil(glm::log(vec(_compLayout.size)) / vec(glm::log(2)))))));  
       _constrLayout = Layout(newSize);
 
       // Re-allocate buffers

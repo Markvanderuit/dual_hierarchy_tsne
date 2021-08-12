@@ -25,7 +25,7 @@
 #pragma once
 
 #include "dh/vis/input_queue.hpp"
-#include "dh/aligned.hpp"
+#include "dh/util/aligned.hpp"
 
 namespace dh::vis {
   class TrackballInputTask : public InputTask {

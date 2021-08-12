@@ -29,7 +29,7 @@
 #include <set>
 #include <type_traits>
 #include "dh/types.hpp"
-#include "dh/aligned.hpp"
+#include "dh/util/aligned.hpp"
 
 namespace dh::vis {
   class RenderTask {

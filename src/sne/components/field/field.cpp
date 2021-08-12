@@ -160,12 +160,12 @@ namespace dh::sne {
   template Field<2>::Field(Field<2>&& other) noexcept;
   template Field<2>::~Field();
   template Field<2>& Field<2>::operator=(Field<2>&& other) noexcept;
-  template void Field<2>::comp(AlignedVec<2, uint> size, uint iteration);
+  template void Field<2>::comp(util::AlignedVec<2, uint> size, uint iteration);
   template void Field<2>::queryField();
   template Field<3>::Field();
   template Field<3>::Field(Field<3>&& other) noexcept;
   template Field<3>::~Field();
   template Field<3>& Field<3>::operator=(Field<3>&& other) noexcept;
-  template void Field<3>::comp(AlignedVec<3, uint> size, uint iteration);
+  template void Field<3>::comp(util::AlignedVec<3, uint> size, uint iteration);
   template void Field<3>::queryField();
 } // dh::sne

@@ -25,7 +25,7 @@
 #pragma once
 
 #include "dh/types.hpp"
-#include "dh/aligned.hpp"
+#include "dh/util/aligned.hpp"
 #include "dh/util/enum.hpp"
 #include "dh/util/logger.hpp"
 #include "dh/util/gl/timer.hpp"
@@ -39,9 +39,9 @@ namespace dh::sne {
   template <uint D>
   class Field {
     // aligned types
-    using Bounds = AlignedBounds<D>;
-    using vec = AlignedVec<D, float>;
-    using uvec = AlignedVec<D, uint>;
+    using Bounds = util::AlignedBounds<D>;
+    using vec = util::AlignedVec<D, float>;
+    using uvec = util::AlignedVec<D, uint>;
 
   public:
     // Constr/destr

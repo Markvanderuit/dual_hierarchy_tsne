@@ -37,7 +37,7 @@ namespace dh::sne {
   constexpr uint logk = 2;
   constexpr uint embeddingHierarchyInitLvl = 3;
   constexpr uint fieldHierarchyInitLvl = 3;
-  constexpr AlignedVec<2, uint> fieldSizePrealloc(256);
+  constexpr util::AlignedVec<2, uint> fieldSizePrealloc(256);
   constexpr uint inputQueueMinSize = 256 * 1024 * 1024;
   constexpr uint leafQueueMinSize = 128 * 1024 * 1024;
 
@@ -218,6 +218,6 @@ namespace dh::sne {
     glNamedBufferStorage(_buffers(BufferType::ePixelQueue), product(_size) * sizeof(uvec), nullptr, 0);
     glAssert();
 
-    util::logString(_logger, "[Field]   Resized field", dh::to_string(_size));
+    util::logString(_logger, "[Field]   Resized field", dh::util::to_string(_size));
   }
 } // dh::sne

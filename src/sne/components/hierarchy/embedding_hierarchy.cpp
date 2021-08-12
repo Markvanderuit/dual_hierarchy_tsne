@@ -79,7 +79,7 @@ namespace dh::sne {
       nodeData[0].w = _layout.nPos;
       glm::uvec4 head(0);
 
-      using vec = AlignedVec<D, float>;
+      using vec = util::AlignedVec<D, float>;
       glCreateBuffers(_buffers.size(), _buffers.data());
       glNamedBufferStorage(_buffers(BufferType::eDispatch), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
       glNamedBufferStorage(_buffers(BufferType::eMortonUnsorted), _layout.nPos * sizeof(uint), nullptr, 0);

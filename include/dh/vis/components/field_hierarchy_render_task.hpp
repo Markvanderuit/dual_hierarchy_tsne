@@ -25,7 +25,7 @@
 #pragma once
 
 #include "dh/types.hpp"
-#include "dh/aligned.hpp"
+#include "dh/util/aligned.hpp"
 #include "dh/util/enum.hpp"
 #include "dh/util/gl/program.hpp"
 #include "dh/sne/params.hpp"
@@ -35,7 +35,7 @@
 namespace dh::vis {
   template <uint D>
   class FieldHierarchyRenderTask : public RenderTask {
-    using vec = AlignedVec<D, float>;
+    using vec = util::AlignedVec<D, float>;
 
   public:
     FieldHierarchyRenderTask();

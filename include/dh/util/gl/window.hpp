@@ -25,7 +25,7 @@
 #pragma once
 
 #include <string>
-#include "dh/aligned.hpp"
+#include "dh/util/aligned.hpp"
 
 namespace dh::util {
   // Possible OpenGL profile requests
