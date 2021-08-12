@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <glad/glad.h>
 #include "dh/types.hpp"
 
 namespace dh::util {
@@ -69,30 +68,4 @@ namespace dh::util {
     GLuint _glHandle;
     void* _cuHandle;
   };
-
-  /* class CUInterop {
-  public:
-    CUInterop();
-    ~CUInterop();
-
-    void map();
-    void unmap();
-
-    bool isInit() const { return _isInit; }
-    bool isMapped() const { return _isMapped; }
-
-  private:
-    bool _isInit;
-    bool _isMapped;
-  };
-
-  class CUPairSorter : public CUInterop {
-  public:
-    void init();
-  };
-
-  class CUInclusiveScanner : public CUInterop {
-  public:
-    void init();
-  }; */
 } // dh::util

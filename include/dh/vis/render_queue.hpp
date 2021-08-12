@@ -28,7 +28,6 @@
 #include <utility>
 #include <set>
 #include <type_traits>
-#include <glad/glad.h>
 #include "dh/types.hpp"
 #include "dh/aligned.hpp"
 

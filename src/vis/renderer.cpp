@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <glad/glad.h>
 #include "dh/util/gl/error.hpp"
 #include "dh/vis/render_queue.hpp"
 #include "dh/vis/input_queue.hpp"

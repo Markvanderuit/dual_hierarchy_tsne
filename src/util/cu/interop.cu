@@ -23,10 +23,11 @@
  */
 
 #include <utility>
+#include <glad/glad.h>
 #include <cuda_runtime.h>
+#include <cuda_gl_interop.h> // late include due to <glad/glad.h>
 #include "dh/util/cu/error.cuh"
 #include "dh/util/cu/interop.cuh"
-#include <cuda_gl_interop.h> // late include due to <glad/glad.h>
 
 namespace dh::util {
   CUGLInteropBuffer::CUGLInteropBuffer()

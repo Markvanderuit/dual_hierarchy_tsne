@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <glad/glad.h>
+#include "dh/types.hpp"
 #include "dh/util/timer.hpp"
 
 namespace dh::util {
@@ -58,8 +58,8 @@ namespace dh::util {
 
   // Helper function to poll a number of timers
   inline
-  void glPollTimers(GLsizei n, GLTimer *timers) {
-    for (GLsizei i = 0; i < n; ++i) {
+  void glPollTimers(uint n, GLTimer *timers) {
+    for (uint i = 0; i < n; ++i) {
       timers[i].poll();
     }
   }

@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     std::vector<uint> labels;
     dh::util::readBinFile(inputFileName, data, labels, params.n, params.nHighDims, true);
 
-    // Create window and OpenGL context
+    // Create window (and OpenGL context)
     dh::util::GLWindowInfo info;
     {
       // if only c++20's 'using enum' was a thing already

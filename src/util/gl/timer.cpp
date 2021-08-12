@@ -23,6 +23,7 @@
  */
 
 #include <utility>
+#include <glad/glad.h>
 #include "dh/util/gl/timer.hpp"
 
 namespace dh::util {

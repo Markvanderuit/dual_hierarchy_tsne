@@ -24,6 +24,7 @@
 
 #include <array>
 #include <resource_embed/resource_embed.hpp>
+#include <glad/glad.h>
 #include "dh/util/gl/error.hpp"
 #include "dh/vis/embedding_render_task.hpp"
 

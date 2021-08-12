@@ -27,7 +27,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include "dh/types.hpp"
 #include "dh/util/gl/window.hpp"

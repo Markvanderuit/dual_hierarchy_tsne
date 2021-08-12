@@ -25,7 +25,6 @@
 #pragma once
 
 #include <utility>
-#include <glad/glad.h>
 #include "dh/types.hpp"
 #include "dh/aligned.hpp"
 #include "dh/util/enum.hpp"
