@@ -24,117 +24,97 @@
 
 #pragma once
 
+#include <vector>
 #include "types.hpp"
-#include "aligned.hpp"
 #include "util/enum.hpp"
 #include "util/logger.hpp"
 #include "util/gl/timer.hpp"
 #include "util/gl/program.hpp"
-#include "sne/sne_params.hpp"
-#include "sne/sne_similarities.hpp"
-#include "sne/field/field_2d.hpp"
-#include "sne/buffers/sne_minimization_buffers.hpp"
-#include "sne/buffers/sne_similarities_buffers.hpp"
+#include "util/cu/timer.cuh"
+#include "sne/params.hpp"
+#include "sne/components/buffers.hpp"
 
 namespace dh::sne {
   template <uint D> // Dimension of produced embedding
-  class SNEMinimization {
-    // aligned types
-    using Bounds = AlignedBounds<D>;
-    using vec = AlignedVec<D, float>;
-    using uvec = AlignedVec<D, uint>;
-
+  class Similarities {
   public:
     // Constr/destr
-    SNEMinimization();
-    SNEMinimization(SNESimilaritiesBuffers similarities, SNEParams params, util::Logger* logger = nullptr);  
-    ~SNEMinimization(); 
+    Similarities();
+    Similarities(const std::vector<float>& data, Params params, util::Logger* logger = nullptr);
+    ~Similarities();
 
     // Copy constr/assignment is explicitly deleted
-    SNEMinimization(const SNEMinimization&) = delete;
-    SNEMinimization& operator=(const SNEMinimization&) = delete;
+    Similarities(const Similarities&) = delete;
+    Similarities& operator=(const Similarities&) = delete;
 
     // Move constr/operator moves handles
-    SNEMinimization(SNEMinimization&&) noexcept;
-    SNEMinimization& operator=(SNEMinimization&&) noexcept;
+    Similarities(Similarities&&) noexcept;
+    Similarities& operator=(Similarities&&) noexcept;
 
-    // Compute a step of minimization
-    void comp(uint iteration);
+    // Compute similarities
+    void comp();
 
   private:
     enum class BufferType {
-      eEmbedding,
-      eBounds,
-      eBoundsReduce,
-      eZ,
-      eZReduce,
-      eField,
-      eAttractive,
-      eGradients,
-      ePrevGradients,
-      eGain,
-
+      eSimilarities,
+      eLayout,
+      eNeighbors,
+      
       Length
     };
 
     enum class ProgramType {
-      eCompBounds,
-      eCompZ,
-      eCompAttractive,
-      eCompGradients,
-      eUpdateEmbedding,
-      eCenterEmbedding,
-
+      eSimilaritiesComp,
+      eExpandComp,
+      eLayoutComp,
+      eNeighborsComp,
+      
       Length
     };
 
     enum class TimerType {
-      eCompBounds,
-      eCompZ,
-      eCompAttractive,
-      eCompGradients,
-      eUpdateEmbedding,
-      eCenterEmbedding,
-
+      eSimilaritiesComp,
+      eExpandComp,
+      eLayoutComp,
+      eNeighborsComp,
+      
       Length
     };
 
     // State
     bool _isInit;
-    SNEParams _params;
+    Params _params;
+    const float* _dataPtr;
     util::Logger* _logger;
-    SNESimilaritiesBuffers _similarities;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
     util::EnumArray<ProgramType, util::GLProgram> _programs;
     util::EnumArray<TimerType, util::GLTimer> _timers;
-
-    // Subcomponents
-    Field2D _field2D;
-
+    util::CUTimer _knnTimer;
+  
   public:
     // Getters
-    SNEMinimizationBuffers buffers() const {
+    SimilaritiesBuffers buffers() const {
       return {
-        _buffers(BufferType::eEmbedding),
-        _buffers(BufferType::eField),
-        _buffers(BufferType::eBounds),
+        _buffers(BufferType::eSimilarities),
+        _buffers(BufferType::eLayout),
+        _buffers(BufferType::eNeighbors),
       };
     }
     bool isInit() const { return _isInit; }
 
     // std::swap impl
-    friend void swap(SNEMinimization<D>& a, SNEMinimization<D>& b) noexcept {
+    friend void swap(Similarities<D>& a, Similarities<D>& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
       swap(a._params, b._params);
+      swap(a._dataPtr, b._dataPtr);
       swap(a._logger, b._logger);
-      swap(a._similarities, b._similarities);
       swap(a._buffers, b._buffers);
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);
-      swap(a._field2D, b._field2D);
+      swap(a._knnTimer, b._knnTimer);
     }
   };
 } // dh::sne
