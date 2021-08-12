@@ -4,6 +4,9 @@ build*/
 .vscode/
 imgui.ini
 
+# Prevent accidental inclusion of huge .bin files during development. Happened once too often
+*.bin
+
 # Prerequisites
 *.d
 
