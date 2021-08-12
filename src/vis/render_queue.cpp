@@ -25,7 +25,6 @@
 #include "vis/render_queue.hpp"
 
 namespace dh::vis {
-
   RenderTask::RenderTask(int priority)
   : _priority(priority) { }
 
@@ -33,7 +32,7 @@ namespace dh::vis {
     if (_isInit) {
       return;
     }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmp)>(cmp);
+    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
     _isInit = true;
   }
 
