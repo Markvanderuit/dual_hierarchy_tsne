@@ -25,7 +25,7 @@
 #pragma once
 
 #include <string>
-#include <glm/glm.hpp>
+#include "aligned.hpp"
 
 namespace dh::util {
   // Possible OpenGL profile requests
@@ -51,7 +51,7 @@ namespace dh::util {
    */
   struct GLWindowInfo {
     enum FlagBits {
-      bOffscreen = 1,  // Window is invisible for offscreen rendering
+      bOffscreen = 1,  // Window is invisible (for offscreen rendering, or to hide it initially)
       bDecorated = 2,  // Window is decorated with title bar
       bFloating = 4,   // Window floats above all other windows
       bFullscreen = 8, // Window becomes borderless full screen
@@ -93,10 +93,13 @@ namespace dh::util {
     void makeCurrent();
     void processEvents();
     void display();
-    void enableVsync(bool enabled);
+
+    // Window properties
+    void setVisible(bool enabled);
+    void setVsync(bool enabled);
+    void setTitle(const std::string &title);
 
     // Window handling
-    void setTitle(const std::string &title);
     bool isCurrent() const;
     bool canDisplay() const;
     bool isVisible() const;
@@ -106,7 +109,7 @@ namespace dh::util {
     // Static access
     static GLWindow *currentWindow();
 
-    // Simple window constructors
+    // Template window constructors
     static GLWindow Offscreen();
     static GLWindow Decorated();
     static GLWindow DecoratedResizable();

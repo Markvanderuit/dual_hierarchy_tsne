@@ -178,7 +178,18 @@ namespace dh::util {
     return _handle;
   }
 
-  void GLWindow::enableVsync(bool enabled) {
+  void GLWindow::setVisible(bool enabled) {
+    if (!isCurrent()) {
+      makeCurrent();
+    }
+    if (enabled) {
+      glfwShowWindow((GLFWwindow *) _handle);
+    } else {
+      glfwHideWindow((GLFWwindow *) _handle);
+    }
+  }
+
+  void GLWindow::setVsync(bool enabled) {
     if (!isCurrent()) {
       makeCurrent();
     }
