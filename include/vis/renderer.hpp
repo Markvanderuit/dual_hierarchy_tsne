@@ -24,19 +24,23 @@
 
 #pragma once
 
+#include <memory>
 #include <utility>
+#include <vector>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include "types.hpp"
 #include "util/gl/window.hpp"
-#include "sne/sne_params.hpp"
+#include "sne/params.hpp"
+#include "vis/trackball_input_task.hpp"
 
 namespace dh::vis {
+  template <uint D>
   class Renderer {
   public:
     // Constr/destr
     Renderer();
-    Renderer(const util::GLWindow& window, sne::SNEParams params);
+    Renderer(const util::GLWindow& window, sne::Params params, const std::vector<uint>& labels = {});
     ~Renderer();
 
     // Copy constr/assignment is explicitly deleted (no copying OpenGL handles)
@@ -53,7 +57,7 @@ namespace dh::vis {
   private:
     // State
     bool _isInit;
-    sne::SNEParams _params;
+    sne::Params _params;
     const util::GLWindow * _windowHandle;
     glm::ivec2 _fboSize;
 
@@ -63,9 +67,13 @@ namespace dh::vis {
     GLuint _fboColorTextureHandle;
     GLuint _fboDepthTextureHandle;
 
+    // Subcomponents
+    std::shared_ptr<vis::TrackballInputTask> _trackballInputTask;
+
   public:
     bool isInit() { return _isInit; }
 
+    // std::swap impl
     friend void swap(Renderer& a, Renderer& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
@@ -76,6 +84,7 @@ namespace dh::vis {
       swap(a._fboHandle, b._fboHandle);
       swap(a._fboColorTextureHandle, b._fboColorTextureHandle);
       swap(a._fboDepthTextureHandle, b._fboDepthTextureHandle);
+      swap(a._trackballInputTask, b._trackballInputTask);
     }
   };
 } // dh::vis

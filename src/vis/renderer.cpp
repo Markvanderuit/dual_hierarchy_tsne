@@ -22,37 +22,46 @@
  * SOFTWARE.
  */
 
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/transform.hpp>
 #include "util/gl/error.hpp"
 #include "vis/render_queue.hpp"
+#include "vis/input_queue.hpp"
 #include "vis/renderer.hpp"
 
 namespace dh::vis {
-  Renderer::Renderer()
+  template <uint D>
+  Renderer<D>::Renderer()
   : _isInit(false), _fboSize(0) { }
 
-  Renderer::Renderer(const util::GLWindow& window, sne::SNEParams params)
-  : _isInit(false), _params(params), _windowHandle(&window), _fboSize(0) {
+  template <uint D>
+  Renderer<D>::Renderer(const util::GLWindow& window, sne::Params params, const std::vector<uint>& labels)
+  : _isInit(false), _params(params), _windowHandle(&window), _labelsHandle(0), _fboSize(0) {
     
-    // Init static render queue so RenderTasks can be added by tSNE
-    auto& queue = RenderQueue::instance();
-    queue.init();
+    // Init static render queue/input queue so tasks can be added by the sne lib
+    InputQueue::instance().init(window);
+    RenderQueue::instance().init();
+
+    // Record trackball input task. Most 3d rendertasks need a transformation matrix
+    _trackballInputTask = std::make_shared<vis::TrackballInputTask>();
+    InputQueue::instance().insert(_trackballInputTask);
 
     // Init OpenGL objects: framebuffer, color and depth textures, label buffer
     glCreateFramebuffers(1, &_fboHandle);
     glCreateTextures(GL_TEXTURE_2D, 1, &_fboColorTextureHandle);
     glCreateTextures(GL_TEXTURE_2D, 1, &_fboDepthTextureHandle);
-    glCreateBuffers(1, &_labelsHandle);
+    if (labels.size() > 0) {
+      glCreateBuffers(1, &_labelsHandle);
+      glNamedBufferStorage(_labelsHandle, labels.size() * sizeof(uint), labels.data(), 0);    
+    }
     glAssert();
     
     _isInit = true;
   }
 
-  Renderer::~Renderer() {
+  template <uint D>
+  Renderer<D>::~Renderer() {
     if (_isInit) {
-      auto& queue = RenderQueue::instance();
-      queue.dstr();      
+      RenderQueue::instance().dstr();      
+      InputQueue::instance().dstr();      
       glDeleteTextures(1, &_fboColorTextureHandle);
       glDeleteTextures(1, &_fboDepthTextureHandle);
       glDeleteFramebuffers(1, &_fboHandle);
@@ -61,16 +70,19 @@ namespace dh::vis {
     }
   }
 
-  Renderer::Renderer(Renderer&& other) noexcept {
+  template <uint D>
+  Renderer<D>::Renderer(Renderer<D>&& other) noexcept {
     swap(*this, other);
   }
 
-  Renderer& Renderer::operator=(Renderer&& other) noexcept {
+  template <uint D>
+  Renderer<D>& Renderer<D>::operator=(Renderer<D>&& other) noexcept {
     swap(*this, other);
     return *this;
   }
 
-  void Renderer::render() {
+  template <uint D>
+  void Renderer<D>::render() {
     // Recreate framebuffer if window size has changed
     if (glm::ivec2 fboSize = _windowHandle->size(); _fboSize != fboSize) {
       _fboSize = fboSize;
@@ -87,15 +99,20 @@ namespace dh::vis {
       glAssert();
     }
 
-    // Render transformation matrix; 3d depends on a trackball impl
-    glm::mat4 transform;
-    if (_params.nLowDims == 3) {
-      // TODO ...
-    } else if (_params.nLowDims == 2) {
-      // TODO set to sensible values
+    // Process all tasks in input queue
+    for (auto& ptr : InputQueue::instance().queue()) {
+      ptr->process();
+    }
+
+    // Model/view/proj matrices. 3D view matrix is provided by trackball
+    glm::mat4 proj, model_view;
+    if constexpr (D == 3) {
+      model_view = _trackballInputTask->matrix() * glm::translate(glm::vec3(-0.5f, -0.5f, -0.5f));
+      proj = glm::perspectiveFov(0.5f, (float) _fboSize.x, (float) _fboSize.y, 0.0001f, 1000.f);
+    } else if constexpr (D == 2) {
       // Center on screen
-      transform = glm::scale(glm::vec3(1.66, 1.66, 1))
-                * glm::translate(glm::vec3(-0.5f, -0.5f, -0.5f));
+      model_view = glm::translate(glm::vec3(-0.5f, -0.5f, -1.0f));
+      proj = glm::infinitePerspective(1.0f, (float) _fboSize.x / (float) _fboSize.y, 0.0001f);
     }
 
     // Set viewport
@@ -116,9 +133,8 @@ namespace dh::vis {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
     
-    // Process all tasks in render queue
     for (auto& ptr : RenderQueue::instance().queue()) {
-      ptr->render(transform, _labelsHandle);
+      ptr->render(model_view, proj, _labelsHandle);
     }
 
     // Blit to default framebuffer
@@ -129,4 +145,8 @@ namespace dh::vis {
       GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST  
     );
   }
+
+  // Template instantiations for 2/3 dimensions
+  template class Renderer<2>;
+  template class Renderer<3>;
 } // dh::vis
