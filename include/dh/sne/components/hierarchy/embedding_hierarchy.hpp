@@ -28,9 +28,9 @@
 #include "dh/aligned.hpp"
 #include "dh/util/enum.hpp"
 #include "dh/util/logger.hpp"
-#include "dh/util/key_sort.cuh"
 #include "dh/util/gl/program.hpp"
 #include "dh/util/gl/timer.hpp"
+#include "dh/util/cu/key_sort.cuh"
 #include "dh/sne/params.hpp"
 #include "dh/sne/components/buffers.hpp"
 

@@ -25,9 +25,9 @@
 #include <faiss/gpu/StandardGpuResources.h>
 #include <faiss/gpu/GpuIndexIVFFlat.h>
 #include <resource_embed/resource_embed.hpp>
-#include "dh/util/inclusive_scan.cuh"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
+#include "dh/util/cu/inclusive_scan.cuh"
 #include "dh/sne/components/similarities.hpp"
 
 namespace dh::sne {

@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <utility>
 #include "dh/types.hpp"
 #include "dh/aligned.hpp"
 #include "dh/util/enum.hpp"

@@ -26,7 +26,7 @@
 #include <resource_embed/resource_embed.hpp>
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
-#include "dh/vis/embedding_hierarchy_render_task.hpp"
+#include "dh/vis/components/embedding_hierarchy_render_task.hpp"
 #include "dh/sne/components/hierarchy/embedding_hierarchy.hpp"
 
 namespace dh::sne {
@@ -113,7 +113,6 @@ namespace dh::sne {
     // Setup render task
     if (auto& queue = vis::RenderQueue::instance(); queue.isInit()) {
       queue.emplace(vis::EmbeddingHierarchyRenderTask<D>(_minimization, buffers(), _params, 1));
-      // queue.emplace(vis::EmbeddingRenderTask<D>(buffers(), _params, 0));
     }
 
     _isInit = true;

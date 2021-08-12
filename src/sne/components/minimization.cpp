@@ -29,7 +29,7 @@
 #include <resource_embed/resource_embed.hpp>
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
-#include "dh/vis/embedding_render_task.hpp"
+#include "dh/vis/components/embedding_render_task.hpp"
 #include "dh/sne/components/minimization.hpp"
 
 namespace dh::sne {
