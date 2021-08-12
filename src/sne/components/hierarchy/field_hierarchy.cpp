@@ -26,6 +26,7 @@
 #include <resource_embed/resource_embed.hpp>
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
+#include "dh/vis/components/field_hierarchy_render_task.hpp"
 #include "dh/sne/components/hierarchy/field_hierarchy.hpp"
 
 namespace dh::sne {
@@ -70,6 +71,11 @@ namespace dh::sne {
       // Report buffer storage size
       const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
       util::logValue(_logger, "[FieldHierarchy]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+    }
+
+    // Setup render task
+    if (auto& queue = vis::RenderQueue::instance(); queue.isInit()) {
+      queue.emplace(vis::FieldHierarchyRenderTask<D>(buffers(), _params, 2));
     }
 
     _isInit = true;
