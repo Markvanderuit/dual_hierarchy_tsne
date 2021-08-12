@@ -30,43 +30,43 @@
 #include "util/gl/error.hpp"
 #include "util/gl/metric.hpp"
 #include "vis/embedding_render_task.hpp"
-#include "sne/sne_minimization.hpp"
+#include "sne/components/minimization.hpp"
 
 namespace dh::sne {
   constexpr uint fieldMinSize = 5;
 
   template <uint D>
-  SNEMinimization<D>::SNEMinimization()
+  Minimization<D>::Minimization()
   : _isInit(false), _logger(nullptr) {
     // ...
   }
 
   template <uint D>
-  SNEMinimization<D>::SNEMinimization(SNESimilaritiesBuffers similarities, SNEParams params, util::Logger* logger)
+  Minimization<D>::Minimization(SimilaritiesBuffers similarities, Params params, util::Logger* logger)
   : _isInit(false), _similarities(similarities), _params(params), _logger(logger) {
-    util::log(_logger, "[SNEMinimization] Initializing...");
+    util::log(_logger, "[Minimization] Initializing...");
 
     // Data size
     const uint n = _params.n;
 
     // Initialize shader programs
     {
-      util::log(_logger, "[SNEMinimization]   Creating shader programs");
+      util::log(_logger, "[Minimization]   Creating shader programs");
       
       if constexpr (D == 2) {
-        _programs(ProgramType::eCompBounds).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/compBounds.glsl"));
-        _programs(ProgramType::eCompZ).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/compZ.glsl"));
-        _programs(ProgramType::eCompAttractive).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/compAttractive.glsl"));
-        _programs(ProgramType::eCompGradients).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/compGradients.glsl"));
-        _programs(ProgramType::eUpdateEmbedding).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/updateEmbedding.glsl"));
-        _programs(ProgramType::eCenterEmbedding).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/centerEmbedding.glsl"));
+        _programs(ProgramType::eBoundsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/bounds.comp"));
+        _programs(ProgramType::eZComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/Z.comp"));
+        _programs(ProgramType::eAttractiveComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/attractive.comp"));
+        _programs(ProgramType::eGradientsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/gradients.comp"));
+        _programs(ProgramType::eUpdateEmbeddingComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/updateEmbedding.comp"));
+        _programs(ProgramType::eCenterEmbeddingComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/centerEmbedding.comp"));
       } else if constexpr (D == 3) {
-        _programs(ProgramType::eCompBounds).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/compBounds.glsl"));
-        _programs(ProgramType::eCompZ).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/compZ.glsl"));
-        _programs(ProgramType::eCompAttractive).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/compAttractive.glsl"));
-        _programs(ProgramType::eCompGradients).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/compGradients.glsl"));
-        _programs(ProgramType::eUpdateEmbedding).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/updateEmbedding.glsl"));
-        _programs(ProgramType::eCenterEmbedding).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/centerEmbedding.glsl"));
+        _programs(ProgramType::eBoundsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/bounds.comp"));
+        _programs(ProgramType::eZComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/Z.comp"));
+        _programs(ProgramType::eAttractiveComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/attractive.comp"));
+        _programs(ProgramType::eGradientsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/gradients.comp"));
+        _programs(ProgramType::eUpdateEmbeddingComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/updateEmbedding.comp"));
+        _programs(ProgramType::eCenterEmbeddingComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/3D/centerEmbedding.comp"));
       }
       
       for (auto& program : _programs) {
@@ -77,7 +77,7 @@ namespace dh::sne {
 
     // Initialize buffer objects
     {
-      util::log(_logger, "[SNEMinimization]   Creating buffer storage");
+      util::log(_logger, "[Minimization]   Creating buffer storage");
       
       const std::vector<vec> zeroes(n, vec(0));
       const std::vector<vec> ones(n, vec(1));
@@ -97,14 +97,14 @@ namespace dh::sne {
 
       // Report buffer storage size
       const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[SNEMinimization]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+      util::logValue(_logger, "[Minimization]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
     }
 
     // Generate randomized embedding data
     // Basically a copy of what BH-SNE used
     // TODO: look at CUDA-tSNE, which has several options available for initialization
     {
-      util::log(_logger, "[SNEMinimization]   Creating randomized embedding");
+      util::log(_logger, "[Minimization]   Creating randomized embedding");
 
       // Seed the (bad) rng
       std::srand(_params.seed);
@@ -133,23 +133,19 @@ namespace dh::sne {
     }
 
     // Setup field subcomponent
-    if constexpr (D == 2) {
-      _field2D = Field2D(buffers(), _params, _logger);
-    } else if constexpr (D == 3) {
-      // ...
-    }
+    _field = Field<D>(buffers(), _params, _logger);
 
     // Setup render task
     if (auto& queue = vis::RenderQueue::instance(); queue.isInit()) {
-      queue.insert(vis::EmbeddingRenderTask<D>(buffers(), _params, 0));
+      queue.emplace(vis::EmbeddingRenderTask<D>(buffers(), _params, 0));
     }
 
     _isInit = true;
-    util::log(_logger, "[SNEMinimization] Initialized");
+    util::log(_logger, "[Minimization] Initialized");
   }
 
   template <uint D>
-  SNEMinimization<D>::~SNEMinimization() {
+  Minimization<D>::~Minimization() {
     if (_isInit) {
       glDeleteBuffers(_buffers.size(), _buffers.data());
       _isInit = false;
@@ -157,28 +153,28 @@ namespace dh::sne {
   }
 
   template <uint D>
-  SNEMinimization<D>::SNEMinimization(SNEMinimization<D>&& other) noexcept {
+  Minimization<D>::Minimization(Minimization<D>&& other) noexcept {
     swap(*this, other);
   }
 
   template <uint D>
-  SNEMinimization<D>& SNEMinimization<D>::operator=(SNEMinimization<D>&& other) noexcept {
+  Minimization<D>& Minimization<D>::operator=(Minimization<D>&& other) noexcept {
     swap(*this, other);
     return *this;
   }
 
   template <uint D>
-  void SNEMinimization<D>::comp(uint iteration) {
+  void Minimization<D>::comp(uint iteration) {
     // Data size is used a lot
     const uint n = _params.n;
 
     // 1.
     // Compute embedding bounds
     {
-      auto& timer = _timers(TimerType::eCompBounds);
+      auto& timer = _timers(TimerType::eBoundsComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eCompBounds);
+      auto& program = _programs(ProgramType::eBoundsComp);
       program.bind();
 
       // Set uniforms
@@ -213,23 +209,21 @@ namespace dh::sne {
       const vec range = bounds.range();
       const float ratio = (D == 2) ? _params.fieldScaling2D : _params.fieldScaling3D;
       uvec size = dh::max(uvec(range * ratio), uvec(fieldMinSize));
+
+      // Size becomes nearest larger power of two
       size = uvec(glm::pow(2, glm::ceil(glm::log(static_cast<float>(size.x)) / glm::log(2.f))));
 
       // Delegate to subclass
-      if constexpr (D == 2) {
-        _field2D.comp(size, iteration);
-      } else if constexpr (D == 3) {
-        // ...
-      }
+      _field.comp(size, iteration);
     }
 
     // 3.
-    // Compute Z, ergo a sum over q_{ij}
+    // Compute Z, ergo a reduction over q_{ij}
     {
-      auto& timer = _timers(TimerType::eCompZ);
+      auto& timer = _timers(TimerType::eZComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eCompZ);
+      auto& program = _programs(ProgramType::eZComp);
       program.bind();
 
       // Set uniforms
@@ -255,10 +249,10 @@ namespace dh::sne {
     // 4.
     // Compute attractive forces
     { 
-      auto& timer = _timers(TimerType::eCompAttractive);
+      auto& timer = _timers(TimerType::eAttractiveComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eCompAttractive);
+      auto& program = _programs(ProgramType::eAttractiveComp);
       program.bind();
 
       // Set uniforms
@@ -293,12 +287,12 @@ namespace dh::sne {
     }
 
     // 5.
-    // Compute gradient
+    // Compute gradients
     {
-      auto& timer = _timers(TimerType::eCompGradients);
+      auto& timer = _timers(TimerType::eGradientsComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eCompGradients);
+      auto& program = _programs(ProgramType::eGradientsComp);
       program.bind();
 
       // Set uniforms
@@ -327,10 +321,10 @@ namespace dh::sne {
     // 6.
     // Update embedding
     {
-      auto& timer = _timers(TimerType::eUpdateEmbedding);
+      auto& timer = _timers(TimerType::eUpdateEmbeddingComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eUpdateEmbedding);
+      auto& program = _programs(ProgramType::eUpdateEmbeddingComp);
       program.bind();
 
       // Set uniforms
@@ -364,10 +358,10 @@ namespace dh::sne {
         scaling = 0.1f / boundsRange.y; // TODO update for 3D
       }
       
-      auto& timer = _timers(TimerType::eCenterEmbedding);
+      auto& timer = _timers(TimerType::eCenterEmbeddingComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eCenterEmbedding);
+      auto& program = _programs(ProgramType::eCenterEmbeddingComp);
       program.bind();
 
       // Set uniforms
@@ -386,9 +380,18 @@ namespace dh::sne {
       timer.tock();
       glAssert();
     }
+
+    // TODO Remove debug
+    /* if (iteration == _params.iterations - 1) {
+      std::vector<vec> embedding(16);
+      glGetNamedBufferSubData(_buffers(BufferType::eEmbedding), 0, embedding.size() * sizeof(vec), embedding.data());
+      for (auto& v : embedding) {
+        std::cout << dh::to_string(v) << std::endl;
+      }
+    } */
   }
 
   // Template instantiations for 2/3 dimensions
-  template class SNEMinimization<2>;
-  template class SNEMinimization<3>;
+  template class Minimization<2>;
+  template class Minimization<3>;
 } // dh::sne
