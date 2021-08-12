@@ -24,18 +24,44 @@
 
 #version 460 core
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+struct Bounds {
+  vec3 min;
+  vec3 max;
+  vec3 range;
+  vec3 invRange;
+};
 
-  struct Dispatch {
-    uint num_groups_x;
-    uint num_groups_y;
-    uint num_groups_z;
-  };
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+layout(binding = 0, std430) restrict readonly buffer Posi { vec3 positions[]; };
+layout(binding = 1, std430) restrict readonly buffer Boun { Bounds bounds; };
+layout(binding = 2, std430) restrict writeonly buffer Mor { uint morton[]; };
+layout(location = 0) uniform uint nPoints;
 
-  layout(binding = 0, std430) restrict readonly buffer ValueBuffer { uint value; };
-  layout(binding = 1, std430) restrict writeonly buffer DispatchBu { Dispatch dispatch; };
-  layout(location = 0) uniform uint div;
+uint expandBits10(uint i)  {
+  i = (i * 0x00010001u) & 0xFF0000FFu;
+  i = (i * 0x00000101u) & 0x0F00F00Fu;
+  i = (i * 0x00000011u) & 0xC30C30C3u;
+  i = (i * 0x00000005u) & 0x49249249u;
+  return i;
+}
 
-  void main() {
-    dispatch = Dispatch((value + div - 1) / div, 1, 1);
+uint mortonCode(vec3 v) {
+  v = clamp(v * 1024.f, 0.f, 1023.f);
+  uint x = expandBits10(uint(v.x));
+  uint y = expandBits10(uint(v.y));
+  uint z = expandBits10(uint(v.z));
+  return x * 4u + y * 2u + z;
+}
+
+void main() {
+  uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+  if (i >= nPoints) {
+    return;
   }
+
+  // Normalize position to [0, 1]
+  vec3 pos = (positions[i] - bounds.min) * bounds.invRange;
+  
+  // Compute and store morton code
+  morton[i] = mortonCode(pos);
+}

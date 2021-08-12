@@ -26,13 +26,9 @@
 #include <resource_embed/resource_embed.hpp>
 #include "util/gl/error.hpp"
 #include "util/gl/metric.hpp"
-#include "sne/hierarchy/field_hierarchy.hpp"
+#include "sne/components/hierarchy/field_hierarchy.hpp"
 
 namespace dh::sne {
-  // Constants
-  constexpr uint nodek = 4;
-  constexpr uint logk = 2;
-
   template <uint D>
   FieldHierarchy<D>::FieldHierarchy()
   : _isInit(false), _nRebuilds(0), _logger(nullptr) {
@@ -40,7 +36,7 @@ namespace dh::sne {
   }
 
   template <uint D>
-  FieldHierarchy<D>::FieldHierarchy(SNEFieldBuffers field, Layout constrLayout, SNEParams params, util::Logger* logger)
+  FieldHierarchy<D>::FieldHierarchy(FieldBuffers field, Layout constrLayout, Params params, util::Logger* logger)
   : _isInit(false), _nRebuilds(0), _field(field), _constrLayout(constrLayout), _params(params), _logger(logger) {
     util::log(_logger, "[FieldHierarchy] Initializing...");
 
@@ -49,11 +45,11 @@ namespace dh::sne {
       util::log(_logger, "[FieldHierarchy]   Creating shader programs");
 
       if constexpr (D == 2) {
-        _programs(ProgramType::eCompLeaves).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/compLeaves.comp"));
-        _programs(ProgramType::eCompNodes).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/compNodes.comp"));
+        _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/leaves.comp"));
+        _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/nodes.comp"));
       } else if constexpr (D == 3) {
-        _programs(ProgramType::eCompLeaves).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/3D/compLeaves.comp"));
-        _programs(ProgramType::eCompNodes).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/3D/compNodes.comp"));
+        _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/3D/leaves.comp"));
+        _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/3D/nodes.comp"));
       }
 
       for (auto& program : _programs) {
@@ -137,10 +133,10 @@ namespace dh::sne {
     // 2.
     // Compute leaf nodes. Essentially just fill in BufferType::eNode for used pixels
     if (rebuild) {
-      auto& timer = _timers(TimerType::eCompLeaves);
+      auto& timer = _timers(TimerType::eLeavesComp);
       timer.tick();
       
-      auto& program = _programs(ProgramType::eCompLeaves);
+      auto& program = _programs(ProgramType::eLeavesComp);
       program.bind();
 
       // Set uniforms
@@ -162,10 +158,14 @@ namespace dh::sne {
     // 3.
     // Compute rest of nodes. Do a reduction over hierarchy levels, filling in BufferType::eNode
     if (rebuild) {
-      auto& timer = _timers(TimerType::eCompNodes);
+      // Constants
+      constexpr uint nodek = (D == 2) ? 4 : 8;
+      constexpr uint logk = (D == 2) ? 2 : 3;
+
+      auto& timer = _timers(TimerType::eNodesComp);
       timer.tick();
       
-      auto& program = _programs(ProgramType::eCompNodes);
+      auto& program = _programs(ProgramType::eNodesComp);
       program.bind();
       
       // Set buffer bindings

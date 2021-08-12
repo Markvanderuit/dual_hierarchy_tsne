@@ -23,12 +23,11 @@
  */
 
 #include <glad/glad.h>
-#include <glm/gtc/type_ptr.hpp>
 #include <resource_embed/resource_embed.hpp>
-#include "aligned.hpp"
 #include "util/gl/error.hpp"
 #include "util/gl/metric.hpp"
-#include "sne/hierarchy/embedding_hierarchy.hpp"
+#include "vis/embedding_hierarchy_render_task.hpp"
+#include "sne/components/hierarchy/embedding_hierarchy.hpp"
 
 namespace dh::sne {
   template <uint D>
@@ -38,7 +37,7 @@ namespace dh::sne {
   }
 
   template <uint D>
-  EmbeddingHierarchy<D>::EmbeddingHierarchy(SNEMinimizationBuffers minimization, Layout layout, SNEParams params, util::Logger* logger)
+  EmbeddingHierarchy<D>::EmbeddingHierarchy(MinimizationBuffers minimization, Layout layout, Params params, util::Logger* logger)
   : _isInit(false), _nRebuilds(0), _minimization(minimization), _layout(layout), _params(params), _logger(logger) {
     // Constants
     constexpr uint nodek = (D == 2) ? 4 : 8;
@@ -50,19 +49,19 @@ namespace dh::sne {
     {
       util::log(_logger, "[EmbeddingHierarchy]   Creating shader programs");
 
-      _programs(ProgramType::eDispatch).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/dispatch.glsl"));
+      _programs(ProgramType::eDispatch).addShader(util::GLShaderType::eCompute, rsrc::get("sne/dispatch.comp"));
       if constexpr (D == 2) {
-        _programs(ProgramType::eCompMortonUnsorted).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/compMortonUnsorted.glsl"));
-        _programs(ProgramType::eCompEmbeddingSorted).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/compEmbeddingSorted.glsl"));
-        _programs(ProgramType::eCompSubdivision).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/compSubdivision.glsl"));
-        _programs(ProgramType::eCompLeaves).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/compLeaves.glsl"));
-        _programs(ProgramType::eCompNodes).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/compNodes.glsl"));
+        _programs(ProgramType::eMortonUnsortedComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/mortonUnsorted.comp"));
+        _programs(ProgramType::eEmbeddingSortedComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/embeddingSorted.comp"));
+        _programs(ProgramType::eSubdivisionComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/subdivision.comp"));
+        _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/leaves.comp"));
+        _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/nodes.comp"));
       } else if constexpr (D == 3) {
-      //   _programs(ProgramType::eCompMortonUnsorted).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/compMortonUnsorted.glsl"));
-      //   _programs(ProgramType::eCompEmbeddingSorted).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/compEmbeddingSorted.glsl"));
-      //   _programs(ProgramType::eCompSubdivision).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/compSubdivision.glsl"));
-      //   _programs(ProgramType::eCompLeaves).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/compLeaves.glsl"));
-      //   _programs(ProgramType::eCompNodes).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/compNodes.glsl"));
+        _programs(ProgramType::eMortonUnsortedComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/mortonUnsorted.comp"));
+        _programs(ProgramType::eEmbeddingSortedComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/embeddingSorted.comp"));
+        _programs(ProgramType::eSubdivisionComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/subdivision.comp"));
+        _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/leaves.comp"));
+        _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/nodes.comp"));
       }
 
       for (auto& program : _programs) {
@@ -111,6 +110,12 @@ namespace dh::sne {
       );
     }
 
+    // Setup render task
+    if (auto& queue = vis::RenderQueue::instance(); queue.isInit()) {
+      queue.emplace(vis::EmbeddingHierarchyRenderTask<D>(_minimization, buffers(), _params, 1));
+      // queue.emplace(vis::EmbeddingRenderTask<D>(buffers(), _params, 0));
+    }
+
     _isInit = true;
     util::log(_logger, "[EmbeddingHierarchy] Initialized");
   }
@@ -146,13 +151,13 @@ namespace dh::sne {
     // 1.
     // Sort embedding positions along a Morton order
     {
-      auto& timer = _timers(TimerType::eCompSort);
+      auto& timer = _timers(TimerType::eSort);
       timer.tick();
       
       // a. Generate morton codes over unsorted embedding
       // Skip this step on a refit
       if (rebuild) {
-        auto& program = _programs(ProgramType::eCompMortonUnsorted);
+        auto& program = _programs(ProgramType::eMortonUnsortedComp);
         program.bind();
 
         // Set uniforms
@@ -177,7 +182,7 @@ namespace dh::sne {
 
       // c. Generate sorted embedding positions based on the mapping
       {
-        auto& program = _programs(ProgramType::eCompEmbeddingSorted);
+        auto& program = _programs(ProgramType::eEmbeddingSortedComp);
         program.bind();
 
         // Set uniforms
@@ -202,10 +207,10 @@ namespace dh::sne {
     // Perform subdivision, following the morton order
     // Skip this step on a refit
     if (rebuild) {
-      auto& timer = _timers(TimerType::eCompSubdivision);
+      auto& timer = _timers(TimerType::eSubdivisionComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eCompSubdivision);
+      auto& program = _programs(ProgramType::eSubdivisionComp);
       program.bind();
 
       // Set buffer bindings
@@ -244,7 +249,7 @@ namespace dh::sne {
     // 3.
     // Compute leaf data
     {
-      auto& timer = _timers(TimerType::eCompLeaves);
+      auto& timer = _timers(TimerType::eLeavesComp);
       timer.tick();
       
       // Divide contents of BufferType::eLeafHead by workgroup size
@@ -257,7 +262,7 @@ namespace dh::sne {
         glDispatchCompute(1, 1, 1);
       }
 
-      auto& program = _programs(ProgramType::eCompLeaves);
+      auto& program = _programs(ProgramType::eLeavesComp);
       program.bind();
 
       // Set buffer bindings
@@ -282,10 +287,10 @@ namespace dh::sne {
     // 4.
     // Compute node data
     {
-      auto& timer = _timers(TimerType::eCompNodes);
+      auto& timer = _timers(TimerType::eNodesComp);
       timer.tick();
 
-      auto& program = _programs(ProgramType::eCompNodes);
+      auto& program = _programs(ProgramType::eNodesComp);
       program.bind();
 
       // Set buffer bindings

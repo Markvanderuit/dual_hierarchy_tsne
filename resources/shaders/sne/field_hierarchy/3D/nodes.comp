@@ -27,8 +27,8 @@
 #extension GL_KHR_shader_subgroup_clustered : require // subgroupClusteredAdd(...) support
 
 // Constants
-#define BVH_KNODE_2D 4
-#define BVH_LOGK_2D 2
+#define BVH_KNODE_3D 8
+#define BVH_LOGK_3D 3
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
