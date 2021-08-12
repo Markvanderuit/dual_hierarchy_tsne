@@ -33,42 +33,78 @@
 #include "vis/renderer.hpp"
 #include "sne/sne.hpp"
 
-using uint = unsigned;
+using uint = unsigned int;
 
 int main(int argc, char** argv) {
-  
   try {
     dh::util::DateCoutLogger logger;
 
     // Set example parameters
-    dh::sne::SNEParams params;
+    dh::sne::Params params;
     params.n = 60000;
     params.nHighDims = 784;
-    params.nLowDims = 2;
+    params.perplexity = 30;
     params.singleHierarchyTheta = 0.5;
-    params.dualHierarchyTheta = 0.0;
-
-    const bool doLabels = true;
+    params.dualHierarchyTheta = 0.4;
 
     // Load example dataset
     const std::string inputFileName = "C:/users/markv/documents/repositories/dual_hierarchy_tsne/resources/data/mnist_labeled_60k_784d.bin";
     std::vector<float> data;
     std::vector<uint> labels;
-    dh::util::readBinFile(inputFileName, data, labels, params.n, params.nHighDims, doLabels);
+    dh::util::readBinFile(inputFileName, data, labels, params.n, params.nHighDims, true);
 
-    // Create OpenGL context
-    dh::util::GLWindow window = dh::util::GLWindow::DecoratedResizable();
-    window.makeCurrent();
-    window.display();
+    // Create window and OpenGL context
+    dh::util::GLWindowInfo info;
+    {
+      // if only c++20's 'using enum' was a thing already
+      using namespace dh::util;
+      info.flags = GLWindowInfo::bDecorated 
+                 | GLWindowInfo::bFocused 
+                 | GLWindowInfo::bSRGB 
+                 | GLWindowInfo::bResizable
+                 | GLWindowInfo::bOffscreen;
+      info.width = 1024;
+      info.height = 768;
+      info.title = "sne_cmd";
+    }
+    dh::util::GLWindow window(info);
 
-    // Create renderer
-    dh::vis::Renderer renderer(window, params);
+    // Create renderer and tsne class
+    dh::vis::Renderer<2> renderer(window, params);    
+    dh::sne::SNE<2> sne(data, params, &logger);
 
-    // Test renderer
+    // Run minimization AND render result
     /* {
-      auto& queue = dh::vis::RenderQueue::instance();
-      queue.insert(dh::vis::TestRenderTask());
+      // Prep window
+      window.setVsync(false);
+      window.setVisible(true);
+      window.display();
 
+      // Do similarity computation
+      sne.compSimilarities();
+
+      // Set up cpu-side timer
+      dh::util::ChronoTimer timer;
+      timer.tick();
+      
+      // Minimize step-by-step while also rendering
+      for (uint i = 0; i < params.iterations; ++i) {
+        window.processEvents();
+        sne.compMinimizationStep();
+        renderer.render();
+        window.display();
+      }
+
+      // Record timer values
+      timer.tock();
+      timer.poll();
+
+      // Output kl divergence and runtime
+      dh::util::logTime(&logger, "[SNE] Minimization time", timer.get<dh::util::TimerValue::eLast>());
+      dh::util::logValue(&logger, "[SNE] KL-Divergence", sne.klDivergence());
+
+      // Render loop
+      window.setVsync(true);
       while (window.canDisplay()) {
         window.processEvents();
         renderer.render();
@@ -76,31 +112,20 @@ int main(int argc, char** argv) {
       }
     } */
 
-    // Set up and run tsne
-    dh::sne::SNE<2> sne(data, params, &logger);
+    // Run minimization, THEN render result
     {
       // Do similarity computation
-      sne.compSimilarities();
-      sne.prepMinimization();
+      sne.comp();
 
-      // Disable vsync
-      window.enableVsync(false);
+      // Output kl divergence
+      dh::util::logValue(&logger, "[SNE] KL-Divergence", sne.klDivergence());
+
+      // Prep window
+      window.setVsync(true);
+      window.setVisible(true);
+      window.display();
       
-      // Perform minimization
-      sne.compMinimization();
-      // dh::util::CppTimer timer;
-      // timer.tick();
-      // for (uint i = 0; i < params.iterations; ++i) {
-      //   sne.compIteration();
-      // }
-      // timer.tock();
-
-      // Report timer
-      // timer.poll();
-      // dh::util::logTime(&logger, "Minimization time", timer.get<dh::util::TimerValue::eLast>());
-
-      // Render embedding
-      window.enableVsync(true);
+      // Render loop
       while (window.canDisplay()) {
         window.processEvents();
         renderer.render();
@@ -110,7 +135,6 @@ int main(int argc, char** argv) {
 
     dh::util::log(&logger, "Goodbye!");
   } catch (const std::exception& e) {
-    std::cout << std::endl;
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
   }
