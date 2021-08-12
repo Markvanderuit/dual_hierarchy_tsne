@@ -24,10 +24,16 @@
 
 #version 460 core
 
+// Constants
+#define BVH_KNODE_2D 4
+#define BVH_LOGK_2D 2
+#define BVH_KLEAF_2D 4
+#define BVH_LARGE_LEAF 16
+
 // Necessary extensions (nvidia-centric)
-#extension GL_NV_shader_atomic_float : require        // atomicAdd(f32) support
-#extension GL_KHR_shader_subgroup_clustered : require // subgroupClusteredAdd(...) support
-#extension GL_KHR_shader_subgroup_shuffle : require   // subgroupShuffle(...) support
+#extension GL_NV_shader_atomic_float : require         // atomicAdd(f32) support
+#extension GL_KHR_shader_subgroup_clustered : require  // subgroupClusteredAdd(...) support
+#extension GL_KHR_shader_subgroup_shuffle : require    // subgroupShuffle(...) support
 
 // Wrapper structure for pair queue data
 struct Pair {
@@ -58,32 +64,26 @@ layout(binding = 8, std430) restrict readonly buffer OQHea { uint oQueueHead; };
 layout(binding = 9, std430) restrict writeonly buffer LQue { Pair lQueueBuffer[]; };   // Leaf
 layout(binding = 10, std430) restrict coherent buffer LQHe { uint lQueueHead; };       // Atomic
 layout(binding = 11, std430) restrict readonly buffer Boun { Bounds boundsBuffer; };
-layout(binding = 12, std430) restrict writeonly buffer RQu { Pair rQueueBuffer[]; };   // Atomic
-layout(binding = 13, std430) restrict coherent buffer RQHe { uint rQueueHead; };       // Atomic
 
 // Uniform values
-layout(location = 0) uniform uint dhLvl;    // Current level in virtual dual hierarchy
-layout(location = 1) uniform uint eLvls;    // Total nr. of levels in embedding hierarchy
-layout(location = 2) uniform uint fLvls;    // Total nr. of levels in field hierarchy
-layout(location = 3) uniform float theta2;  // Squared approximation param. for Barnes-Hut
-layout(location = 4) uniform bool doBhCrit; // Use new Barnes-Hut criterion
+// layout(location = 0) uniform uint eLvls;    // Total nr. of levels in embedding hierarchy
+layout(location = 0) uniform uint fLvls;    // Total nr. of levels in field hierarchy
+layout(location = 1) uniform float theta2;  // Squared approximation param. for Barnes-Hut
+layout(location = 2) uniform bool doBhCrit; // Use new Barnes-Hut criterion
+layout(location = 3) uniform bool isLastIter; // No more subdivision, should any errors occur
 
 // Shared memory
 shared Bounds bounds;
 
 // Constants
-#define BVH_KNODE_2D 4
-#define BVH_LOGK_2D 2
-#define BVH_KLEAF_2D 4
-#define BVH_LARGE_LEAF 16
-
-// Invoc shuffle constants
-const uint thread = gl_LocalInvocationID.x % BVH_KNODE_2D;
-const uint base = gl_LocalInvocationID.x - thread;
-const uint rotate = base + (thread + 1) % BVH_KNODE_2D;
+const uint nThreads = BVH_KNODE_2D;
+const uint thread = gl_SubgroupInvocationID % nThreads;
+const uint base = gl_SubgroupInvocationID - thread;
+const uint fLeafOffset = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (fLvls - 1));
+// const uint eLeafOffset = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (eLvls - 1));
 
 // Compute dot product of vector with itself, ie. squared eucl. distance to vector from origin
-float sdot(vec2 v) {
+float sdot(in vec2 v) {
   return dot(v, v);
 }
 
@@ -103,8 +103,7 @@ uvec2 decode(uint i) {
 }
 
 void main() {
-  const uint idx = (gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x)
-                    / BVH_KNODE_2D;
+  const uint idx = (gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x) / BVH_KNODE_2D;
   if (idx >= iQueueHead) {
     return;
   }
@@ -115,47 +114,79 @@ void main() {
   }
   barrier();
 
-  // Read node pair indices once, share with subgroup operations, then subdivide each side
+  // Read node pair indices once, share with subgroup operations
   Pair pair;
   if (thread == 0) {
     pair = iQueueBuffer[idx];
   }
-  pair.f = subgroupShuffle(pair.f, base) * BVH_KNODE_2D + 1 + thread;
-  pair.e = subgroupShuffle(pair.e, base) * BVH_KNODE_2D + 1 + thread;
+  pair.f = subgroupShuffle(pair.f, base);
+  pair.e = subgroupShuffle(pair.e, base);
 
-  // Load embedding/field node data. Field node is const, emb node gets shuffled over subgroup
-  const uint fNode = fNodeBuffer[pair.f];   // packed as: 30 bits leaf addr, 2 bits node type
-  vec4 eNode0 = eNode0Buffer[pair.e];       // packed as: bbox c.o.m. (xy(z)), range extent (w)
-  vec4 eNode1 = eNode1Buffer[pair.e];       // packed as: bbox extent (xy(z)), range min    (w)
-
-  // Move down singleton chain to leaf node if necessary
-  if ((fNode & 3u) == 1u) {
-    pair.f = fNode >> 2u;
+  // Determine node pair's levels in hierarchies
+  uint fLvl = 0;
+  uint eLvl = 0;
+  {
+    uint f = pair.f;
+    uint e = pair.e;
+    do { fLvl++; } while ((f = (f - 1) >> BVH_LOGK_2D) > 0);
+    do { eLvl++; } while ((e = (e - 1) >> BVH_LOGK_2D) > 0);
   }
 
-  // Determine fNode bbox and center implicitly
-  const uint fLvl = (fNode & 3u )== 1u ? fLvls - 1 : dhLvl;
-  const uvec2 px = decode(pair.f - (0x2AAAAAAAu >> (31u - BVH_LOGK_2D * fLvl)));
-  const vec2 fbbox = bounds.range / vec2(1u << fLvl);
-  const vec2 fpos = bounds.min + fbbox * (vec2(px) + 0.5);
-  
-  // Values accumulated or kept constant during rotation
-  const uint pairBase = pair.e - thread;
-  const bool fIsLeaf = (fNode & 3u) == 1u;
-  const uint eOffset = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (eLvls - 1));
-  vec3 field = vec3(0);
+  // Read node data for determining subdivision
+  uint fNode; // loaded at a later point
+  vec4 eNode0 = subgroupShuffle((thread == 0) ? eNode0Buffer[pair.e] : vec4(0), base);
+  vec4 eNode1 = subgroupShuffle((thread == 2) ? eNode1Buffer[pair.e] : vec4(0), base + 2);
 
-  // Compare node pairs BVH_KNODE_2D times, rotating embedding nodes through the subgroup
-  for (uint i = 0; i < BVH_KNODE_2D; ++i) {
-    // Rotate embedding node data over BVH_KNODE_2D invocs in the subgroup
-    eNode0 = subgroupShuffle(eNode0, rotate);
-    eNode1 = subgroupShuffle(eNode1, rotate);
+  // Determine whether we are dealing with leaf nodes
+  // Note: we can only end up in this shader given the previous situation! 
+  bool fIsLeaf = false; // (pair.f >= fLeafOffset);
+  bool eIsLeaf = true;  //(pair.e >= eLeafOffset) || (eNode0.w <= BVH_KLEAF_2D);    
 
-    // Prevent computation for dead node pairs. Yay divergence
-    if (eNode0.w == 0 || fNode == 0) {
-      continue;
-    }
+  // Subdivide one side. All invocs subdivide the same side!
+  // TODO subdivide the larger projected diagonal node
+  // const bool eSubdiv = false; // fIsLeaf || (!eIsLeaf && eLvl < fLvl);
+  // if (eSubdiv) {
+  //   // Descend hierarchy
+  //   eLvl++;
+  //   pair.e = pair.e * BVH_KNODE_2D + 1 + thread;
     
+  //   // Load new node data (now we can load fNode)
+  //   fNode = subgroupShuffle((thread == 0) ? fNodeBuffer[pair.f] : 0u, base);
+  //   eNode0 = eNode0Buffer[pair.e];
+  //   eNode1 = eNode1Buffer[pair.e];
+
+  //   // Update leaf status
+  //   eIsLeaf = (pair.e >= eLeafOffset) || (eNode0.w <= BVH_KLEAF_2D);
+  // } else 
+
+  // Subdivide one side. All invocs subdivide the same side!
+  {
+    // Descend hierarchy
+    fLvl++;
+    pair.f = pair.f * BVH_KNODE_2D + 1 + thread;
+
+    // Load new node data (other node already loaded)
+    fNode = fNodeBuffer[pair.f];
+
+    // Update leaf status
+    fIsLeaf = (pair.f >= fLeafOffset) || ((fNode & 3u) == 1u);
+  }
+
+  // Skip singleton chain in field hierarchy if encountered
+  if ((fNode & 3u) == 1u) {
+    pair.f = fNode >> 2u;
+    fLvl = fLvls - 1;
+    fIsLeaf = true;
+  }
+
+  // Skip computation if dead node is encountered
+  vec3 field = vec3(0);
+  if (eNode0.w != 0 && fNode != 0) {
+    // Determine fNode bbox and center implicitly
+    const uvec2 px = decode(pair.f - (0x2AAAAAAAu >> (31u - BVH_LOGK_2D * fLvl)));
+    const vec2 fbbox = bounds.range / vec2(1u << fLvl);
+    const vec2 fpos = bounds.min + fbbox * (vec2(px) + 0.5);
+
     // Compute vector dist. and squared eucl dist. between nodes
     const vec2 t = fpos - eNode0.xy;
     const float t2 = dot(t, t);
@@ -174,42 +205,43 @@ void main() {
       // Old Barnes-Hut criterion
       r2 = max(sdot(eNode1.xy), sdot(fbbox));
     }
-    
-    // More rotate data
-    const uint rot_e = pairBase + (thread + i + 1) % BVH_KNODE_2D;
-    const bool eIsLeaf = eNode0.w <= BVH_KLEAF_2D || rot_e >= eOffset;
 
     // Barnes-Hut test
     if (r2 / t2 < theta2) {
       // Approximation passes, compute approximated value and truncate
       const float tStud = 1.f / (1.f + t2);
       field += eNode0.w * vec3(tStud, t * (tStud * tStud));
-    } else if (!eIsLeaf && !fIsLeaf) {
+    } else if (!fIsLeaf && !isLastIter) {
       // Push pair on work queue for further subdivision
-      oQueueBuffer[atomicAdd(oQueueHead, 1)] = Pair(pair.f, rot_e);
-    } else if (!fIsLeaf) {
-      // Push pair on secondary work queue for further subdivision
-      rQueueBuffer[atomicAdd(rQueueHead, 1)] = Pair(pair.f, rot_e);
-    } else if (eNode0.w > BVH_LARGE_LEAF) {
-      // Optimize large leaves in separate shader
-      lQueueBuffer[atomicAdd(lQueueHead, 1)] = Pair(pair.f, rot_e);
+      oQueueBuffer[atomicAdd(oQueueHead, 1)] = pair;
+    } else if (eNode0.w >= BVH_LARGE_LEAF) {
+      // Optimize large leaf pairs in separate shader
+      lQueueBuffer[atomicAdd(lQueueHead, 1)] = pair;
     } else {
       // Compute small leaves directly
       const uint begin = uint(eNode1.w);
       const uint end = begin + uint(eNode0.w);
       for (uint j = begin; j < end; ++j) {
         const vec2 t = fpos - ePosBuffer[j];
-        const float tStud = 1.f / (1.f + dot(t, t));
+        const float tStud = 1.f / (1.f +  dot(t, t));
         field += vec3(tStud, t * (tStud * tStud));
       }
     }
   }
   
-  // Add computed forces to field hierarchy
+  // if (eSubdiv) {
+  //   field = subgroupClusteredAdd(field, nThreads);
+  // }
+
   if (field != vec3(0)) {
     const uvec4 addr = uvec4(4 * pair.f) + uvec4(0, 1, 2, 3);
-    atomicAdd(fFieldBuffer[addr.x], field.x);
-    atomicAdd(fFieldBuffer[addr.y], field.y);
-    atomicAdd(fFieldBuffer[addr.z], field.z);
+    // if (!eSubdiv) {
+      atomicAdd(fFieldBuffer[addr.x], field.x);
+      atomicAdd(fFieldBuffer[addr.y], field.y);
+      atomicAdd(fFieldBuffer[addr.z], field.z);
+    // } else if (thread < 3) {
+      // Long live subgroups!
+      // atomicAdd(fFieldBuffer[addr[thread]], field[thread]);
+    // }
   }
 }

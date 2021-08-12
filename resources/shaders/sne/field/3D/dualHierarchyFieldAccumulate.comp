@@ -24,11 +24,15 @@
 
 #version 460 core
 
+// Constants
+#define BVH_KNODE_3D 8
+#define BVH_LOGK_3D 3
+
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 // Buffer bindings
-layout(binding = 0, std430) restrict readonly buffer VPixe { uvec2 pixelsBuffer[]; };
-layout(binding = 1, std430) restrict readonly buffer VFiel { vec3 fieldBuffer[]; };
+layout(binding = 0, std430) restrict readonly buffer VPixe { uvec3 pixelsBuffer[]; };
+layout(binding = 1, std430) restrict coherent buffer VFiel { vec4 fieldBuffer[]; };
 
 // Uniforms
 layout(location = 0) uniform uint nPixels;
@@ -36,26 +40,25 @@ layout(location = 1) uniform uint fLvls;
 layout(location = 2) uniform uint startLvl;
 
 // Image bindings
-layout(binding = 0, rgba32f) restrict writeonly uniform image2D fieldImage;
+layout(binding = 0, rgba32f) restrict writeonly uniform image3D fieldImage;
 
 // Constants
-#define BVH_KNODE_2D 4
-#define BVH_LOGK_2D 2
-const uint offset = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (fLvls - 1));
-const uint stop = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (startLvl));
+const uint offset = 0x24924924u >> (32u - BVH_LOGK_3D * (fLvls - 1));
+const uint stop = 0x24924924u >> (32u - BVH_LOGK_3D * (startLvl));
 
-uint expandBits15(uint i) {
-  i = (i | (i << 8u)) & 0x00FF00FFu;
-  i = (i | (i << 4u)) & 0x0F0F0F0Fu;
-  i = (i | (i << 2u)) & 0x33333333u;
-  i = (i | (i << 1u)) & 0x55555555u;
+uint expandBits10(uint i) {
+  i = (i | (i << 16u)) & 0x030000FF;
+  i = (i | (i <<  8u)) & 0x0300F00F;
+  i = (i | (i <<  4u)) & 0x030C30C3;
+  i = (i | (i <<  2u)) & 0x09249249;
   return i;
 }
 
-uint encode(uvec2 v) {
-  uint x = expandBits15(v.x);
-  uint y = expandBits15(v.y);
-  return x | (y << 1);
+uint encode(uvec3 v) {
+  uint x = expandBits10(v.x);
+  uint y = expandBits10(v.y);
+  uint z = expandBits10(v.z);
+  return x | (y << 1) | (z << 2);
 }
 
 void main() {
@@ -66,17 +69,17 @@ void main() {
   }
 
   // Read pixel's position
-  const uvec2 px = pixelsBuffer[i];
+  const uvec3 px = pixelsBuffer[i];
 
   // Push forces down by ascending up tree to root
   // ignore root, it will never approximate
-  vec3 field = vec3(0);
-  for (uint k = offset + encode(px); 
-        k >= stop; 
-        k = (k - 1) >> BVH_LOGK_2D) {
+  vec4 field = vec4(0);
+  for (uint k = offset + encode(px);
+        k >= stop;
+        k = (k - 1) >> BVH_LOGK_3D) {
     field += fieldBuffer[k];
   }
 
-  // Store resulting value in field image at pixel's position
-  imageStore(fieldImage, ivec2(px), vec4(field, 0));
+  // Store resulting value in field image
+  imageStore(fieldImage, ivec3(px), field);
 }

@@ -24,6 +24,10 @@
 
 #version 460 core
 
+// Constants
+#define BVH_KNODE_3D 8
+#define BVH_LOGK_3D 3
+
 // Return types for approx(...) function below
 #define STOP 0 // Voxel encompasses node, stop traversal
 #define DESC 1 // Node encompasses voxel, descend
@@ -31,53 +35,49 @@
 
 // Wrapper structure for BoundsBuffer data
 struct Bounds {
-  vec2 min;
-  vec2 max;
-  vec2 range;
-  vec2 invRange;
+  vec3 min;
+  vec3 max;
+  vec3 range;
+  vec3 invRange;
 };
 
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 8, local_size_z = 1) in;
 
 // Buffer, sampler and image bindings
 layout(binding = 0, std430) restrict readonly buffer Node1 { vec4 node1Buffer[]; };
-layout(binding = 1, std430) restrict readonly buffer MinbB { vec2 minbBuffer[]; };
+layout(binding = 1, std430) restrict readonly buffer MinbB { vec3 minbBuffer[]; };
 layout(binding = 2, std430) restrict readonly buffer Bound { Bounds bounds; };
-layout(binding = 3, std430) restrict writeonly buffer Queue { uvec2 queueBuffer[]; };
+layout(binding = 3, std430) restrict writeonly buffer Queue { uvec3 queueBuffer[]; };
 layout(binding = 4, std430) restrict coherent buffer QHead { uint queueHead; }; 
 
 // Uniforms
 layout(location = 0) uniform uint nLvls;     // Nr of tree levels
-layout(location = 1) uniform uvec2 textureSize;
-
-// Constants
-#define BVH_KNODE_2D 4
-#define BVH_LOGK_2D 2
+layout(location = 1) uniform uvec3 textureSize;
 
 // Fun stuff for fast modulo and division and stuff
-const uint bitmask = ~((~0u) << BVH_LOGK_2D);
+const uint bitmask = ~((~0u) << BVH_LOGK_3D);
 
 // Traversal data
 uint lvl = 1u; // We start a level lower, as the root node will probably never approximate
 uint loc = 1u;
-uint stack = 1u | (bitmask << (BVH_LOGK_2D * lvl));
+uint stack = 1u | (bitmask << (BVH_LOGK_3D * lvl));
 
 // Pixel size
-const vec2 bbox = bounds.range / vec2(textureSize);
+const vec3 bbox = bounds.range / vec3(textureSize);
 const float extl = length(bbox);
 
 void descend() {
   // Move down tree
   lvl++;
-  loc = loc * BVH_KNODE_2D + 1u;
+  loc = loc * BVH_KNODE_3D + 1u;
 
   // Push unvisited locations on stack
-  stack |= (bitmask << (BVH_LOGK_2D * lvl));
+  stack |= (bitmask << (BVH_LOGK_3D * lvl));
 }
 
 void ascend() {
   // Find distance to next level on stack
-  uint nextLvl = findMSB(stack) / BVH_LOGK_2D;
+  uint nextLvl = findMSB(stack) / BVH_LOGK_3D;
   uint dist = lvl - nextLvl;
 
   // Move dist up to where next available stack position is
@@ -85,12 +85,12 @@ void ascend() {
   if (dist == 0) {
     loc++;
   } else {
-    loc >>= BVH_LOGK_2D * dist;
+    loc >>= BVH_LOGK_3D * dist;
   }
   lvl = nextLvl;
 
   // Pop visited location from stack
-  uint shift = BVH_LOGK_2D * lvl;
+  uint shift = BVH_LOGK_3D * lvl;
   uint b = (stack >> shift) - 1;
   stack &= ~(bitmask << shift);
   stack |= b << shift;
@@ -100,20 +100,21 @@ bool overlap1D(vec2 a, vec2 b) {
   return a.y >= b.x && b.y >= a.x;
 }
 
-bool overlap2D(vec2 mina, vec2 maxa, vec2 minb, vec2 maxb) {
+bool overlap3D(vec3 mina, vec3 maxa, vec3 minb, vec3 maxb) {
   return overlap1D(vec2(mina.x, maxa.x), vec2(minb.x, maxb.x))
-      && overlap1D(vec2(mina.y, maxa.y), vec2(minb.y, maxb.y));
+      && overlap1D(vec2(mina.y, maxa.y), vec2(minb.y, maxb.y))
+      && overlap1D(vec2(mina.z, maxa.z), vec2(minb.z, maxb.z));
 }
 
-uint approx(vec2 minb, vec2 maxb, vec2 center) {
+uint approx(vec3 minb, vec3 maxb, vec3 center) {
   // Fetch node data
-  const vec2 _diam = node1Buffer[loc].xy;
-  const vec2 _minb = minbBuffer[loc];
-  const vec2 _maxb = _minb + _diam;
-  const vec2 _center = _minb + 0.5 * _diam; 
+  const vec3 _diam = node1Buffer[loc].xyz;
+  const vec3 _minb = minbBuffer[loc];
+  const vec3 _maxb = _minb + _diam;
+  const vec3 _center = _minb + 0.5 * _diam; 
 
   // Test bounding box containment
-  const bool isOverlap = overlap2D(minb, maxb, _minb, _maxb);
+  const bool isOverlap = overlap3D(minb, maxb, _minb, _maxb);
   const bool isMin = min(_minb, minb) == minb;
   const bool isMax = max(_maxb, maxb) == maxb;
 
@@ -129,23 +130,23 @@ uint approx(vec2 minb, vec2 maxb, vec2 center) {
 }
 
 void main() {
-  const uvec2 xy = gl_WorkGroupID.xy * gl_WorkGroupSize.xy + gl_LocalInvocationID.xy;
-  if (min(xy, textureSize - 1) != xy) {
+  const uvec3 xyz = gl_WorkGroupID.xyz * gl_WorkGroupSize.xyz + gl_LocalInvocationID.xyz;
+  if (min(xyz, textureSize - 1) != xyz) {
     return;
   }
 
   // Compute information about this voxel
-  vec2 center = (vec2(xy) + 0.5) / vec2(textureSize); // Map to [0, 1]
+  vec3 center = ((vec3(xyz) + 0.5) / vec3(textureSize)); // Map to [0, 1]
   center = bounds.min + bounds.range * center; // Map to embedding domain
-  const vec2 minb = center - 2.f * bbox;
-  const vec2 maxb = center + 2.f * bbox;
+  const vec3 minb = center - 1.5f * bbox; ;// - 0.5 * bbox;
+  const vec3 maxb = center + 1.5f * bbox; ;// + 0.5 * bbox;
 
   // Traverse tree to find out if there is a closest or contained point
   do {
     const uint appr = approx(minb, maxb, center);
     if (appr == STOP) {
       // Store result and exit
-      queueBuffer[atomicAdd(queueHead, 1)] = xy;
+      queueBuffer[atomicAdd(queueHead, 1)] = xyz;
       return;
     } else if (appr == ASCN) {
       ascend();

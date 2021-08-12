@@ -24,11 +24,20 @@
 
 #version 460 core
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(binding = 0, std430) restrict readonly buffer Value { uint value; };
-layout(binding = 1, std430) restrict writeonly buffer Disp { uvec3 dispatch; };
-layout(location = 0) uniform uint div;
+layout(location = 0) out uvec4 outColor;
+
+// Uniform locations
+layout(location = 0) uniform usampler1D cellMap;
+layout(location = 1) uniform uint zDims;
 
 void main() {
-  dispatch = uvec3((value + div - 1) / div, 1, 1);
+  // Z value to look up cell values at
+  const float zFixed = gl_FragCoord.z * zDims - 0.5f;
+  
+  // Fetch the two nearest cell values which cover this range
+  const uvec4 lowerCell = texelFetch(cellMap, int(floor(zFixed)), 0);
+  const uvec4 greaterCell = texelFetch(cellMap, int(ceil(zFixed)), 0);
+
+  // Output logical or of these cells, flagging both their pixels
+  outColor = lowerCell | greaterCell;
 }

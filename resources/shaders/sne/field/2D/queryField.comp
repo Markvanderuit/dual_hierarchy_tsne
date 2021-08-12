@@ -22,6 +22,47 @@
  * SOFTWARE.
  */
 
-#pragma once
+#version 460 core
 
-// ...
+// Wrapper structure for Bounds buffer data
+struct Bounds {
+  vec2 min;
+  vec2 max;
+  vec2 range;
+  vec2 invRange;
+};
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+// Buffer bindings
+layout(binding = 0, std430) restrict readonly buffer Posi { vec2 positions[]; };
+layout(binding = 1, std430) restrict writeonly buffer Val { vec3 values[]; };
+layout(binding = 2, std430) restrict readonly buffer Boun { Bounds bounds; };
+
+// Uniform locations
+layout(location = 0) uniform uint nPoints;
+layout(location = 1) uniform sampler2D fieldSampler;
+
+// Shared memory
+shared vec2 boundsMin;
+shared vec2 boundsInvRange;
+
+void main() {
+  uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+  if (i >= nPoints) {
+    return;
+  }
+
+  // Map bounds to shared memory
+  if (gl_LocalInvocationID.x < 1) {
+    boundsMin = bounds.min;
+    boundsInvRange = bounds.invRange;
+  }
+  barrier();
+
+  // Map position of point to [0, 1]
+  vec2 pos = (positions[i] - boundsMin) * boundsInvRange;
+
+  // Sample texture at mapped position
+  values[i] = texture(fieldSampler, pos).xyz;
+}

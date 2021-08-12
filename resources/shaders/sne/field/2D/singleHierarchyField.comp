@@ -24,6 +24,11 @@
 
 #version 460 core
 
+// Constants
+#define BVH_KNODE_2D 4
+#define BVH_LOGK_2D 2
+#define BVH_KLEAF_2D 4
+
 struct Bounds {
   vec2 min;
   vec2 max;
@@ -47,11 +52,6 @@ layout(location = 0) uniform uint nLvls;        // Nr of tree levels
 layout(location = 1) uniform float theta2;      // Squared approximation param
 layout(location = 2) uniform uvec2 textureSize; // Size of fields texture
 layout(location = 3) uniform bool doBhCrit;     // Use new Barnes-Hut criterion
-
-// Constants
-#define BVH_KNODE_2D 4
-#define BVH_LOGK_2D 2
-#define BVH_KLEAF_2D 4
 
 // Fun stuff for fast modulo and division and stuff
 const uint bitmask = ~((~0u) << BVH_LOGK_2D);

@@ -24,51 +24,55 @@
 
 #pragma once
 
-#include <utility>
-#include "aligned.hpp"
 #include "types.hpp"
+#include "aligned.hpp"
 #include "util/enum.hpp"
 #include "util/logger.hpp"
 #include "util/gl/timer.hpp"
 #include "util/gl/program.hpp"
-#include "sne/sne_params.hpp"
-#include "sne/hierarchy/embedding_hierarchy.hpp"
-#include "sne/buffers/sne_minimization_buffers.hpp"
+#include "sne/params.hpp"
+#include "sne/components/buffers.hpp"
+#include "sne/components/hierarchy/embedding_hierarchy.hpp"
+#include "sne/components/hierarchy/field_hierarchy.hpp"
 
 namespace dh::sne {
-  class Field2D {
+  template <uint D>
+  class Field {
     // aligned types
-    using Bounds = AlignedBounds<2>;
-    using vec = AlignedVec<2, float>;
-    using uvec = AlignedVec<2, uint>;
+    using Bounds = AlignedBounds<D>;
+    using vec = AlignedVec<D, float>;
+    using uvec = AlignedVec<D, uint>;
 
   public:
     // Constr/destr
-    Field2D();
-    Field2D(SNEMinimizationBuffers minimization, SNEParams params, util::Logger* logger = nullptr);
-    ~Field2D();
+    Field();
+    Field(MinimizationBuffers minimization, Params params, util::Logger* logger = nullptr);
+    ~Field();
 
     // Copy constr/assignment is explicitly deleted
-    Field2D(const Field2D&) = delete;
-    Field2D& operator=(const Field2D&) = delete;
+    Field(const Field&) = delete;
+    Field& operator=(const Field&) = delete;
 
     // Move constr/operator moves handles
-    Field2D(Field2D&&) noexcept;
-    Field2D& operator=(Field2D&&) noexcept;
+    Field(Field&&) noexcept;
+    Field& operator=(Field&&) noexcept;
 
     // Compute the field for a size (resolution) and iteration (determines technique)
     void comp(uvec size, uint iteration);
 
-    bool isInit() const { return _isInit; }
-
   private:
-    // Functions called by Field2D::comp(uint);
-    void compResize(uint iteration);
-    void compCompact(uint iteration);
-    void compFullField(uint iteration);
-    void compSingleHierarchyField(uint iteration);
-    void compDualHierarchyField(uint iteration);
-    void queryField(uint iteration);
+    // Functions called by Field::comp(uint);
+    // 1. Functions used by full computation
+    void compFullCompact();
+    void compFullField();
+    // 2. Functions used by at least single hierarchy computation
+    void compSingleHierarchyCompact();
+    void compSingleHierarchyField();
+    // 3. Functions used by dual hierarchy computation
+    void compDualHierarchyField();
+    // 4. Functions used by all computations
+    void resize(uvec size);
+    void queryField();
     
     enum class BufferType {
       eDispatch,
@@ -102,27 +106,28 @@ namespace dh::sne {
     enum class ProgramType {
       // General programs
       eDispatch,
-      eQueryField,
+      eQueryFieldComp,
 
       // Programs for computation without hierarchy
-      eCompFullDrawStencil,
-      eCompFullCompact,
-      eCompFullField,
+      eFullCompactDraw,
+      eFullCompactComp,
+      eFullFieldComp,
 
       // Programs for computation with single hierarchy
-      eCompSingleHierarchyCompact,
-      eCompSingleHierarchyField,
+      eSingleHierarchyCompactComp,
+      eSingleHierarchyFieldComp,
       
       // Programs for computation with dual hierarchy
-      eCompDualHierarchyFieldIterative,
-      eCompDualHierarchyFieldRest,
-      eCompDualHierarchyFieldLeaf,
-      eCompDualHierarchyFieldAccumulate,
+      eDualHierarchyFieldIterativeComp,
+      eDualHierarchyFieldRestComp,
+      eDualHierarchyFieldLeafComp,
+      eDualHierarchyFieldAccumulateComp,
 
       Length
     };
 
     enum class TextureType {
+      eCellmap,
       eStencil,
       eField,
 
@@ -130,24 +135,29 @@ namespace dh::sne {
     };
 
     enum class TimerType {
-      eCompCompact,
-      eCompField,
-      eCompDualHierarchyFieldRest,
-      eCompDualHierarchyFieldLeaf,
-      eCompDualHierarchyFieldAccumulate,
-      eQueryField,
+      eCompact,
+      eField,
+      eQueryFieldComp,
 
       Length
     };
 
+    enum class DualHierarchyState {
+      eDualSubdivide,
+      eDualSubdivideFinal,
+      ePushRest,
+      eSingleSubdivide
+    };
+
     // State
     bool _isInit;
-    SNEMinimizationBuffers _minimization;
-    SNEParams _params;
+    MinimizationBuffers _minimization;
+    Params _params;
     util::Logger* _logger;
     GLuint _stencilVAOHandle;
     GLuint _stencilFBOHandle;
     uint _hierarchyRebuildIterations;
+    uint _initQueueSize;
     uvec _size;
     bool _useEmbeddingHierarchy;
     bool _useFieldHierarchy;
@@ -159,10 +169,21 @@ namespace dh::sne {
     util::EnumArray<TimerType, util::GLTimer> _timers;
 
     // Subcomponents
-    EmbeddingHierarchy<2> _embeddingHierarchy;
+    EmbeddingHierarchy<D> _embeddingHierarchy;
+    FieldHierarchy<D> _fieldHierarchy;
 
   public:
-    friend void swap(Field2D& a, Field2D& b) noexcept {
+    // Getters
+    FieldBuffers buffers() const {
+      return {
+        _buffers(BufferType::ePixelQueue),
+        _buffers(BufferType::ePixelQueueHead),
+      };
+    }
+    bool isInit() const { return _isInit; }
+    
+    // std::swap impl
+    friend void swap(Field& a, Field& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
       swap(a._minimization, b._minimization);
@@ -171,6 +192,7 @@ namespace dh::sne {
       swap(a._stencilVAOHandle, b._stencilVAOHandle);
       swap(a._stencilFBOHandle, b._stencilFBOHandle);
       swap(a._hierarchyRebuildIterations, b._hierarchyRebuildIterations);
+      swap(a._initQueueSize, b._initQueueSize);
       swap(a._size, b._size);
       swap(a._useEmbeddingHierarchy, b._useEmbeddingHierarchy);
       swap(a._useFieldHierarchy, b._useFieldHierarchy);
@@ -179,6 +201,7 @@ namespace dh::sne {
       swap(a._textures, b._textures);
       swap(a._timers, b._timers);
       swap(a._embeddingHierarchy, b._embeddingHierarchy);
+      swap(a._fieldHierarchy, b._fieldHierarchy);
     }
   };
-}
+} // dh::sne

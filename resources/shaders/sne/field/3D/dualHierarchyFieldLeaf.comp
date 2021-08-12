@@ -24,9 +24,13 @@
 
 #version 460 core
 
-#extension GL_NV_shader_atomic_float : require        // atomicAdd(f32) support
-#extension GL_KHR_shader_subgroup_clustered : require // subgroupClusteredAdd(...) support
-#extension GL_KHR_shader_subgroup_shuffle : require   // subgroupShuffle(...) support
+// Constants
+#define BVH_KNODE_3D 8
+#define BVH_LOGK_3D 3
+
+#extension GL_NV_shader_atomic_float : require          // atomicAdd(f32) support
+#extension GL_KHR_shader_subgroup_clustered : require   // subgroupClusteredAdd(...) support
+#extension GL_KHR_shader_subgroup_shuffle : require     // subgroupShuffle(...) support
 
 // Wrapper structure for pair queue data
 struct Pair {
@@ -36,10 +40,10 @@ struct Pair {
 
 // Wrapper structure for bounding box data
 struct Bounds {
-  vec2 min;
-  vec2 max;
-  vec2 range;
-  vec2 invRange;
+  vec3 min;
+  vec3 max;
+  vec3 range;
+  vec3 invRange;
 };
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
@@ -47,10 +51,10 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 // Buffer bindings
 layout(binding = 0, std430) restrict readonly buffer ENod0 { vec4 eNode0Buffer[]; };
 layout(binding = 1, std430) restrict readonly buffer ENod1 { vec4 eNode1Buffer[]; };
-layout(binding = 2, std430) restrict readonly buffer EPosi { vec2 ePosBuffer[]; };
+layout(binding = 2, std430) restrict readonly buffer EPosi { vec3 ePosBuffer[]; };
 layout(binding = 3, std430) restrict coherent buffer FFiel { float fFieldBuffer[]; }; // atomic rw
 layout(binding = 4, std430) restrict readonly buffer LQueu { Pair lQueueBuffer[]; };
-layout(binding = 5, std430) restrict readonly buffer LQHea { uint lQueueHead; }; // atomic rw 
+layout(binding = 5, std430) restrict coherent buffer LQHea { uint lQueueHead; }; // atomic rw 
 layout(binding = 6, std430) restrict readonly buffer Bound { Bounds boundsBuffer; };
 
 // Uniforms
@@ -60,32 +64,31 @@ layout(location = 0) uniform uint fLvls;    // Nr. of levels in embedding hierar
 shared Bounds bounds;
 
 // Constants
-#define BVH_KNODE_2D 4
-#define BVH_LOGK_2D 2
-const uint nThreads = 4; // Threads to handle all the buffer reads together
+const uint nThreads = 4; // Nr. of threads to handle all the buffer reads together
 const uint thread = gl_SubgroupInvocationID % nThreads;
 const uint base = gl_SubgroupInvocationID - thread;
-const uint foffset = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (fLvls - 1));
-const vec2 fbbox = vec2(1.f / float(1u << (fLvls - 1)));
+const uint foffset = 0x24924924u >> (32u - BVH_LOGK_3D * (fLvls - 1));
+const vec3 fbbox = vec3(1.f / float(1u << (fLvls - 1)));
 
-uint shrinkBits15(uint i) {
-  i = i & 0x55555555u;
-  i = (i | (i >> 1u)) & 0x33333333u;
-  i = (i | (i >> 2u)) & 0x0F0F0F0Fu;
-  i = (i | (i >> 4u)) & 0x00FF00FFu;
-  i = (i | (i >> 8u)) & 0x0000FFFFu;
+uint shrinkBits10(uint i) {
+  i = i & 0x09249249;
+  i = (i | (i >> 2u)) & 0x030C30C3;
+  i = (i | (i >> 4u)) & 0x0300F00F;
+  i = (i | (i >> 8u)) & 0x030000FF;
+  i = (i | (i >> 16u)) & 0x000003FF;// 0x0000FFFFu; // 11 11 11 11 11 11 11 11
   return i;
 }
 
-uvec2 decode(uint i) {
-  uint x = shrinkBits15(i);
-  uint y = shrinkBits15(i >> 1);
-  return uvec2(x, y);
+uvec3 decode(uint i) {
+  uint x = shrinkBits10(i);
+  uint y = shrinkBits10(i >> 1);
+  uint z = shrinkBits10(i >> 2);
+  return uvec3(x, y, z);
 }
 
 void main() {
   // Check if invoc is within nr of items on leaf queue
-  uint idx = (gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x) / nThreads;
+  const uint idx = (gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x) / nThreads;
   if (idx >= lQueueHead) {
     return;
   }
@@ -109,23 +112,23 @@ void main() {
   const vec4 eNode1 = subgroupShuffle((thread == 2) ? eNode1Buffer[pair.e] : vec4(0), base + 2);
 
   // Determine field node position
-  const vec2 fpos = bounds.min + bounds.range * fbbox * (vec2(decode(pair.f - foffset)) + 0.5);
+  const vec3 fpos = bounds.min + bounds.range * fbbox * (vec3(decode(pair.f - foffset)) + 0.5);
 
   // Range of embedding positions to iterate over
   const uint eBegin = uint(eNode1.w) + thread;
   const uint eEnd = uint(eNode1.w) + uint(eNode0.w);
 
-  // Directly compute forces over embedding positions using subgroup of threads
-  vec3 field = vec3(0);
+  // Directly compute forces for this node pair using group of threads
+  vec4 field = vec4(0);
   for (uint i = eBegin; i < eEnd; i += nThreads) {
-    const vec2 t = fpos - ePosBuffer[i];
+    const vec3 t = fpos - ePosBuffer[i];
     const float tStud = 1.f / (1.f +  dot(t, t));
-    field += vec3(tStud, t * (tStud * tStud));
+    field += vec4(tStud, t * (tStud * tStud));
   }
   field = subgroupClusteredAdd(field, nThreads);
 
-  // Add computed forces to field leaf, using one thread per field component
-  if (field != vec3(0) && thread < 3) {
+  // Add computed forces to field
+  if (field != vec4(0) && thread < 4) {
     const uvec4 addr = uvec4(4 * pair.f) + uvec4(0, 1, 2, 3);
     atomicAdd(fFieldBuffer[addr[thread]], field[thread]);
   }
