@@ -81,20 +81,4 @@ void main() {
   } else {
     colorOut = vec4(0.1, 0.4, 1.0, opacity); // color for header image
   }
-  
-  // vec2 pos = vec2(0);
-  // if (node0.w == 0 || (selectLvl && (gl_InstanceID < offset || gl_InstanceID >= range))) {
-  //   // Do not draw node
-  //   pos = vec2(-999); 
-  // } else {
-  //   pos = minb + (vert + 0.5) * diam;
-  //   pos.y = 1.f - pos.y;
-  // }
-
-  // // Output color
-  // // colorOut = labels[doFlags ? 0 : gl_InstanceID % 10] / 255.f;
-  // colorOut = vec3(0.1, 0.4, 1.0); // for header image
-
-  // // Apply camera transformation to output data
-  // gl_Position = transform * vec4(posOut, 0, 1);
 }

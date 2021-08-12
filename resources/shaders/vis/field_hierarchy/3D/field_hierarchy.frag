@@ -24,20 +24,21 @@
 
 #version 460 core
 
-layout(location = 0) in vec3 posIn;
-layout(location = 1) in vec3 colorIn;
+// Input attributes
+layout(location = 0) in vec4 colorIn;
 
+// Output attributes
 layout(location = 0) out vec4 colorOut;
 
-layout(location = 0) uniform mat4 uTransform;
-layout(location = 1) uniform float uCubeOpacity;
-layout(location = 2) uniform uint lvl;
-layout(location = 3) uniform bool doLvl;
-layout(location = 4) uniform bool doFlags;
+// Uniform locations
+layout(location = 0) uniform mat4 transform;
+layout(location = 1) uniform float opacity;
+layout(location = 2) uniform bool selectLvl;
+layout(location = 3) uniform uint selectedLvl;
 
 void main() {
-  if (uCubeOpacity > 0.f) {
-    colorOut =  vec4(colorIn, uCubeOpacity);
+  if (colorIn.w > 0.f) {
+    colorOut = colorIn;
   } else {
     discard;
   }

@@ -153,7 +153,9 @@ namespace dh::vis {
     _program.uniform<float>("opacity", 1.0f);
     _program.uniform<bool>("selectLvl", false);
     _program.uniform<uint>("selectedLvl", 3);
-    _program.uniform<bool>("sumLvls", false);
+    if constexpr (D == 2) {
+      _program.uniform<bool>("sumLvls", false);
+    }
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _fieldHierarchy.field);

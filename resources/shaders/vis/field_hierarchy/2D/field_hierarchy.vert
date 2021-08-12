@@ -41,9 +41,9 @@ layout(binding = 0, std430) restrict readonly buffer FieldBuffer { vec3 fields[]
 // Uniform locations
 layout(location = 0) uniform mat4 transform;
 layout(location = 1) uniform float opacity;
-layout(location = 2) uniform bool sumLvls;
-layout(location = 3) uniform bool selectLvl;
-layout(location = 4) uniform uint selectedLvl;
+layout(location = 2) uniform bool selectLvl;
+layout(location = 3) uniform uint selectedLvl;
+layout(location = 4) uniform bool sumLvls;
 
 uint shrinkBits15(uint i) {
   i = i & 0x55555555u;

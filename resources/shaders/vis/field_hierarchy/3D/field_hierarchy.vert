@@ -24,42 +24,25 @@
 
 #version 460 core
 
-// Wrapper structure for Bounds buffer data
-struct Bounds {
-  vec3 min;
-  vec3 max;
-  vec3 range;
-  vec3 invRange;
-};
+// Constants
+#define BVH_KNODE_3D 8
+#define BVH_LOGK_3D 3
 
-// Ten nice colors for color mapping
-const vec3 labels[10] = vec3[10](
-  vec3(16, 78, 139),
-  vec3(139, 90, 43),
-  vec3(138, 43, 226),
-  vec3(0, 128, 0),
-  vec3(255, 150, 0),
-  vec3(204, 40, 40),
-  vec3(131, 139, 131),
-  vec3(0, 205, 0),
-  vec3(20, 20, 20),
-  vec3(0, 150, 255)
-);
+// Input attributes
+layout(location = 0) in vec3 positionIn;
+layout(location = 1) in uint nodeIn;
 
-layout(location = 0) in vec3 vert; // instanced
-layout(location = 1) in uint node;
-layout(location = 2) in uint flag;
+// Output attributes
+layout(location = 0) out vec4 colorOut;
 
-layout(location = 0) out vec3 posOut;
-layout(location = 1) out vec3 colorOut;
+// Buffer bindings
+layout(binding = 0, std430) restrict readonly buffer FieldBuffer { vec3 fields[]; };
 
-layout(location = 0) uniform mat4 uTransform;
-layout(location = 1) uniform float uCubeOpacity;
-layout(location = 2) uniform uint lvl;
-layout(location = 3) uniform bool doLvl;
-layout(location = 4) uniform bool doFlags;
-
-layout(binding = 0, std430) restrict readonly buffer BoundsBuffer { Bounds bounds; };
+// Uniform locations
+layout(location = 0) uniform mat4 transform;
+layout(location = 1) uniform float opacity;
+layout(location = 2) uniform bool selectLvl;
+layout(location = 3) uniform uint selectedLvl;
 
 uint shrinkBits10(uint i) {
   i = i & 0x09249249;
@@ -94,19 +77,14 @@ void main() {
   const vec3 fbbox = vec3(1) / vec3(1u << fLvl);
   const vec3 fpos = fbbox * (vec3(px) + 0.5);
   
-  // Either move vertex out of position, or map to correct space
-  if ((node & 3) == 0 
-    || (doFlags && flag == 0) 
-    || (doLvl && fLvl != lvl)) {
-    posOut = vec3(-999); 
+  // Generate position from bounding box and instanced vertex position
+  vec3 pos = fpos + positionIn * fbbox;
+  gl_Position = transform * vec4(pos, 1);
+
+  // Generate output color
+  if ((nodeIn & 3) == 0 || (selectLvl && fLvl != selectedLvl)) {
+    colorOut = vec4(0);
   } else {
-    posOut = fpos + vert * fbbox;
-    // posOut.y = 1.f - posOut.y;
+    colorOut = vec4(1.0, 0.4, 0.1, opacity); // for header image
   }
-
-  // Output color
-  colorOut = labels[doFlags ? 1 : gl_InstanceID % 10] / 255.f;
-
-  // Apply camera transformation to output data
-  gl_Position = uTransform * vec4(posOut, 1);
 }
