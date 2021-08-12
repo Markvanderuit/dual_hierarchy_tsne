@@ -26,8 +26,8 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include "aligned.hpp"
-#include "vis/trackball_input_task.hpp"
+#include "dh/aligned.hpp"
+#include "dh/vis/trackball_input_task.hpp"
 
 namespace dh::vis {
   TrackballInputTask::TrackballInputTask()

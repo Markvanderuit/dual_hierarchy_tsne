@@ -22,33 +22,42 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include "dh/types.hpp"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
-  }
+namespace dh::sne {
+  struct Params {
+    // Input dataset params
+    uint n = 0;
+    uint nHighDims = 0;
 
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
+    // Basic tSNE parameters
+    uint iterations = 1000;
+    float perplexity = 30.f;
 
-  RenderQueue::RenderQueue() : _isInit(false) { }
+    // Approximation parameters
+    float singleHierarchyTheta = 0.5f;
+    float dualHierarchyTheta = 0.25f;
+    float fieldScaling2D = 2.0f;
+    float fieldScaling3D = 1.2f;
 
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
-} // dh::vis
+    // Embedding initialization parameters
+    int seed = 1;
+    float rngRange = 0.1f;
+    
+    // Gradient descent iteration parameters
+    // TODO COMPARE TO CUDA-SNE for simplification
+    uint momentumSwitchIter = 250;
+    uint removeExaggerationIter = 250;
+    uint exponentialDecayIter = 150;
+
+    // Gradient descent parameters
+    float minimumGain = 0.1f;
+    float eta = 200.f;
+    // TODO COMPARE TO CUDA-SNE for simplification
+    float momentum = 0.5f;
+    float finalMomentum = 0.8f;
+    float exaggerationFactor = 12.0f;
+  };
+} // dh::sne

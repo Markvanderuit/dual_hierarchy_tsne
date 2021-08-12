@@ -22,10 +22,10 @@
  * SOFTWARE.
  */
 
-#include "util/logger.hpp"
-#include "util/timer.hpp"
-#include "util/gl/error.hpp"
-#include "sne/sne.hpp"
+#include "dh/util/logger.hpp"
+#include "dh/util/timer.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/sne/sne.hpp"
 
 namespace dh::sne {
   template <uint D>

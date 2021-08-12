@@ -25,9 +25,9 @@
 #include <iomanip>
 #include <sstream>
 #include <glad/glad.h>
-#include "aligned.hpp"
-#include "util/gl/error.hpp"
-#include "util/gl/program.hpp"
+#include "dh/aligned.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/util/gl/program.hpp"
 
 namespace dh::util {
   GLenum getGlShaderType(GLShaderType type) {

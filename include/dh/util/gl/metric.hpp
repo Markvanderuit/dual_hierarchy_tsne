@@ -22,33 +22,27 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include <iostream>
+#include <glad/glad.h>
+#include "dh/util/enum.hpp"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
+namespace dh::util {
+  // Query a buffer's memory size in bytes
+  inline
+  GLuint glGetBufferSize(GLuint handle) {
+    GLint size = 0;
+    glGetNamedBufferParameteriv(handle, GL_BUFFER_SIZE, &size);
+    return static_cast<GLuint>(size);
   }
 
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
+  inline 
+  GLuint glGetBuffersSize(GLsizei n, GLuint* handles) {
+    GLuint size = 0;
+    for (GLsizei i = 0; i < n; ++i) {
+      size += glGetBufferSize(handles[i]);
     }
-    _queue.clear();
-    _isInit = false;
+    return size;
   }
-
-  RenderQueue::RenderQueue() : _isInit(false) { }
-
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
-} // dh::vis
+} // dh::util

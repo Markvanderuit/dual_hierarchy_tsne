@@ -22,33 +22,42 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include "dh/types.hpp"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
-  }
+namespace dh::sne {
+  // Data class provided by dh::sne::Minimization<D>::buffers() for other components
+  struct MinimizationBuffers {
+    GLuint embedding;
+    GLuint field;
+    GLuint bounds;
+  };
 
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
+  // Data class provided by dh::sne::Similarities<D>::buffers() for other components
+  struct SimilaritiesBuffers {
+    GLuint similarities;
+    GLuint layout;
+    GLuint neighbors;
+  };
 
-  RenderQueue::RenderQueue() : _isInit(false) { }
+  // Data class provided by dh::sne::Field<D>::buffers() for other components
+  struct FieldBuffers {
+    GLuint pixelQueue;
+    GLuint pixelQueueHead;
+  };
+  
+  // Data class provided by dh::sne::EmbeddingHierarchy<D>::buffers() for other components
+  struct EmbeddingHierarchyBuffers {
+    GLuint embeddingSorted;
+    GLuint node0;
+    GLuint node1;
+    GLuint minb;
+  };
 
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
-} // dh::vis
+  // Data class provided by dh::sne::FieldHierarchy<D>::buffers() for others components
+  struct FieldHierarchyBuffers {
+    GLuint node;
+    GLuint field;
+  };
+} // dh::sne

@@ -27,8 +27,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
-#include "util/error.hpp"
-#include "util/gl/window.hpp"
+#include "dh/util/error.hpp"
+#include "dh/util/gl/window.hpp"
 
 namespace dh::util {
   unsigned GLWindow::_nrHandles = 0u;

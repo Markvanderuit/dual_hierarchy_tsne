@@ -24,9 +24,9 @@
 
 #include <glad/glad.h>
 #include <resource_embed/resource_embed.hpp>
-#include "util/gl/error.hpp"
-#include "util/gl/metric.hpp"
-#include "sne/components/hierarchy/field_hierarchy.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/util/gl/metric.hpp"
+#include "dh/sne/components/hierarchy/field_hierarchy.hpp"
 
 namespace dh::sne {
   template <uint D>

@@ -27,9 +27,9 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <resource_embed/resource_embed.hpp>
-#include "util/gl/error.hpp"
-#include "util/gl/metric.hpp"
-#include "sne/components/field.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/util/gl/metric.hpp"
+#include "dh/sne/components/field.hpp"
 
 namespace dh::sne {
   // Constants

@@ -22,33 +22,45 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include <glad/glad.h>
+#include "dh/util/timer.hpp"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
+namespace dh::util {
+  // Simple wrapper around a OpenGL timer query object
+  class GLTimer : public Timer {
+  public:
+    GLTimer();
+    ~GLTimer();
+
+    // Copy constr/assignment is explicitly deleted (no copying OpenGL objects)
+    GLTimer(const GLTimer&) = delete;
+    GLTimer& operator=(const GLTimer&) = delete;
+
+    // Move constr/operator moves resource handles
+    GLTimer(GLTimer&&) noexcept;
+    GLTimer& operator=(GLTimer&&) noexcept;
+
+    // Swap internals with another timer object
+    friend void swap(GLTimer& a, GLTimer& b) noexcept;
+
+    // Override and implement for this specific timer
+    void tick() override;
+    void tock() override;
+    void poll() override;
+
+  private:
+    // Pair of timer queries that can be swapped
+    GLuint _frontQuery;
+    GLuint _backQuery;
+  };
+
+  // Helper function to poll a number of timers
+  inline
+  void glPollTimers(GLsizei n, GLTimer *timers) {
+    for (GLsizei i = 0; i < n; ++i) {
+      timers[i].poll();
     }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
   }
-
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
-
-  RenderQueue::RenderQueue() : _isInit(false) { }
-
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
-} // dh::vis
+} // dh

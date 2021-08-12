@@ -24,10 +24,10 @@
 
 #include <glad/glad.h>
 #include <resource_embed/resource_embed.hpp>
-#include "util/gl/error.hpp"
-#include "util/gl/metric.hpp"
-#include "vis/embedding_hierarchy_render_task.hpp"
-#include "sne/components/hierarchy/embedding_hierarchy.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/util/gl/metric.hpp"
+#include "dh/vis/embedding_hierarchy_render_task.hpp"
+#include "dh/sne/components/hierarchy/embedding_hierarchy.hpp"
 
 namespace dh::sne {
   template <uint D>

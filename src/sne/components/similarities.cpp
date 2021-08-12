@@ -25,10 +25,10 @@
 #include <faiss/gpu/StandardGpuResources.h>
 #include <faiss/gpu/GpuIndexIVFFlat.h>
 #include <resource_embed/resource_embed.hpp>
-#include "util/inclusive_scan.cuh"
-#include "util/gl/error.hpp"
-#include "util/gl/metric.hpp"
-#include "sne/components/similarities.hpp"
+#include "dh/util/inclusive_scan.cuh"
+#include "dh/util/gl/error.hpp"
+#include "dh/util/gl/metric.hpp"
+#include "dh/sne/components/similarities.hpp"
 
 namespace dh::sne {
   // Params for FAISS

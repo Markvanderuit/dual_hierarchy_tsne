@@ -24,8 +24,8 @@
 
 #include <array>
 #include <resource_embed/resource_embed.hpp>
-#include "util/gl/error.hpp"
-#include "vis/embedding_hierarchy_render_task.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/vis/embedding_hierarchy_render_task.hpp"
 
 namespace dh::vis {
   // Quad vertex position data

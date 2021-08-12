@@ -22,33 +22,47 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include "dh/types.hpp"
+#include "dh/util/enum.hpp"
+#include "dh/util/cu/interop.cuh"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
-  }
+namespace dh::util {
+  class InclusiveScan {
+  public:
+    InclusiveScan();
+    InclusiveScan(GLuint inputBuffer, GLuint outputBuffer, uint n);
+    ~InclusiveScan();
 
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
+    // Copy constr/assignment is explicitly deleted (no copying handles)
+    InclusiveScan(const InclusiveScan&) = delete;
+    InclusiveScan& operator=(const InclusiveScan&) = delete;
 
-  RenderQueue::RenderQueue() : _isInit(false) { }
+    // Move constr/operator moves handles
+    InclusiveScan(InclusiveScan&&) noexcept;
+    InclusiveScan& operator=(InclusiveScan&&) noexcept;
 
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
-} // dh::vis
+    // Swap internals with another object
+    friend void swap(InclusiveScan& a, InclusiveScan& b) noexcept;
+
+    // Perform inclusive scan over input buffer, store in output buffer
+    void comp();
+
+    bool isInit() const { return _isInit; }
+
+  private:
+    enum class BufferType { 
+      eInputBuffer,
+      eOutputBuffer,
+
+      Length
+    };
+
+    bool _isInit;
+    uint _n;
+    void * _tempHandle;
+    size_t _tempSize;
+    EnumArray<BufferType, CUGLInteropBuffer> _interopBuffers;
+  };
+} // dh::util

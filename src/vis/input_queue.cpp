@@ -24,7 +24,7 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include "vis/input_queue.hpp"
+#include "dh/vis/input_queue.hpp"
 
 namespace dh::vis {
   static void glfwKeyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods) {

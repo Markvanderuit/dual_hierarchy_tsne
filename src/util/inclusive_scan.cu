@@ -26,8 +26,8 @@
 #include <cuda_runtime.h>
 #define THRUST_IGNORE_CUB_VERSION_CHECK
 #include <cub/cub.cuh>
-#include "util/inclusive_scan.cuh"
-#include "util/cu/error.cuh"
+#include "dh/util/inclusive_scan.cuh"
+#include "dh/util/cu/error.cuh"
 
 namespace dh::util {
   InclusiveScan::InclusiveScan()

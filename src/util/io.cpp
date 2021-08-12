@@ -25,7 +25,7 @@
 #include <iostream> 
 #include <fstream>
 #include <stdexcept>
-#include "util/io.hpp"
+#include "dh/util/io.hpp"
 
 namespace dh::util {
   void readBinFile(const std::string &fileName, 

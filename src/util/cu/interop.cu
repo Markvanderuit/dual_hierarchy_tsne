@@ -24,9 +24,9 @@
 
 #include <utility>
 #include <cuda_runtime.h>
-#include "util/cu/error.cuh"
-#include "util/cu/interop.cuh"
-#include <cuda_gl_interop.h>
+#include "dh/util/cu/error.cuh"
+#include "dh/util/cu/interop.cuh"
+#include <cuda_gl_interop.h> // late include due to <glad/glad.h>
 
 namespace dh::util {
   CUGLInteropBuffer::CUGLInteropBuffer()

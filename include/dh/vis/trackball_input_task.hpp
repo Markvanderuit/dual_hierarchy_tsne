@@ -22,33 +22,30 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
+
+#include "dh/vis/input_queue.hpp"
+#include "dh/aligned.hpp"
 
 namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+  class TrackballInputTask : public InputTask {
+  public:
+    TrackballInputTask();
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
-  }
+    virtual void process() override;
+    virtual void mousePosInput(double xPos, double yPos) override;
+    virtual void mouseButtonInput(int button, int action) override;
+    virtual void mouseScrollInput(double xScroll, double yScroll) override;
 
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
+    glm::mat4 matrix() const { return _matrix; }
 
-  RenderQueue::RenderQueue() : _isInit(false) { }
-
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
+  private:
+    // State
+    bool _mouseTrackState;
+    float _mouseScrollState;
+    glm::vec2 _mousePosState;
+    glm::vec2 _mousePosStatePrev;
+    glm::mat4 _lookatState;
+    glm::mat4 _matrix;
+  };
 } // dh::vis

@@ -26,12 +26,12 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
-#include "util/io.hpp"
-#include "util/logger.hpp"
-#include "util/timer.hpp"
-#include "util/gl/window.hpp"
-#include "vis/renderer.hpp"
-#include "sne/sne.hpp"
+#include "dh/util/io.hpp"
+#include "dh/util/logger.hpp"
+#include "dh/util/timer.hpp"
+#include "dh/util/gl/window.hpp"
+#include "dh/vis/renderer.hpp"
+#include "dh/sne/sne.hpp"
 
 using uint = unsigned int;
 

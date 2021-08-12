@@ -22,10 +22,10 @@
  * SOFTWARE.
  */
 
-#include "util/gl/error.hpp"
-#include "vis/render_queue.hpp"
-#include "vis/input_queue.hpp"
-#include "vis/renderer.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/vis/render_queue.hpp"
+#include "dh/vis/input_queue.hpp"
+#include "dh/vis/renderer.hpp"
 
 namespace dh::vis {
   template <uint D>

@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#include "util/gl/error.hpp"
-#include "sne/components/field.hpp"
+#include "dh/util/gl/error.hpp"
+#include "dh/sne/components/field.hpp"
 
 namespace dh::sne {
   // Constants

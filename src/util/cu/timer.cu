@@ -24,7 +24,7 @@
 
 #include <utility>
 #include <cuda_runtime.h>
-#include "util/cu/timer.cuh"
+#include "dh/util/cu/timer.cuh"
 
 namespace dh::util {
   CUTimer::CUTimer() : Timer() {

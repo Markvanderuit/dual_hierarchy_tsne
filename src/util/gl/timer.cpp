@@ -23,7 +23,7 @@
  */
 
 #include <utility>
-#include "util/gl/timer.hpp"
+#include "dh/util/gl/timer.hpp"
 
 namespace dh::util {
   GLTimer::GLTimer() : Timer() {

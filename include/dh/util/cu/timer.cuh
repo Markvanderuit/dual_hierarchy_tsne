@@ -22,33 +22,34 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include "dh/util/timer.hpp"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
-  }
+namespace dh::util {
+  class CUTimer : public Timer {
+  public:
+    CUTimer();
+    ~CUTimer();
 
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
+    // Copy constr/assignment is explicitly deleted (no copying handles)
+    CUTimer(const CUTimer&) = delete;
+    CUTimer& operator=(const CUTimer&) = delete;
 
-  RenderQueue::RenderQueue() : _isInit(false) { }
+    // Move constr/operator moves resource handles
+    CUTimer(CUTimer&&) noexcept;
+    CUTimer& operator=(CUTimer&&) noexcept;
 
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
-} // dh::vis
+    // Swap internals with another timer object
+    friend void swap(CUTimer& a, CUTimer& b) noexcept;
+
+    // Override and implement for this specific timer
+    void tick() override;
+    void tock() override;
+    void poll() override;
+
+  private:
+    void *_startHandle;
+    void *_stopHandle;
+  };
+} // dh::util

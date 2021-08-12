@@ -22,33 +22,25 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include <cuda_runtime.h>
+#include "dh/util/error.hpp"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
-  }
-
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
-
-  RenderQueue::RenderQueue() : _isInit(false) { }
-
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
+namespace dh::util {
+  namespace detail {
+    inline 
+    void cuAssertImpl(cudaError_t err, const char *file, int line) {
+      if (err != cudaSuccess) {
+        RuntimeError error("CUDA error");
+        error.code = cudaGetErrorString(err);
+        error.file = file;
+        error.line = line;
+        throw error;
+      }
     }
   }
-} // dh::vis
+} // dh::util
+
+// Simple CUDA assert with message, file name and line nr. attached. Throws RuntimeError
+#define cuAssert(error) dh::util::detail::cuAssertImpl(error, __FILE__, __LINE__);

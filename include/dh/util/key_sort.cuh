@@ -22,33 +22,50 @@
  * SOFTWARE.
  */
 
-#include "dh/vis/render_queue.hpp"
+#pragma once
 
-namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+#include "dh/types.hpp"
+#include "dh/util/enum.hpp"
+#include "dh/util/cu/interop.cuh"
 
-  void RenderQueue::init() {
-    if (_isInit) {
-      return;
-    }
-    _queue = std::set<std::shared_ptr<RenderTask>, decltype(&cmpRenderTask)>(cmpRenderTask);
-    _isInit = true;
-  }
+namespace dh::util {
+  class KeySort {
+  public:
+    KeySort();
+    KeySort(GLuint inputBuffer, GLuint outputBuffer, GLuint outputOrderBuffer, uint n, uint bits);
+    ~KeySort();
 
-  void RenderQueue::dstr() {
-    if (_isInit) {
-      return;
-    }
-    _queue.clear();
-    _isInit = false;
-  }
+    // Copy constr/assignment is explicitly deleted (no copying handles)
+    KeySort(const KeySort&) = delete;
+    KeySort& operator=(const KeySort&) = delete;
 
-  RenderQueue::RenderQueue() : _isInit(false) { }
+    // Move constr/operator moves handles
+    KeySort(KeySort&&) noexcept;
+    KeySort& operator=(KeySort&&) noexcept;
 
-  RenderQueue::~RenderQueue() {
-    if (_isInit) {
-      dstr();
-    }
-  }
-} // dh::vis
+    // Swap internals with another object
+    friend void swap(KeySort& a, KeySort& b) noexcept;
+
+    // Perform radix sort over input buffer, store in output buffers
+    void sort();
+
+    bool isInit() const { return _isInit; }
+
+  private:
+    enum class BufferType { 
+      eInputBuffer,
+      eOutputBuffer,
+      eOutputOrderBuffer,
+
+      Length
+    };
+
+    bool _isInit;
+    uint _n;
+    uint _bits;
+    void * _orderHandle;
+    void * _tempHandle;
+    size_t _tempSize;
+    EnumArray<BufferType, CUGLInteropBuffer> _interopBuffers;
+  }; 
+} // dh::util
