@@ -29,7 +29,7 @@
 #define THRUST_IGNORE_CUB_VERSION_CHECK
 #include <cub/cub.cuh>
 #include "dh/util/cu/error.cuh"
-#include "dh/util/key_sort.cuh"
+#include "dh/util/cu/key_sort.cuh"
 
 namespace dh::util {
   KeySort::KeySort()
