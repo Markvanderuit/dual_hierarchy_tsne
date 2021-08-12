@@ -24,8 +24,7 @@
 
 #include <iomanip>
 #include <sstream>
-#include "aligned.hpp"
-#include <glm/gtc/type_ptr.hpp>
+#include <glad/glad.h>
 #include "aligned.hpp"
 #include "util/gl/error.hpp"
 #include "util/gl/program.hpp"

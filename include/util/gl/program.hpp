@@ -27,7 +27,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <glad/glad.h>
+#include "types.hpp"
 
 namespace dh::util {
   // Used OpenGL shader types
