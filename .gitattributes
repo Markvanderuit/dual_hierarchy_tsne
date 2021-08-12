@@ -1,0 +1,3 @@
+# Following https://github.com/github/linguist/blob/master/docs/overrides.md
+# classify .comp as GLSL compute shaders
+*.comp linguist-language=GLSL
