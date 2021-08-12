@@ -33,17 +33,18 @@ layout(location = 2) in vec4 colorIn;
 layout(location = 0) out vec4 colorOut;
 
 // Uniforms
-layout(location = 0) uniform mat4 transform;
-layout(location = 1) uniform float pointOpacity;
-layout(location = 2) uniform float pointRadius;
-layout(location = 3) uniform bool drawLabels;
+layout(location = 0) uniform mat4 model_view;
+layout(location = 1) uniform mat4 proj;
+layout(location = 2) uniform float pointOpacity;
+layout(location = 3) uniform float pointRadius;
+layout(location = 4) uniform bool drawLabels;
 
 void main() {
   // Discard fragments outside of circular point's radius
-  // const float t = distance(embeddingIn, fragEmbeddingIn);
-  // if (t > pointRadius) {
-  //   discard;
-  // }
+  const float t = distance(embeddingIn, fragEmbeddingIn);
+  if (t > pointRadius) {
+    discard;
+  }
 
   colorOut = colorIn;
 }

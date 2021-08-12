@@ -24,20 +24,24 @@
 
 #pragma once
 
+#include <utility>
 #include <glad/glad.h>
 #include "types.hpp"
+#include "aligned.hpp"
 #include "util/enum.hpp"
 #include "util/gl/program.hpp"
-#include "sne/sne_params.hpp"
-#include "sne/buffers/sne_minimization_buffers.hpp"
+#include "sne/params.hpp"
+#include "sne/components/buffers.hpp"
 #include "vis/render_queue.hpp"
 
 namespace dh::vis {
   template <uint D>
   class EmbeddingRenderTask : public RenderTask {
+    using vec = AlignedVec<D, float>;
+
   public:
     EmbeddingRenderTask();
-    EmbeddingRenderTask(sne::SNEMinimizationBuffers minimization, sne::SNEParams params, int priority);
+    EmbeddingRenderTask(sne::MinimizationBuffers minimization, sne::Params params, int priority);
     ~EmbeddingRenderTask();
 
     // Copy constr/assignment is explicitly deleted
@@ -48,20 +52,20 @@ namespace dh::vis {
     EmbeddingRenderTask(EmbeddingRenderTask&&) noexcept;
     EmbeddingRenderTask& operator=(EmbeddingRenderTask&&) noexcept;
 
-    void render(glm::mat4 transform, GLuint labelsHandle) override;
+    void render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle = 0) override;
 
   private:
     enum class BufferType {
-      eQuadPositions,
-      eQuadElements,
+      ePositions,
+      eElements,
 
       Length
     };
 
     // State
     bool _isInit;
-    sne::SNEMinimizationBuffers _minimization;
-    sne::SNEParams _params;
+    sne::MinimizationBuffers _minimization;
+    sne::Params _params;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
@@ -71,6 +75,7 @@ namespace dh::vis {
   public:
     bool isInit() const { return _isInit; }
     
+    // std::swap impl
     friend void swap(EmbeddingRenderTask& a, EmbeddingRenderTask& b) noexcept {
       using std::swap;
       swap(static_cast<RenderTask&>(a), static_cast<RenderTask&>(b));

@@ -32,7 +32,7 @@ struct Bounds {
 };
 
 // 10 distinguishable label colors
-const vec3 labelColors[10] = vec3[10](
+const vec3 colors[10] = vec3[10](
   vec3(16, 78, 139),
   vec3(139, 90, 43),
   vec3(138, 43, 226),
@@ -57,13 +57,14 @@ layout(location = 2) out vec4 colorOut;
 
 // Buffer bindings
 layout(binding = 0, std430) restrict readonly buffer BoundsBuffer { Bounds bounds; };
-layout(binding = 1, std430) restrict readonly buffer LabelsBuffer { uint labelsBuffer[]; };
+layout(binding = 1, std430) restrict readonly buffer LabelsBuffer { uint labels[]; };
 
 // Uniforms
-layout(location = 0) uniform mat4 transform;
-layout(location = 1) uniform float pointOpacity;
-layout(location = 2) uniform float pointRadius;
-layout(location = 3) uniform bool drawLabels;
+layout(location = 0) uniform mat4 model_view;
+layout(location = 1) uniform mat4 proj;
+layout(location = 2) uniform float pointOpacity;
+layout(location = 3) uniform float pointRadius;
+layout(location = 4) uniform bool drawLabels;
 
 void main() {
   // Calculate embedding position, fragment position
@@ -71,9 +72,10 @@ void main() {
   fragEmbeddingOut = embeddingOut + vec3(positionIn, 0) * pointRadius;
 
   // Calculate vertex position
-  gl_Position = transform * vec4(embeddingOut, 1) * vec4(positionIn, 0, 0) * pointRadius;
+  gl_Position = proj * model_view * vec4(embeddingOut, 1) 
+              + proj * vec4(positionIn, 0, 1) * pointRadius;
 
   // Calculate output color depending on label
-  const vec3 labelColor = labelColors[drawLabels ? gl_InstanceID % 10 : 0] / 255.f;
-  colorOut = vec4(labelColor, pointOpacity);
+  const uint label = drawLabels ? labels[gl_InstanceID] % 10 : 9;
+  colorOut = vec4(colors[label] / 255.0f, pointOpacity);
 }

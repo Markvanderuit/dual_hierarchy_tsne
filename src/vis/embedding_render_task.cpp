@@ -24,17 +24,16 @@
 
 #include <array>
 #include <resource_embed/resource_embed.hpp>
-#include "aligned.hpp"
 #include "util/gl/error.hpp"
 #include "vis/embedding_render_task.hpp"
 
 namespace dh::vis {
   // Quad vertex position data
   constexpr std::array<glm::vec2, 4> quadPositions = {
-    glm::vec2(-0.5, -0.5),  // 0
-    glm::vec2(0.5, -0.5),   // 1
-    glm::vec2(0.5, 0.5),    // 2
-    glm::vec2(-0.5, 0.5)    // 3
+    glm::vec2(-1, -1),  // 0
+    glm::vec2(1, -1),   // 1
+    glm::vec2(1, 1),    // 2
+    glm::vec2(-1, 1)    // 3
   };
 
   // Quad element index data
@@ -49,7 +48,7 @@ namespace dh::vis {
   }
 
   template <uint D>
-  EmbeddingRenderTask<D>::EmbeddingRenderTask(sne::SNEMinimizationBuffers minimization, sne::SNEParams params, int priority)
+  EmbeddingRenderTask<D>::EmbeddingRenderTask(sne::MinimizationBuffers minimization, sne::Params params, int priority)
   : RenderTask(priority), _isInit(false), _minimization(minimization), _params(params) {
     // Initialize shader program
     {
@@ -67,8 +66,8 @@ namespace dh::vis {
     // Initialize buffer objects
     {
       glCreateBuffers(_buffers.size(), _buffers.data());
-      glNamedBufferStorage(_buffers(BufferType::eQuadPositions), quadPositions.size() * sizeof(glm::vec2), quadPositions.data(), 0);
-      glNamedBufferStorage(_buffers(BufferType::eQuadElements), quadElements.size() * sizeof(uint), quadElements.data(), 0);
+      glNamedBufferStorage(_buffers(BufferType::ePositions), quadPositions.size() * sizeof(glm::vec2), quadPositions.data(), 0);
+      glNamedBufferStorage(_buffers(BufferType::eElements), quadElements.size() * sizeof(uint), quadElements.data(), 0);
       glAssert();
     }
 
@@ -78,9 +77,9 @@ namespace dh::vis {
 
       // Specify vertex buffers and element buffer
       constexpr uint embeddingStride = (D == 2) ? 2 : 4;
-      glVertexArrayVertexBuffer(_vaoHandle, 0, _buffers(BufferType::eQuadPositions), 0, sizeof(glm::vec2));   // Quad positions
+      glVertexArrayVertexBuffer(_vaoHandle, 0, _buffers(BufferType::ePositions), 0, sizeof(glm::vec2));   // Quad positions
       glVertexArrayVertexBuffer(_vaoHandle, 1, _minimization.embedding, 0, embeddingStride * sizeof(float));  // Embedding positions
-      glVertexArrayElementBuffer(_vaoHandle, _buffers(BufferType::eQuadElements));                            // Quad elements/indices
+      glVertexArrayElementBuffer(_vaoHandle, _buffers(BufferType::eElements));                            // Quad elements/indices
 
       // Embedding positions advance once for the full set of vertices drawn
       glVertexArrayBindingDivisor(_vaoHandle, 0, 0);
@@ -111,7 +110,6 @@ namespace dh::vis {
     }
   }
 
-  // Move constr/operator moves handles
   template <uint D>
   EmbeddingRenderTask<D>::EmbeddingRenderTask(EmbeddingRenderTask&& other) noexcept {
     swap(*this, other);
@@ -124,23 +122,23 @@ namespace dh::vis {
   }
 
   template <uint D>
-  void EmbeddingRenderTask<D>::render(glm::mat4 transform, GLuint labelsHandle) {
+  void EmbeddingRenderTask<D>::render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle) {
     _program.bind();
 
     // Set uniforms
-    _program.uniform<glm::mat4>("transform", transform);
+    _program.uniform<glm::mat4>("model_view", model_view);
+    _program.uniform<glm::mat4>("proj", proj);
     _program.uniform<float>("pointOpacity", 1.0f);
-    _program.uniform<float>("pointRadius", 0.01f);
-    // _program.uniform<bool>("drawLabels", true);
+    _program.uniform<float>("pointRadius", 0.005f);
+    _program.uniform<bool>("drawLabels", labelsHandle > 0);
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.bounds);
-    // glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, labelsHandle);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, labelsHandle);
 
     // Perform draw
     glBindVertexArray(_vaoHandle);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, _params.n);
-    // glAssert();
+    glDrawElementsInstanced(GL_TRIANGLES, quadElements.size(), GL_UNSIGNED_INT, nullptr, _params.n);
   }
 
   // Template instantiations for 2/3 dimensions
