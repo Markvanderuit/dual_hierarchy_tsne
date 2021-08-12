@@ -24,13 +24,40 @@
 
 #pragma once
 
-#include <glad/glad.h>
+#include "types.hpp"
 
 namespace dh::sne {
-  // Buffers provided by dh::sne::SNEMinimization<D> for other components to access
-  struct SNEMinimizationBuffers {
+  // Data class provided by dh::sne::Minimization<D>::buffers() for other components
+  struct MinimizationBuffers {
     GLuint embedding;
     GLuint field;
     GLuint bounds;
   };
-}; // dh::sne
+
+  // Data class provided by dh::sne::Similarities<D>::buffers() for other components
+  struct SimilaritiesBuffers {
+    GLuint similarities;
+    GLuint layout;
+    GLuint neighbors;
+  };
+
+  // Data class provided by dh::sne::Field<D>::buffers() for other components
+  struct FieldBuffers {
+    GLuint pixelQueue;
+    GLuint pixelQueueHead;
+  };
+  
+  // Data class provided by dh::sne::EmbeddingHierarchy<D>::buffers() for other components
+  struct EmbeddingHierarchyBuffers {
+    GLuint embeddingSorted;
+    GLuint node0;
+    GLuint node1;
+    GLuint minb;
+  };
+
+  // Data class provided by dh::sne::FieldHierarchy<D>::buffers() for others components
+  struct FieldHierarchyBuffers {
+    GLuint node;
+    GLuint field;
+  };
+} // dh::sne
