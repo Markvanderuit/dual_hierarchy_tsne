@@ -26,8 +26,9 @@
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/transform.hpp>
 
 namespace dh {
   // Alignment specifier to match glm::vec1/2/3/4 to 4/8/16/16 bytes for usage in OpenGL buffers

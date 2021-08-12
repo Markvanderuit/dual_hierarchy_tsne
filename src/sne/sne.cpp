@@ -35,12 +35,11 @@ namespace dh::sne {
   }
 
   template <uint D>
-  SNE<D>::SNE(const std::vector<float>& data, SNEParams params, util::Logger* logger)
+  SNE<D>::SNE(const std::vector<float>& data, Params params, util::Logger* logger)
   : _isInit(false), _iteration(0), _params(params), _logger(logger) {
     util::log(_logger, "[SNE] Initializing...");
 
-    // Initialize subcomponents
-    _sneSimilarities = SNESimilarities<D>(data, params, logger);
+    _sneSimilarities = Similarities<D>(data, params, logger);
 
     _isInit = true;
     util::log(_logger, "[SNE] Initialized");
@@ -76,10 +75,10 @@ namespace dh::sne {
 
   template <uint D>
   void SNE<D>::compMinimization() {
-    util::CppTimer timer;
+    util::ChronoTimer timer;
     timer.tick();
     for (uint i = 0; i < _params.iterations; ++i) {
-      compIteration();
+      compMinimizationStep();
     }
     timer.tock();
     timer.poll();
@@ -87,12 +86,11 @@ namespace dh::sne {
   }
 
   template <uint D>
-  void SNE<D>::prepMinimization() {
-    _sneMinimization = SNEMinimization<D>(_sneSimilarities.buffers(), _params, _logger);
-  }
+  void SNE<D>::compMinimizationStep() {
+    if (!_sneMinimization.isInit()) {
+      _sneMinimization = Minimization<D>(_sneSimilarities.buffers(), _params, _logger);
+    }
 
-  template <uint D>
-  void SNE<D>::compIteration() {
     if (_iteration == _params.momentumSwitchIter) {
       util::log(_logger, "[SNE]  Switching to final momemtum...");
     }
@@ -106,13 +104,20 @@ namespace dh::sne {
   }
 
   template <uint D>
-  float SNE<D>::klDivergence() const {
-    return 1.0f;
+  float SNE<D>::klDivergence() {
+    if (!_sneKLDivergence.isInit()) {
+      _sneKLDivergence = KLDivergence<D>(_params, _sneSimilarities.buffers(), _sneMinimization.buffers(), _logger);
+    }
+
+    return _sneKLDivergence.comp();
   }
 
   template <uint D>
   std::vector<float> SNE<D>::embedding() const {
-    return { };
+    runtimeAssert(_sneKLDivergence.isInit(), "SNE<D>::embedding() called before minimization was started!");
+    std::vector<float> embedding(_params.n);
+    // TODO Implement with(out) padding
+    return embedding;
   }
 
   // Template instantiations for 2/3 dimensions

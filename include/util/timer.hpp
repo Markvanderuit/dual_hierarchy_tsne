@@ -71,10 +71,10 @@ namespace dh::util {
   };
   
   // Simple std::chrono based timer for cpu side timings
-  class CppTimer : public Timer {
+  class ChronoTimer : public Timer {
   public:
-    CppTimer() : Timer() { }
-    ~CppTimer() { }
+    ChronoTimer() : Timer() { }
+    ~ChronoTimer() { }
 
     void tick() override {
       _values(TimerValue::eLast) = std::chrono::nanoseconds(0);
@@ -93,7 +93,7 @@ namespace dh::util {
       // not handled ...
     }
 
-    friend void swap(CppTimer& a, CppTimer& b) noexcept {
+    friend void swap(ChronoTimer& a, ChronoTimer& b) noexcept {
       using std::swap;
       swap(a._values, b._values);
       swap(a._iterations, b._iterations);

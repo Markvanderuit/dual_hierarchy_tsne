@@ -24,13 +24,13 @@
 
 #pragma once
 
-
 #include <vector>
 #include "types.hpp"
 #include "util/logger.hpp"
-#include "sne/sne_params.hpp"
-#include "sne/sne_similarities.hpp"
-#include "sne/sne_minimization.hpp"
+#include "sne/params.hpp"
+#include "sne/components/similarities.hpp"
+#include "sne/components/minimization.hpp"
+#include "sne/components/kl_divergence.hpp"
 
 namespace dh::sne {
   template <uint D> // Dimension of produced embedding
@@ -38,7 +38,7 @@ namespace dh::sne {
   public:
     // Constr/destr
     SNE();
-    SNE(const std::vector<float>& data, SNEParams params, util::Logger* logger = nullptr);
+    SNE(const std::vector<float>& data, Params params, util::Logger* logger = nullptr);
     ~SNE();
 
     // Copy constr/assignment is explicitly deleted (no copying underlying handles)
@@ -48,24 +48,16 @@ namespace dh::sne {
     // Move constr/operator moves handles
     SNE(SNE&&) noexcept;
     SNE& operator=(SNE&&) noexcept;
-
-    // Compute similarities, then perform the minimization
-    void comp();
-
-    // Compute high-dimensional similarities only
-    void compSimilarities();
-
-    void prepMinimization();
-
-    // Perform a single step of the minimization only
-    void compIteration();
-
-    // Perform all steps of the minimization only
-    void compMinimization();
+    
+    // Main computation functions
+    void comp();                  // Compute similarities and then perform minimization
+    void compSimilarities();      // Only compute similarities
+    void compMinimization();      // Only perform minimization
+    void compMinimizationStep();  // Only perform a single step of minimization
     
     // Compute and return KL-Divergence of current embedding
     // Don't do this while minimizing unless you don't care about performance
-    float klDivergence() const;
+    float klDivergence();
 
     // Return raw data of current embedding
     // Don't do this while minimizing unless you don't care about performance
@@ -78,12 +70,13 @@ namespace dh::sne {
     // State
     bool _isInit;
     uint _iteration;
-    SNEParams _params;
+    Params _params;
     util::Logger* _logger;
 
     // Subcomponents
-    SNESimilarities<D> _sneSimilarities;
-    SNEMinimization<D> _sneMinimization;
+    Similarities<D> _sneSimilarities;
+    Minimization<D> _sneMinimization;
+    KLDivergence<D> _sneKLDivergence;
 
   public:
     // Swap internals with another object
@@ -92,8 +85,10 @@ namespace dh::sne {
       swap(a._isInit, b._isInit);
       swap(a._iteration, b._iteration);
       swap(a._params, b._params);
+      swap(a._logger, b._logger);
       swap(a._sneSimilarities, b._sneSimilarities);
       swap(a._sneMinimization, b._sneMinimization);
+      swap(a._sneKLDivergence, b._sneKLDivergence);
     }
   };
 } // dh::sne

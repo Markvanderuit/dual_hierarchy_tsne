@@ -25,8 +25,8 @@
 #pragma once
 
 namespace dh {
-  // Shorthand, matches glsl
-  using uint = unsigned;
+  using GLuint = unsigned int; // Matches GLAD, use to prevent unnecessary glad.h includes
+  using uint = unsigned int;   // Matches GLSL, use to keep syntax similar
   
   // Rounded up division of some n by div
   template <typename genType> 
