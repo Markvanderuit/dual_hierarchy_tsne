@@ -34,24 +34,42 @@ rsrcs_embed(shaders ${CMAKE_SOURCE_DIR}/resources/shaders)
 # Specify util library
 add_library_recurse(util util)
 target_compile_features(util PRIVATE cxx_std_17)
-target_link_libraries(util PUBLIC glad glm::glm glfw date::date)
 target_include_directories(util PUBLIC include)
+target_link_libraries(util PUBLIC 
+  cub 
+  glad
+  glfw
+  glm::glm
+  date::date
+)
 
 # Specify sne library
 add_library_recurse(sne sne)
 target_compile_features(sne PRIVATE cxx_std_17)
-target_link_libraries(sne PUBLIC util cub ResourceEmbed gpufaiss)
 target_include_directories(sne PUBLIC include)
 target_sources(sne PRIVATE ${shaders})
+target_link_libraries(sne PRIVATE 
+  util 
+  gpufaiss 
+  ResourceEmbed
+)
 
 # Specify vis library
 add_library_recurse(vis vis)
 target_compile_features(vis PRIVATE cxx_std_17)
-target_link_libraries(vis PUBLIC util sne ResourceEmbed)
 target_include_directories(vis PUBLIC include)
 target_sources(vis PRIVATE ${shaders})
+target_link_libraries(vis PRIVATE
+  util 
+  sne 
+  ResourceEmbed
+)
 
 # Add sne_cmd demo executable
 add_executable(sne_cmd src/app/sne_cmd.cpp)
 target_compile_features(sne_cmd PRIVATE cxx_std_17)
-target_link_libraries(sne_cmd PRIVATE util sne vis)
+target_link_libraries(sne_cmd PRIVATE
+  util
+  sne
+  vis
+)
