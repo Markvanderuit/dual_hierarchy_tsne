@@ -25,6 +25,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include "dh/constants.hpp"
 #include "dh/util/error.hpp"
 
 namespace dh::util {
@@ -42,5 +43,9 @@ namespace dh::util {
   }
 } // dh::util
 
-// Simple CUDA assert with message, file name and line nr. attached. Throws RuntimeError
-#define cuAssert(error) dh::util::detail::cuAssertImpl(error, __FILE__, __LINE__);
+// Simple CUDA assert with err code, file name and line nr. attached. Throws RuntimeError
+#ifdef DH_ENABLE_ASSERT
+#define cuAssert(statement) dh::util::detail::cuAssertImpl(statement, __FILE__, __LINE__);
+#else
+#define cuAssert(statement) statement;
+#endif

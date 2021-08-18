@@ -24,4 +24,5 @@
 
 #pragma once
 
-// ...
+// Enable runtime assertion for some components; regular cuda/OpenGL error checking etc
+#define DH_ENABLE_ASSERT

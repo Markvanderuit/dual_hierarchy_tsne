@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include "dh/constants.hpp"
 #include "dh/types.hpp"
 
 namespace dh::util {
@@ -82,4 +83,8 @@ namespace dh::util {
 } // dh::util
 
 // Simple assert with message, file name and line nr. attached. Throws RuntimeError
+#ifdef DH_ENABLE_ASSERT
 #define runtimeAssert(statement, message) dh::util::detail::runtimeAssertImpl(statement, message, __FILE__, __LINE__);
+#else
+#define runtimeAssert(statement, message) statement;
+#endif
