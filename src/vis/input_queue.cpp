@@ -22,8 +22,10 @@
  * SOFTWARE.
  */
 
+#include <imgui.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include "dh/util/error.hpp"
 #include "dh/vis/input_queue.hpp"
 
 namespace dh::vis {
@@ -70,17 +72,18 @@ namespace dh::vis {
     if (_isInit) {
       return;
     }
-    _windowHandle = &window;
-    _queue = std::set<std::shared_ptr<InputTask>, decltype(&cmpInputTask)>(cmpInputTask);
     
     // Register input callbacks
-    GLFWwindow *handle = (GLFWwindow *) _windowHandle->handle();
+    GLFWwindow *handle = (GLFWwindow *) window.handle();
+    runtimeAssert(handle, "could not register GLFW input callbacks");
     glfwSetWindowUserPointer(handle, this);
     glfwSetKeyCallback(handle, glfwKeyCallback);
     glfwSetCursorPosCallback(handle, glfwMousePosCallback);
     glfwSetMouseButtonCallback(handle, glfwMouseButtonCallback);
     glfwSetScrollCallback(handle, glfwMouseScrollCallback);
     
+    _queue = Queue(cmpInputTask);
+    _windowHandle = &window;
     _isInit = true;
   }
 
@@ -91,6 +94,7 @@ namespace dh::vis {
 
     // Deregister input callbacks
     GLFWwindow *handle = (GLFWwindow *) _windowHandle->handle();
+    runtimeAssert(handle, "could not deregister GLFW input callbacks");
     glfwSetWindowUserPointer(handle, nullptr);
     glfwSetKeyCallback(handle, nullptr);
     glfwSetCursorPosCallback(handle, nullptr);
@@ -111,17 +115,20 @@ namespace dh::vis {
   }
   
   void InputQueue::fwdKeyCallback(int key, int scancode, int action, int mods) {
-    // Quick and dirty escape key implementation
-    // TODO Remove and add to a task!
-    if (key == GLFW_KEY_ESCAPE) {
-      std::exit(0);
+    // Forward keyboard input to ImGui
+    auto& io = ImGui::GetIO();
+    io.KeysDown[key] = (action == GLFW_PRESS || action == GLFW_REPEAT);
+    io.KeyCtrl = (mods & GLFW_MOD_CONTROL != 0);
+    io.KeyAlt = (mods & GLFW_MOD_ALT != 0);
+    io.KeyShift = (mods & GLFW_MOD_SHIFT != 0);
+    io.KeySuper = (mods & GLFW_MOD_SUPER != 0);
+
+    // Ignore, imgui takes keyboard callback
+    if (io.WantCaptureKeyboard) {
+      return;
     }
 
-    // // ImGui captures keyboard input, do not forward
-    // if (ImGui::GetIO().WantCaptureKeyboard) {
-    //   return;
-    // }
-
+    // Forward keyboard callback to input queue 
     for (auto& ptr : _queue) {
       ptr->keyboardInput(key, action);
     }
@@ -129,27 +136,36 @@ namespace dh::vis {
 
   void InputQueue::fwdMousePosCallback(double xPos, double yPos) {
     // Do forward despite possible ImGui capture
-    // The alternative is annoying
+    // The alternative is **severely annoying**
     for (auto& ptr : _queue) {
       ptr->mousePosInput(xPos, yPos);
     }
   }
 
   void InputQueue::fwdMouseButtonCallback(int button, int action, int mods) {
-    // // ImGui captures mouse input, do not forward
-    // if (ImGui::GetIO().WantCaptureMouse) {
-    //   return;
-    // }
+    // Ignore, imgui captures button callback
+    if (ImGui::GetIO().WantCaptureMouse) {
+      return;
+    }
+
+    // Forward button callback to input queue 
     for (auto& ptr : _queue) {
       ptr->mouseButtonInput(button, action);
     }
   }
 
   void InputQueue::fwdMouseScrollCallback(double xScroll, double yScroll) {
-    // // ImGui captures mouse input, do not forward
-    // if (ImGui::GetIO().WantCaptureMouse) {
-    //   return;
-    // }
+    // Forward mouse scroll to ImGui (seems to fail by default?)
+    auto& io = ImGui::GetIO();
+    io.MouseWheel = yScroll;
+    io.MouseWheelH = xScroll;
+
+    // Test if imgui captures scroll callback
+    if (io.WantCaptureMouse) {
+      return;
+    }
+    
+    // Forward scroll callback to input queue 
     for (auto& ptr : _queue) {
       ptr->mouseScrollInput(xScroll, yScroll);
     }
