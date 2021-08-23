@@ -87,12 +87,12 @@ namespace dh::vis {
     // Insert input task, return a shared pointer to provide later access to task
     template <class DerivedTask,
               typename = std::enable_if_t<std::is_base_of_v<InputTask, DerivedTask>>>
-    Pointer emplace(DerivedTask&& task) {
+    std::shared_ptr<DerivedTask> emplace(DerivedTask&& task) {
       if (!_isInit) {
         return nullptr;
       }
-      Pointer ptr = std::make_shared<DerivedTask>(std::move(task));
-      insert<DerivedTask>(ptr);
+      auto ptr = std::make_shared<DerivedTask>(std::move(task));
+      insert(ptr);
       return ptr;
     }
 
