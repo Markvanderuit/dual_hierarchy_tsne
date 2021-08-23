@@ -245,16 +245,6 @@ namespace dh::sne {
       glAssert();
     }
 
-    /* { // DEBUG: REMOVE
-      std::vector<uint> buffer(64, 0);
-      glGetNamedBufferSubData(tempBuffers(TBufferType::eScan), 0, buffer.size() * sizeof(uint), buffer.data());
-
-      for (uint i = 0; i < buffer.size(); ++i) {
-        std::cout << buffer[i] << ", ";
-      }
-      std::cout << std::endl;
-    } // DEBUG: REMOVE */
-
     // 4.
     // Determine sizes of expanded neighborhoods in memory through prefix sum
     // Leverages CUDA CUB library underneath
