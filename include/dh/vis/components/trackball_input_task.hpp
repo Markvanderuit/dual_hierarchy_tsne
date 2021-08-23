@@ -48,6 +48,7 @@ namespace dh::vis {
     glm::mat4 _lookatState;
     glm::mat4 _matrix;
 
+    // Mouse speed multipliers
     float _mouseScrollMult;
     float _mousePosMult;
   };
