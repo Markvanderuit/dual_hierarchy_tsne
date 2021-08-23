@@ -27,6 +27,7 @@
 #include <memory>
 #include <utility>
 #include <set>
+#include <string>
 #include <type_traits>
 #include "dh/types.hpp"
 #include "dh/util/aligned.hpp"
@@ -35,17 +36,21 @@ namespace dh::vis {
   class RenderTask {
   public:
     // Constr
-    RenderTask(int priority = -1);
+    RenderTask();
+    RenderTask(int priority, const std::string& name);
 
     // Override and implement a render task to be handled by the renderer
     virtual void render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle = 0) = 0;
-    
+    virtual void drawImGuiComponent() = 0;
+
   private:
     int _priority;
+    std::string _name;
 
   public:
     // Getters
     int priority() const { return _priority; }
+    std::string name() const { return _name; }
 
     // Compare function for sortable insertion
     using Pointer = std::shared_ptr<RenderTask>;
@@ -57,6 +62,7 @@ namespace dh::vis {
     friend void swap(RenderTask& a, RenderTask& b) noexcept {
       using std::swap;
       swap(a._priority, b._priority);
+      swap(a._name, b._name);
     }
   };
 
@@ -99,6 +105,18 @@ namespace dh::vis {
         return;
       }
       _queue.insert(ptr);
+    }
+
+    // Find a render task for its given name, or return nullptr otherwise
+    Pointer find(const std::string& name) {
+      if (!_isInit) {
+        return nullptr;
+      }
+      auto iter = std::find_if(_queue.begin(), _queue.end(), [name](auto& ptr) { return ptr->name() == name;});
+      if (iter == _queue.end()) {
+        return nullptr;
+      }
+      return *iter;
     }
 
     // Erase render task from queue, assuming a pointer for access is available

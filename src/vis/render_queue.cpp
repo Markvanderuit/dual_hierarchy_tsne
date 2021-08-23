@@ -25,8 +25,11 @@
 #include "dh/vis/render_queue.hpp"
 
 namespace dh::vis {
-  RenderTask::RenderTask(int priority)
-  : _priority(priority) { }
+  RenderTask::RenderTask()
+  : _priority(-1), _name("") { }
+
+  RenderTask::RenderTask(int priority, const std::string& name)
+  : _priority(priority), _name(name) { }
 
   void RenderQueue::init() {
     if (_isInit) {

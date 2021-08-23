@@ -51,6 +51,7 @@ namespace dh::vis {
     FieldHierarchyRenderTask& operator=(FieldHierarchyRenderTask&&) noexcept;
 
     void render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle) override;
+    void drawImGuiComponent() override;
 
   private:
     enum class BufferType {
