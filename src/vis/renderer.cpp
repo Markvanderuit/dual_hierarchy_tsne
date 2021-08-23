@@ -22,11 +22,15 @@
  * SOFTWARE.
  */
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include <glad/glad.h>
 #include "dh/util/gl/error.hpp"
 #include "dh/vis/render_queue.hpp"
 #include "dh/vis/input_queue.hpp"
 #include "dh/vis/renderer.hpp"
+#include "dh/vis/components/esc_input_task.hpp"
 
 namespace dh::vis {
   template <uint D>
@@ -37,13 +41,24 @@ namespace dh::vis {
   Renderer<D>::Renderer(const util::GLWindow& window, sne::Params params, const std::vector<uint>& labels)
   : _isInit(false), _params(params), _windowHandle(&window), _labelsHandle(0), _fboSize(0) {
     
+    // Setup ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+
+    // ImGui platform components
+    ImGui_ImplGlfw_InitForOpenGL((GLFWwindow *) window.handle(), true);
+    const char *version = "#version 460";
+    ImGui_ImplOpenGL3_Init(version);
+
     // Init static render queue/input queue so tasks can be added by the sne lib
     InputQueue::instance().init(window);
     RenderQueue::instance().init();
 
-    // Record trackball input task. Most 3d rendertasks need a transformation matrix
-    _trackballInputTask = std::make_shared<vis::TrackballInputTask>();
-    InputQueue::instance().insert(_trackballInputTask);
+    // Add input tasks; first to capture ESC key and shut down application,
+    // second as 3D rendertasks need trackball input to generate transformation matrix
+    InputQueue::instance().emplace(vis::EscInputTask());
+    _trackballInputTask = InputQueue::instance().emplace(vis::TrackballInputTask());
 
     // Init OpenGL objects: framebuffer, color and depth textures, label buffer
     glCreateFramebuffers(1, &_fboHandle);
@@ -61,12 +76,21 @@ namespace dh::vis {
   template <uint D>
   Renderer<D>::~Renderer() {
     if (_isInit) {
+      // Shut down imgui
+      ImGui_ImplOpenGL3_Shutdown();
+      ImGui_ImplGlfw_Shutdown();
+      ImGui::DestroyContext();
+
+      // Shut down static render queue/input queue
       RenderQueue::instance().dstr();      
       InputQueue::instance().dstr();      
+
+      // Destroy OpenGL objects
       glDeleteTextures(1, &_fboColorTextureHandle);
       glDeleteTextures(1, &_fboDepthTextureHandle);
       glDeleteFramebuffers(1, &_fboHandle);
       glDeleteBuffers(1, &_labelsHandle);
+
       _isInit = false;
     }
   }
@@ -99,6 +123,11 @@ namespace dh::vis {
       glNamedFramebufferTexture(_fboHandle, GL_DEPTH_ATTACHMENT, _fboDepthTextureHandle, 0);
       glAssert();
     }
+
+    // Setup new frame for IMGUI
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
     // Process all tasks in input queue
     for (auto& ptr : InputQueue::instance().queue()) {
@@ -145,6 +174,13 @@ namespace dh::vis {
       0, 0, _fboSize.x, _fboSize.y,
       GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST  
     );
+
+    // Add ImGui components
+    ImGui::ShowDemoWindow();
+
+    // Finalize and render ImGui components
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
 
   // Template instantiations for 2/3 dimensions
