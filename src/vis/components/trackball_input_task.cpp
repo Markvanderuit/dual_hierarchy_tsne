@@ -31,7 +31,8 @@
 
 namespace dh::vis {
   TrackballInputTask::TrackballInputTask()
-  : _mouseTrackState(false), 
+  : InputTask(1),
+    _mouseTrackState(false), 
     _mouseScrollState(1.0f), 
     _mousePosState(0.0f), 
     _mousePosStatePrev(0.0f),

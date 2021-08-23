@@ -32,10 +32,10 @@ namespace dh::vis {
   public:
     TrackballInputTask();
 
-    virtual void process() override;
-    virtual void mousePosInput(double xPos, double yPos) override;
-    virtual void mouseButtonInput(int button, int action) override;
-    virtual void mouseScrollInput(double xScroll, double yScroll) override;
+    void process() override;
+    void mousePosInput(double xPos, double yPos) override;
+    void mouseButtonInput(int button, int action) override;
+    void mouseScrollInput(double xScroll, double yScroll) override;
 
     glm::mat4 matrix() const { return _matrix; }
 
