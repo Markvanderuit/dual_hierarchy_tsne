@@ -67,7 +67,6 @@ namespace dh::vis {
     sne::Params _params;
 
     // ImGui state
-    bool _draw;
     bool _canDrawLabels;
     bool _drawLabels;
     float _pointRadius;
@@ -88,6 +87,7 @@ namespace dh::vis {
       swap(a._isInit, b._isInit);
       swap(a._minimization, b._minimization);
       swap(a._params, b._params);
+      swap(a._canDrawLabels, b._canDrawLabels);
       swap(a._drawLabels, b._drawLabels);
       swap(a._pointRadius, b._pointRadius);
       swap(a._pointOpacity, b._pointOpacity);

@@ -55,9 +55,8 @@ namespace dh::vis {
     _isInit(false),
     _minimization(minimization),
     _params(params),
-    _draw(true),
     _canDrawLabels(false),
-    _drawLabels(false),
+    _drawLabels(true),
     _pointRadius(0.005f),
     _pointOpacity(1.0f) {
     // Initialize shader program
@@ -133,8 +132,12 @@ namespace dh::vis {
 
   template <uint D>
   void EmbeddingRenderTask<D>::render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle) {
-    // Only allow enabling _drawLabels if a buffer is provided with said labels
-    _canDrawLabels = (glIsBuffer(labelsHandle));
+    if (!enable) {
+      return;
+    }
+
+    // Only allow drawing labels if a buffer is provided with said labels
+    _canDrawLabels = (labelsHandle > 0);
 
     _program.bind();
 
@@ -156,9 +159,15 @@ namespace dh::vis {
 
   template <uint D>
   void EmbeddingRenderTask<D>::drawImGuiComponent() {
-    ImGui::Begin("Embedding");
-    // ...
-    ImGui::End();
+    if (ImGui::CollapsingHeader("Embedding settings", ImGuiTreeNodeFlags_Leaf)) {
+      ImGui::Spacing();
+      if (_canDrawLabels) {
+        ImGui::Checkbox("Use label colors", &_drawLabels);
+      }
+      ImGui::SliderFloat("Point opacity", &_pointOpacity, 0.0f, 1.0f);
+      ImGui::SliderFloat("Point radius", &_pointRadius, 0.001f, 0.01f, "%.4f");
+      ImGui::Spacing();
+    }
   }
 
   // Template instantiations for 2/3 dimensions

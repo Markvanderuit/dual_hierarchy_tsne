@@ -68,6 +68,10 @@ namespace dh::vis {
     sne::FieldBuffers _field;
     sne::FieldHierarchyBuffers _fieldHierarchy;
 
+    // ImGui state
+    float _lineWidth;
+    float _lineOpacity;
+
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
     util::GLProgram _program;
@@ -82,6 +86,8 @@ namespace dh::vis {
       swap(static_cast<RenderTask&>(a), static_cast<RenderTask&>(b));
       swap(a._isInit, b._isInit);
       swap(a._fieldHierarchy, b._fieldHierarchy);
+      swap(a._lineWidth, b._lineWidth);
+      swap(a._lineOpacity, b._lineOpacity);
       swap(a._params, b._params);
       swap(a._buffers, b._buffers);
       swap(a._program, b._program);

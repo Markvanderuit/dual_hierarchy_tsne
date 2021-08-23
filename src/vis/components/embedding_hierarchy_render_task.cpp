@@ -25,6 +25,7 @@
 #include <array>
 #include <resource_embed/resource_embed.hpp>
 #include <glad/glad.h>
+#include <imgui.h>
 #include "dh/util/gl/error.hpp"
 #include "dh/vis/components/embedding_hierarchy_render_task.hpp"
 
@@ -69,7 +70,13 @@ namespace dh::vis {
 
   template <uint D>
   EmbeddingHierarchyRenderTask<D>::EmbeddingHierarchyRenderTask(sne::MinimizationBuffers minimization, sne::EmbeddingHierarchyBuffers embeddingHierarchy, sne::Params params, int priority)
-  : RenderTask(priority, "EmbeddingHierarchyRenderTask"), _isInit(false), _minimization(minimization), _embeddingHierarchy(embeddingHierarchy), _params(params) {
+  : RenderTask(priority, "EmbeddingHierarchyRenderTask"),
+    _isInit(false),
+    _minimization(minimization),
+    _embeddingHierarchy(embeddingHierarchy),
+    _params(params),
+    _lineWidth(1.0),
+    _lineOpacity(1.0) {
     // Initialize shader program 
     {
       if constexpr (D == 2) {
@@ -156,11 +163,15 @@ namespace dh::vis {
 
   template <uint D>
   void EmbeddingHierarchyRenderTask<D>::render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle) {
+    if (!enable) {
+      return;
+    }
+
     _program.bind();
 
     // Set uniforms
     _program.uniform<glm::mat4>("transform", proj * model_view);
-    _program.uniform<float>("opacity", 1.0f);
+    _program.uniform<float>("opacity", _lineOpacity);
     _program.uniform<bool>("selectLvl", false);
     _program.uniform<uint>("selectedLvl", 3);
 
@@ -168,7 +179,7 @@ namespace dh::vis {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.bounds);
     
     // Specify line width for GL_LINES draw
-    glLineWidth(1.0f);
+    glLineWidth(_lineWidth);
 
     // Obtain nr. of instances to draw based on buffer sizes
     int nNodes;
@@ -182,7 +193,12 @@ namespace dh::vis {
 
   template <uint D>
   void EmbeddingHierarchyRenderTask<D>::drawImGuiComponent() {
-    // ...
+    if (ImGui::CollapsingHeader("Embedding hierarchy settings", ImGuiTreeNodeFlags_Leaf)) {
+      ImGui::Spacing();
+      ImGui::SliderFloat("Line opacity##EmbeddingHierarchyRenderTask", &_lineOpacity, 0.0f, 1.0f);
+      ImGui::SliderFloat("Line width##EmbeddingHierarchyRenderTask", &_lineWidth, 1.0f, 4.0f);
+      ImGui::Spacing();
+    }
   }
 
   // Template instantiations for 2/3 dimensions

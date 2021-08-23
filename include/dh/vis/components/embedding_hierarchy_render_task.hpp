@@ -67,6 +67,10 @@ namespace dh::vis {
     sne::EmbeddingHierarchyBuffers _embeddingHierarchy;
     sne::Params _params;
 
+    // ImGui state
+    float _lineWidth;
+    float _lineOpacity;
+
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
     util::GLProgram _program;
@@ -83,6 +87,8 @@ namespace dh::vis {
       swap(a._minimization, b._minimization);
       swap(a._embeddingHierarchy, b._embeddingHierarchy);
       swap(a._params, b._params);
+      swap(a._lineWidth, b._lineWidth);
+      swap(a._lineOpacity, b._lineOpacity);
       swap(a._buffers, b._buffers);
       swap(a._program, b._program);
       swap(a._vaoHandle, b._vaoHandle);

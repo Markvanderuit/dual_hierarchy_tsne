@@ -47,5 +47,8 @@ namespace dh::vis {
     glm::vec2 _mousePosStatePrev;
     glm::mat4 _lookatState;
     glm::mat4 _matrix;
+
+    float _mouseScrollMult;
+    float _mousePosMult;
   };
 } // dh::vis
