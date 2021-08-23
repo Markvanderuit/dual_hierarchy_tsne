@@ -69,7 +69,7 @@ namespace dh::vis {
 
   template <uint D>
   EmbeddingHierarchyRenderTask<D>::EmbeddingHierarchyRenderTask(sne::MinimizationBuffers minimization, sne::EmbeddingHierarchyBuffers embeddingHierarchy, sne::Params params, int priority)
-  : RenderTask(priority), _isInit(false), _minimization(minimization), _embeddingHierarchy(embeddingHierarchy), _params(params) {
+  : RenderTask(priority, "EmbeddingHierarchyRenderTask"), _isInit(false), _minimization(minimization), _embeddingHierarchy(embeddingHierarchy), _params(params) {
     // Initialize shader program 
     {
       if constexpr (D == 2) {
@@ -178,6 +178,11 @@ namespace dh::vis {
     // Perform draw
     glBindVertexArray(_vaoHandle);
     glDrawElementsInstanced(GL_LINES, (D == 2) ? quadElements.size() : cubeElements.size(), GL_UNSIGNED_INT, nullptr, nNodes);
+  }
+
+  template <uint D>
+  void EmbeddingHierarchyRenderTask<D>::drawImGuiComponent() {
+    // ...
   }
 
   // Template instantiations for 2/3 dimensions

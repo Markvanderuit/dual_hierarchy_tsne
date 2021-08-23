@@ -69,7 +69,7 @@ namespace dh::vis {
 
   template <uint D>
   FieldHierarchyRenderTask<D>::FieldHierarchyRenderTask(sne::FieldHierarchyBuffers fieldHierarchy, sne::Params params, int priority)
-  : RenderTask(priority), _isInit(false), _fieldHierarchy(fieldHierarchy), _params(params) {
+  : RenderTask(priority, "FieldHierarchyRenderTask"), _isInit(false), _fieldHierarchy(fieldHierarchy), _params(params) {
     // Initialize shader program 
     {
       if constexpr (D == 2) {
@@ -171,6 +171,11 @@ namespace dh::vis {
     // Perform draw
     glBindVertexArray(_vaoHandle);
     glDrawElementsInstanced(GL_LINES, (D == 2) ? quadElements.size() : cubeElements.size(), GL_UNSIGNED_INT, nullptr, nNodes);
+  }
+
+  template <uint D>
+  void FieldHierarchyRenderTask<D>::drawImGuiComponent() {
+    // ...
   }
 
   // Explicit template instantiations

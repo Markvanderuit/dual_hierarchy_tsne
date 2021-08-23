@@ -25,6 +25,7 @@
 #include <array>
 #include <resource_embed/resource_embed.hpp>
 #include <glad/glad.h>
+#include <imgui.h>
 #include "dh/util/gl/error.hpp"
 #include "dh/vis/components/embedding_render_task.hpp"
 
@@ -50,7 +51,15 @@ namespace dh::vis {
 
   template <uint D>
   EmbeddingRenderTask<D>::EmbeddingRenderTask(sne::MinimizationBuffers minimization, sne::Params params, int priority)
-  : RenderTask(priority), _isInit(false), _minimization(minimization), _params(params) {
+  : RenderTask(priority, "EmbeddingRenderTask"), 
+    _isInit(false),
+    _minimization(minimization),
+    _params(params),
+    _draw(true),
+    _canDrawLabels(false),
+    _drawLabels(false),
+    _pointRadius(0.005f),
+    _pointOpacity(1.0f) {
     // Initialize shader program
     {
       if constexpr (D == 2) {
@@ -124,14 +133,17 @@ namespace dh::vis {
 
   template <uint D>
   void EmbeddingRenderTask<D>::render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle) {
+    // Only allow enabling _drawLabels if a buffer is provided with said labels
+    _canDrawLabels = (glIsBuffer(labelsHandle));
+
     _program.bind();
 
     // Set uniforms
     _program.uniform<glm::mat4>("model_view", model_view);
     _program.uniform<glm::mat4>("proj", proj);
-    _program.uniform<float>("pointOpacity", 1.0f);
-    _program.uniform<float>("pointRadius", 0.005f);
-    _program.uniform<bool>("drawLabels", labelsHandle > 0);
+    _program.uniform<float>("pointOpacity", _pointOpacity);
+    _program.uniform<float>("pointRadius", _pointRadius);
+    _program.uniform<bool>("drawLabels", _canDrawLabels && _drawLabels);
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.bounds);
@@ -140,6 +152,13 @@ namespace dh::vis {
     // Perform draw
     glBindVertexArray(_vaoHandle);
     glDrawElementsInstanced(GL_TRIANGLES, quadElements.size(), GL_UNSIGNED_INT, nullptr, _params.n);
+  }
+
+  template <uint D>
+  void EmbeddingRenderTask<D>::drawImGuiComponent() {
+    ImGui::Begin("Embedding");
+    // ...
+    ImGui::End();
   }
 
   // Template instantiations for 2/3 dimensions
