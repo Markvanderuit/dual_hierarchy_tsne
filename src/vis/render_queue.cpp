@@ -26,10 +26,10 @@
 
 namespace dh::vis {
   RenderTask::RenderTask()
-  : _priority(-1), _name("") { }
+  : enable(false), _priority(-1), _name("") { }
 
   RenderTask::RenderTask(int priority, const std::string& name)
-  : _priority(priority), _name(name) { }
+  : enable(true), _priority(priority), _name(name) { }
 
   void RenderQueue::init() {
     if (_isInit) {

@@ -43,6 +43,9 @@ namespace dh::vis {
     virtual void render(glm::mat4 model_view, glm::mat4 proj, GLuint labelsHandle = 0) = 0;
     virtual void drawImGuiComponent() = 0;
 
+    // Publ, enable/disable rendering through imgui
+    bool enable;
+
   private:
     int _priority;
     std::string _name;
@@ -61,6 +64,7 @@ namespace dh::vis {
     // std::swap impl
     friend void swap(RenderTask& a, RenderTask& b) noexcept {
       using std::swap;
+      swap(a.enable, b.enable);
       swap(a._priority, b._priority);
       swap(a._name, b._name);
     }
