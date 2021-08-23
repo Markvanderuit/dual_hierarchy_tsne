@@ -33,13 +33,28 @@
 #include "dh/vis/components/esc_input_task.hpp"
 
 namespace dh::vis {
+  // TODO Include version string from cmake?
+  // TODO Move to constants
+  const std::string aboutText = 
+    "Dual-Hierarchy t-SNE Demo Application.\n"
+    "\n"
+    "Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)\n"
+    "\n"
+    "Version:  1.0.0\n"
+    "Source:   https://github.com/Markvanderuit/dual_hierarchy_tsne\n"
+    "License:  MIT)\n";
+
   template <uint D>
   Renderer<D>::Renderer()
   : _isInit(false), _fboSize(0) { }
 
   template <uint D>
   Renderer<D>::Renderer(const util::GLWindow& window, sne::Params params, const std::vector<uint>& labels)
-  : _isInit(false), _params(params), _windowHandle(&window), _labelsHandle(0), _fboSize(0) {
+  : _isInit(false),
+    _params(params),
+    _windowHandle(&window),
+    _labelsHandle(0),
+    _fboSize(0) {
     
     // Setup ImGui
     IMGUI_CHECKVERSION();
@@ -135,16 +150,16 @@ namespace dh::vis {
     ImGui::NewFrame();
 
     // Add ImGui components
-    drawImGuiMenuBar();
-    drawImGuiComponents();
+    drawImGuiWindow();
 
     // Model/view/proj matrices. 3D view matrix is provided by trackball
     glm::mat4 proj, model_view;
     if constexpr (D == 3) {
+      // In 3D, center embedding on screen, and allow trackball to provide view matrix
       model_view = _trackballInputTask->matrix() * glm::translate(glm::vec3(-0.5f, -0.5f, -0.5f));
       proj = glm::perspectiveFov(0.5f, (float) _fboSize.x, (float) _fboSize.y, 0.0001f, 1000.f);
     } else if constexpr (D == 2) {
-      // Center on screen
+      // In 2D, center embedding on screen
       model_view = glm::translate(glm::vec3(-0.5f, -0.5f, -1.0f));
       proj = glm::infinitePerspective(1.0f, (float) _fboSize.x / (float) _fboSize.y, 0.0001f);
     }
@@ -185,42 +200,54 @@ namespace dh::vis {
   }
 
   template <uint D>
-  void Renderer<D>::drawImGuiMenuBar() {
-    ImGui::BeginMainMenuBar();
-    
-    if (ImGui::BeginMenu("Application")) {
-      if (ImGui::MenuItem("About", nullptr, false)) {
-        // ...
-      }
-      if (ImGui::MenuItem("Quit", "Escape", false)) { std::exit(0); }
-      ImGui::EndMenu();
+  void Renderer<D>::drawImGuiWindow() {    
+    ImGui::SetNextWindowPos(ImVec2(24, 24), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(512, 384), ImGuiCond_Appearing);
+
+    // Start body of main ImGui window
+    if (!ImGui::Begin("Dual-Hierarchy t-SNE Demo", nullptr)) {
+      ImGui::End();
+      return;
     }
 
-    if (ImGui::BeginMenu("Components")) {
-      if (ImGui::MenuItem("Camera", nullptr, false)) {
-        _showTrackballInputTaskMenu = !_showTrackballInputTaskMenu;
-      }
-      if (ImGui::MenuItem("Embedding", nullptr, false)) {
-        _showEmbeddingRenderTaskMenu = !_showEmbeddingRenderTaskMenu;
-      }
-      if (ImGui::MenuItem("Embedding hierarchy", nullptr, false)) {
-        _showEmbeddingHierarchyRenderTaskMenu = !_showEmbeddingHierarchyRenderTaskMenu;
-      }
-      if (ImGui::MenuItem("Field hierarchy", nullptr, false)) {
-        _showFieldHierarchyRenderTaskMenu = !_showFieldHierarchyRenderTaskMenu;
-      }
-      ImGui::EndMenu();
+    // Render component enable/disable flags
+    ImGui::Text("Enable render components...");
+    ImGui::Spacing();
+    auto& queue = vis::RenderQueue::instance();
+    if (auto ptr = queue.find("EmbeddingRenderTask"); ptr) {
+      ImGui::Checkbox("Embedding", &(ptr->enable));
+      ImGui::SameLine();
+    }
+    if (auto ptr = queue.find("EmbeddingHierarchyRenderTask"); ptr) {
+      ImGui::Checkbox("Embedding hierarchy", &(ptr->enable));
+      ImGui::SameLine();
+    }
+    if (auto ptr = queue.find("FieldHierarchyRenderTask"); ptr) {
+      ImGui::Checkbox("Field hierarchy", &(ptr->enable));
+      ImGui::SameLine();
+    }
+    ImGui::NewLine();
+    ImGui::Spacing();
+
+    // Let components handle their own specific settings
+    drawImGuiComponents();
+
+    if (ImGui::CollapsingHeader("About")) {
+      ImGui::Spacing();
+      ImGui::Text(aboutText.c_str());
+      ImGui::Spacing();
     }
 
-    ImGui::EndMainMenuBar();
+    // End body of main ImGui window
+    ImGui::End();
   }
 
   template <uint D>
   void Renderer<D>::drawImGuiComponents() {
     auto& queue = vis::RenderQueue::instance();
-    if (auto ptr = queue.find("EmbeddingRenderTask"); _showEmbeddingRenderTaskMenu && ptr) { ptr->drawImGuiComponent(); }
-    if (auto ptr = queue.find("EmbeddingHierarchyRenderTask"); _showEmbeddingHierarchyRenderTaskMenu && ptr) { ptr->drawImGuiComponent(); }
-    if (auto ptr = queue.find("FieldHierarchyRenderTask"); _showFieldHierarchyRenderTaskMenu && ptr) { ptr->drawImGuiComponent(); }
+    if (auto ptr = queue.find("EmbeddingRenderTask"); ptr && ptr->enable) { ptr->drawImGuiComponent(); }
+    if (auto ptr = queue.find("EmbeddingHierarchyRenderTask"); ptr && ptr->enable) { ptr->drawImGuiComponent(); }
+    if (auto ptr = queue.find("FieldHierarchyRenderTask"); ptr && ptr->enable) { ptr->drawImGuiComponent(); }
   }
 
   // Template instantiations for 2/3 dimensions

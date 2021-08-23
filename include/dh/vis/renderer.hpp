@@ -54,7 +54,7 @@ namespace dh::vis {
     void render();
 
   private:
-    void drawImGuiMenuBar();
+    void drawImGuiWindow();
     void drawImGuiComponents();
 
     // State
@@ -62,12 +62,6 @@ namespace dh::vis {
     sne::Params _params;
     const util::GLWindow * _windowHandle;
     glm::ivec2 _fboSize;
-
-    // ImGui state
-    bool _showTrackballInputTaskMenu;
-    bool _showEmbeddingRenderTaskMenu;
-    bool _showEmbeddingHierarchyRenderTaskMenu;
-    bool _showFieldHierarchyRenderTaskMenu;
 
     // OpenGL object handles
     GLuint _labelsHandle;
@@ -88,10 +82,6 @@ namespace dh::vis {
       swap(a._params, b._params);
       swap(a._windowHandle, b._windowHandle);
       swap(a._fboSize, b._fboSize);
-      swap(a._showTrackballInputTaskMenu, b._showTrackballInputTaskMenu);
-      swap(a._showEmbeddingRenderTaskMenu, b._showEmbeddingRenderTaskMenu);
-      swap(a._showEmbeddingHierarchyRenderTaskMenu, b._showEmbeddingHierarchyRenderTaskMenu);
-      swap(a._showFieldHierarchyRenderTaskMenu, b._showFieldHierarchyRenderTaskMenu);
       swap(a._labelsHandle, b._labelsHandle);
       swap(a._fboHandle, b._fboHandle);
       swap(a._fboColorTextureHandle, b._fboColorTextureHandle);
