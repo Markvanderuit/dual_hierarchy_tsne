@@ -24,6 +24,7 @@
 
 #include <iostream>
 
+#include <cmath>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include "dh/util/aligned.hpp"
@@ -33,18 +34,20 @@ namespace dh::vis {
   TrackballInputTask::TrackballInputTask()
   : InputTask(1),
     _mouseTrackState(false), 
-    _mouseScrollState(1.0f), 
+    _mouseScrollState(3.0f), 
     _mousePosState(0.0f), 
     _mousePosStatePrev(0.0f),
     _lookatState(1),
-    _matrix(1) {
+    _matrix(1),
+    _mouseScrollMult(0.5f),
+    _mousePosMult(1.0f) {
     // ...
   }
 
   void TrackballInputTask::process() {
     // Compute extremely simplified plane rotation
     if (_mouseTrackState && _mousePosState != _mousePosStatePrev) {
-      glm::vec2 v = _mousePosState - _mousePosStatePrev;
+      glm::vec2 v = _mousePosMult * (_mousePosState - _mousePosStatePrev);
       glm::mat4 rx = glm::rotate(v.x, glm::vec3(0, 1, 0));
       glm::mat4 ry = glm::rotate(v.y, glm::vec3(1, 0, 0));
       _lookatState = ry * rx * _lookatState;
@@ -83,6 +86,6 @@ namespace dh::vis {
   }
 
   void TrackballInputTask::mouseScrollInput(double xScroll, double yScroll) {
-    _mouseScrollState -= yScroll;
+    _mouseScrollState = std::max(0.001f, _mouseScrollState - _mouseScrollMult * static_cast<float>(yScroll));
   }
 } // dh::vis
