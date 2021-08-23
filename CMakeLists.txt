@@ -14,17 +14,18 @@ find_package(OpenBLAS CONFIG REQUIRED)
 find_package(LAPACK CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
-# Include third party libraries built from source
+# Include third party libraries built from source (or added as header only interfaces)
 add_subdirectory(third_party/resource_embed)
 add_subdirectory(third_party/glad)
 add_subdirectory(third_party/cub)
 add_subdirectory(third_party/faiss)
 
-# Define function to add a library while recursively globbing its files
-function(add_library_recurse target dir)
-  file(GLOB_RECURSE srcs src/${dir}/*.cpp  src/${dir}/*.cu)
-  file(GLOB_RECURSE includes include/${dir}/*.hpp  include/${dir}/*.cuh)
+# Define function to add a library while recursively globbing its files from a specified directory
+function(add_library_recurse target srcDir inclDir)
+  file(GLOB_RECURSE srcs ${srcDir}/*.cpp  ${srcDir}/*.cu)
+  file(GLOB_RECURSE includes ${inclDir}/*.hpp ${inclDir}/*.cuh)
   add_library(${target} ${includes} ${srcs})
 endfunction()
 
@@ -32,7 +33,7 @@ endfunction()
 rsrcs_embed(shaders ${CMAKE_SOURCE_DIR}/resources/shaders)
 
 # Specify util library
-add_library_recurse(util util)
+add_library_recurse(util src/util include/dh/util)
 target_compile_features(util PRIVATE cxx_std_17)
 target_include_directories(util PUBLIC include)
 target_link_libraries(util PUBLIC 
@@ -44,7 +45,7 @@ target_link_libraries(util PUBLIC
 )
 
 # Specify sne library
-add_library_recurse(sne sne)
+add_library_recurse(sne src/sne include/dh/sne)
 target_compile_features(sne PRIVATE cxx_std_17)
 target_include_directories(sne PUBLIC include)
 target_sources(sne PRIVATE ${shaders})
@@ -55,11 +56,12 @@ target_link_libraries(sne PRIVATE
 )
 
 # Specify vis library
-add_library_recurse(vis vis)
+add_library_recurse(vis src/vis include/dh/vis)
 target_compile_features(vis PRIVATE cxx_std_17)
 target_include_directories(vis PUBLIC include)
 target_sources(vis PRIVATE ${shaders})
 target_link_libraries(vis PRIVATE
+  imgui::imgui
   util 
   sne 
   ResourceEmbed

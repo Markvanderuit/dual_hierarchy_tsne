@@ -6,6 +6,10 @@
     "glfw3",
     "glm",
     "lapack",
-    "openblas"
+    "openblas",
+    {
+      "name": "imgui",
+      "features": [ "opengl3-glad-binding", "glfw-binding"] 
+    }
   ]
 }
