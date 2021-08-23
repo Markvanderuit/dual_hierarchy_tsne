@@ -124,15 +124,19 @@ namespace dh::vis {
       glAssert();
     }
 
-    // Setup new frame for IMGUI
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
     // Process all tasks in input queue
     for (auto& ptr : InputQueue::instance().queue()) {
       ptr->process();
     }
+
+    // Start new frame for IMGUI
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // Add ImGui components
+    drawImGuiMenuBar();
+    drawImGuiComponents();
 
     // Model/view/proj matrices. 3D view matrix is provided by trackball
     glm::mat4 proj, model_view;
@@ -145,7 +149,7 @@ namespace dh::vis {
       proj = glm::infinitePerspective(1.0f, (float) _fboSize.x / (float) _fboSize.y, 0.0001f);
     }
 
-    // Set viewport
+    // Set viewport for render tasks
     glViewport(0, 0, _fboSize.x, _fboSize.y);
 
     // Clear framebuffer
@@ -175,12 +179,48 @@ namespace dh::vis {
       GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST  
     );
 
-    // Add ImGui components
-    ImGui::ShowDemoWindow();
-
     // Finalize and render ImGui components
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  }
+
+  template <uint D>
+  void Renderer<D>::drawImGuiMenuBar() {
+    ImGui::BeginMainMenuBar();
+    
+    if (ImGui::BeginMenu("Application")) {
+      if (ImGui::MenuItem("About", nullptr, false)) {
+        // ...
+      }
+      if (ImGui::MenuItem("Quit", "Escape", false)) { std::exit(0); }
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Components")) {
+      if (ImGui::MenuItem("Camera", nullptr, false)) {
+        _showTrackballInputTaskMenu = !_showTrackballInputTaskMenu;
+      }
+      if (ImGui::MenuItem("Embedding", nullptr, false)) {
+        _showEmbeddingRenderTaskMenu = !_showEmbeddingRenderTaskMenu;
+      }
+      if (ImGui::MenuItem("Embedding hierarchy", nullptr, false)) {
+        _showEmbeddingHierarchyRenderTaskMenu = !_showEmbeddingHierarchyRenderTaskMenu;
+      }
+      if (ImGui::MenuItem("Field hierarchy", nullptr, false)) {
+        _showFieldHierarchyRenderTaskMenu = !_showFieldHierarchyRenderTaskMenu;
+      }
+      ImGui::EndMenu();
+    }
+
+    ImGui::EndMainMenuBar();
+  }
+
+  template <uint D>
+  void Renderer<D>::drawImGuiComponents() {
+    auto& queue = vis::RenderQueue::instance();
+    if (auto ptr = queue.find("EmbeddingRenderTask"); _showEmbeddingRenderTaskMenu && ptr) { ptr->drawImGuiComponent(); }
+    if (auto ptr = queue.find("EmbeddingHierarchyRenderTask"); _showEmbeddingHierarchyRenderTaskMenu && ptr) { ptr->drawImGuiComponent(); }
+    if (auto ptr = queue.find("FieldHierarchyRenderTask"); _showFieldHierarchyRenderTaskMenu && ptr) { ptr->drawImGuiComponent(); }
   }
 
   // Template instantiations for 2/3 dimensions
