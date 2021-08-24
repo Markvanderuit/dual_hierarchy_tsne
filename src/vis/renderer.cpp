@@ -29,8 +29,8 @@
 #include "dh/util/gl/error.hpp"
 #include "dh/vis/render_queue.hpp"
 #include "dh/vis/input_queue.hpp"
-#include "dh/vis/renderer.hpp"
 #include "dh/vis/components/esc_input_task.hpp"
+#include "dh/vis/renderer.hpp"
 
 namespace dh::vis {
   // TODO Include version string from cmake?
@@ -44,12 +44,10 @@ namespace dh::vis {
     "Source:   https://github.com/Markvanderuit/dual_hierarchy_tsne\n"
     "License:  MIT)\n";
 
-  template <uint D>
-  Renderer<D>::Renderer()
+  Renderer::Renderer()
   : _isInit(false), _fboSize(0) { }
 
-  template <uint D>
-  Renderer<D>::Renderer(const util::GLWindow& window, sne::Params params, const std::vector<uint>& labels)
+  Renderer::Renderer(const util::GLWindow& window, sne::Params params, const std::vector<uint>& labels)
   : _isInit(false),
     _params(params),
     _windowHandle(&window),
@@ -88,8 +86,7 @@ namespace dh::vis {
     _isInit = true;
   }
 
-  template <uint D>
-  Renderer<D>::~Renderer() {
+  Renderer::~Renderer() {
     if (_isInit) {
       // Shut down imgui
       ImGui_ImplOpenGL3_Shutdown();
@@ -110,19 +107,16 @@ namespace dh::vis {
     }
   }
 
-  template <uint D>
-  Renderer<D>::Renderer(Renderer<D>&& other) noexcept {
+  Renderer::Renderer(Renderer&& other) noexcept {
     swap(*this, other);
   }
 
-  template <uint D>
-  Renderer<D>& Renderer<D>::operator=(Renderer<D>&& other) noexcept {
+  Renderer& Renderer::operator=(Renderer&& other) noexcept {
     swap(*this, other);
     return *this;
   }
 
-  template <uint D>
-  void Renderer<D>::render() {
+  void Renderer::render() {
     // Recreate framebuffer if window size has changed
     if (glm::ivec2 fboSize = _windowHandle->size(); _fboSize != fboSize) {
       _fboSize = fboSize;
@@ -154,11 +148,11 @@ namespace dh::vis {
 
     // Model/view/proj matrices. 3D view matrix is provided by trackball
     glm::mat4 proj, model_view;
-    if constexpr (D == 3) {
+    if (_params.nLowDims == 3) {
       // In 3D, center embedding on screen, and allow trackball to provide view matrix
       model_view = _trackballInputTask->matrix() * glm::translate(glm::vec3(-0.5f, -0.5f, -0.5f));
       proj = glm::perspectiveFov(0.5f, (float) _fboSize.x, (float) _fboSize.y, 0.0001f, 1000.f);
-    } else if constexpr (D == 2) {
+    } else if (_params.nLowDims == 2) {
       // In 2D, center embedding on screen
       model_view = glm::translate(glm::vec3(-0.5f, -0.5f, -1.0f));
       proj = glm::infinitePerspective(1.0f, (float) _fboSize.x / (float) _fboSize.y, 0.0001f);
@@ -199,8 +193,7 @@ namespace dh::vis {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
 
-  template <uint D>
-  void Renderer<D>::drawImGuiWindow() {    
+  void Renderer::drawImGuiWindow() {    
     ImGui::SetNextWindowPos(ImVec2(24, 24), ImGuiCond_Appearing);
     ImGui::SetNextWindowSize(ImVec2(512, 384), ImGuiCond_Appearing);
 
@@ -242,15 +235,10 @@ namespace dh::vis {
     ImGui::End();
   }
 
-  template <uint D>
-  void Renderer<D>::drawImGuiComponents() {
+  void Renderer::drawImGuiComponents() {
     auto& queue = vis::RenderQueue::instance();
     if (auto ptr = queue.find("EmbeddingRenderTask"); ptr && ptr->enable) { ptr->drawImGuiComponent(); }
     if (auto ptr = queue.find("EmbeddingHierarchyRenderTask"); ptr && ptr->enable) { ptr->drawImGuiComponent(); }
     if (auto ptr = queue.find("FieldHierarchyRenderTask"); ptr && ptr->enable) { ptr->drawImGuiComponent(); }
   }
-
-  // Template instantiations for 2/3 dimensions
-  template class Renderer<2>;
-  template class Renderer<3>;
 } // dh::vis

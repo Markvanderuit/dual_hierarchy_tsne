@@ -205,12 +205,12 @@ namespace dh::sne {
     // 2.
     // Perform field approximation in subcomponent
     {
-      // Determine field texture size
+      // Determine field texture size by scaling bounds
       const vec range = bounds.range();
       const float ratio = (D == 2) ? _params.fieldScaling2D : _params.fieldScaling3D;
       uvec size = dh::util::max(uvec(range * ratio), uvec(fieldMinSize));
 
-      // Size becomes nearest larger power of two
+      // Size becomes nearest larger power of two for field hierarchy
       size = uvec(glm::pow(2, glm::ceil(glm::log(static_cast<float>(size.x)) / glm::log(2.f))));
 
       // Delegate to subclass

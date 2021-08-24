@@ -43,6 +43,7 @@ int main(int argc, char** argv) {
     dh::sne::Params params;
     params.n = 60000;
     params.nHighDims = 784;
+    params.nLowDims = 2;
     params.perplexity = 30;
     params.singleHierarchyTheta = 0.5;
     params.dualHierarchyTheta = 0.4;
@@ -63,15 +64,15 @@ int main(int argc, char** argv) {
                  | GLWindowInfo::bSRGB 
                  | GLWindowInfo::bResizable
                  | GLWindowInfo::bOffscreen;
-      info.width = 1024;
-      info.height = 768;
+      info.width = 1536;
+      info.height = 1024;
       info.title = "sne_cmd";
     }
     dh::util::GLWindow window(info);
 
-    // Create renderer and tsne class
-    dh::vis::Renderer<2> renderer(window, params);    
-    dh::sne::SNE<2> sne(data, params, &logger);
+    // Create renderer and tsne runner
+    dh::vis::Renderer renderer(window, params, labels);    
+    dh::sne::SNE sne(data, params, &logger);
 
     // Run minimization AND render result
     /* {

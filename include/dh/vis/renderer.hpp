@@ -25,16 +25,14 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <vector>
-#include <glm/glm.hpp>
 #include "dh/types.hpp"
+#include "dh/util/aligned.hpp"
 #include "dh/util/gl/window.hpp"
 #include "dh/sne/params.hpp"
 #include "dh/vis/components/trackball_input_task.hpp"
 
 namespace dh::vis {
-  template <uint D>
   class Renderer {
   public:
     // Constr/destr
