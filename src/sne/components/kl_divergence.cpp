@@ -29,14 +29,12 @@
 #include "dh/sne/components/kl_divergence.hpp"
 
 namespace dh::sne {
-  template <uint D>
-  KLDivergence<D>::KLDivergence()
+  KLDivergence::KLDivergence()
   : _isInit(false), _logger(nullptr) {
 
   }
 
-  template <uint D>
-  KLDivergence<D>::KLDivergence(Params params, SimilaritiesBuffers similarities, MinimizationBuffers minimization, util::Logger * logger)
+  KLDivergence::KLDivergence(Params params, SimilaritiesBuffers similarities, MinimizationBuffers minimization, util::Logger * logger)
   : _isInit(false), _logger(logger), _params(params), _similarities(similarities), _minimization(minimization) {
     util::log(_logger, "[KLDivergence] Initializing...");
     
@@ -44,10 +42,10 @@ namespace dh::sne {
     {
       util::log(_logger, "[KLDivergence]   Creating shader programs");
 
-      if constexpr (D == 2) {
+      if (_params.nLowDims == 2) {
         _programs(ProgramType::eQijSumComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/kl_divergence/2D/qijSum.comp"));
         _programs(ProgramType::eKLDSumComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/kl_divergence/2D/KLDSum.comp"));
-      } else if constexpr (D == 3) {
+      } else if (_params.nLowDims == 3) {
         _programs(ProgramType::eQijSumComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/kl_divergence/3D/qijSum.comp"));
         _programs(ProgramType::eKLDSumComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/kl_divergence/3D/KLDSum.comp"));
       }
@@ -79,27 +77,23 @@ namespace dh::sne {
     _isInit = true;
   }
 
-  template <uint D>
-  KLDivergence<D>::~KLDivergence() {
+  KLDivergence::~KLDivergence() {
     if (_isInit) {
       glDeleteBuffers(_buffers.size(), _buffers.data());
       _isInit = false;
     }
   }
   
-  template <uint D>
-  KLDivergence<D>::KLDivergence(KLDivergence<D>&& other) noexcept {
+  KLDivergence::KLDivergence(KLDivergence&& other) noexcept {
     swap(*this, other);
   }
 
-  template <uint D>
-  KLDivergence<D>& KLDivergence<D>::operator=(KLDivergence<D>&& other) noexcept {
+  KLDivergence& KLDivergence::operator=(KLDivergence&& other) noexcept {
     swap(*this, other);
     return *this;
   }
 
-  template <uint D>
-  float KLDivergence<D>::comp() {
+  float KLDivergence::comp() {
     // 1.
     // Compute q_{ij} over all i and j in O(n^2) time.
     {
@@ -228,8 +222,4 @@ namespace dh::sne {
     glGetNamedBufferSubData(_buffers(BufferType::eReduceFinal), 0, sizeof(float), &kld);
     return kld;
   }
-  
-  // Template instantiations for 2/3 dimensions
-  template class KLDivergence<2>;
-  template class KLDivergence<3>;
 } // dh::sne

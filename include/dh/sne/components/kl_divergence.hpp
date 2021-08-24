@@ -34,12 +34,7 @@
 #include "dh/sne/components/buffers.hpp"
 
 namespace dh::sne {
-  template <uint D> // Dimension of produced embedding
   class KLDivergence {
-    // aligned types
-    using vec = util::AlignedVec<D, float>;
-    using uvec = util::AlignedVec<D, uint>;
-
   public:
     KLDivergence();
     KLDivergence(Params params, SimilaritiesBuffers similarities, MinimizationBuffers minimization, util::Logger * logger = nullptr);
@@ -100,7 +95,7 @@ namespace dh::sne {
     bool isInit() const { return _isInit; }
 
     // std::swap impl
-    friend void swap(KLDivergence<D>& a, KLDivergence<D>& b) noexcept {
+    friend void swap(KLDivergence& a, KLDivergence& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
       swap(a._logger, b._logger);
