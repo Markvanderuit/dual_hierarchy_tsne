@@ -31,6 +31,7 @@ namespace dh::sne {
     // Input dataset params
     uint n = 0;
     uint nHighDims = 0;
+    uint nLowDims = 2; // 2 or 3 only
 
     // Basic tSNE parameters
     uint iterations = 1000;

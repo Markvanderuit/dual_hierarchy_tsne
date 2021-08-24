@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <variant>
 #include <vector>
 #include "dh/types.hpp"
 #include "dh/util/logger.hpp"
@@ -33,8 +34,10 @@
 #include "dh/sne/components/kl_divergence.hpp"
 
 namespace dh::sne {
-  template <uint D> // Dimension of produced embedding
   class SNE {
+  private:
+    using Minimization = std::variant<Minimization<2>, Minimization<3>>;
+    
   public:
     // Constr/destr
     SNE();
@@ -56,15 +59,12 @@ namespace dh::sne {
     void compMinimizationStep();  // Only perform a single step of minimization
     
     // Compute and return KL-Divergence of current embedding
-    // Don't do this while minimizing unless you don't care about performance
+    // (Don't do this while minimizing unless you don't care about performance)
     float klDivergence();
 
     // Return raw data of current embedding
-    // Don't do this while minimizing unless you don't care about performance
+    // ( Don't do this while minimizing unless you don't care about performance)
     std::vector<float> embedding() const;
-
-    // Returns state of components
-    bool isInit() const { return _isInit; }
 
   private:
     // State
@@ -74,11 +74,14 @@ namespace dh::sne {
     util::Logger* _logger;
 
     // Subcomponents
-    Similarities<D> _sneSimilarities;
-    Minimization<D> _sneMinimization;
-    KLDivergence<D> _sneKLDivergence;
+    Similarities _sneSimilarities;
+    Minimization _minimization;
+    KLDivergence _sneKLDivergence;
 
   public:
+    // Getters
+    bool isInit() const { return _isInit; }
+
     // Swap internals with another object
     friend void swap(SNE& a, SNE& b) noexcept {
       using std::swap;
@@ -87,7 +90,7 @@ namespace dh::sne {
       swap(a._params, b._params);
       swap(a._logger, b._logger);
       swap(a._sneSimilarities, b._sneSimilarities);
-      swap(a._sneMinimization, b._sneMinimization);
+      swap(a._minimization, b._minimization);
       swap(a._sneKLDivergence, b._sneKLDivergence);
     }
   };

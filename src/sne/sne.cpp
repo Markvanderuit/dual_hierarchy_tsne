@@ -22,59 +22,62 @@
  * SOFTWARE.
  */
 
-#include "dh/util/logger.hpp"
+#include "dh/util/error.hpp"
 #include "dh/util/timer.hpp"
-#include "dh/util/gl/error.hpp"
 #include "dh/sne/sne.hpp"
 
 namespace dh::sne {
-  template <uint D>
-  SNE<D>::SNE() 
+  SNE::SNE() 
   : _isInit(false), _iteration(0), _logger(nullptr) {
     // ...
   }
 
-  template <uint D>
-  SNE<D>::SNE(const std::vector<float>& data, Params params, util::Logger* logger)
+  SNE::SNE(const std::vector<float>& data, Params params, util::Logger* logger)
   : _isInit(false), _iteration(0), _params(params), _logger(logger) {
     util::log(_logger, "[SNE] Initializing...");
 
-    _sneSimilarities = Similarities<D>(data, params, logger);
+    _sneSimilarities = Similarities(data, params, logger);
 
     _isInit = true;
     util::log(_logger, "[SNE] Initialized");
   }
 
-  template <uint D>
-  SNE<D>::~SNE() {
+  SNE::~SNE() {
     // ...
   }
 
-  template <uint D>
-  SNE<D>::SNE(SNE<D>&& other) noexcept {
+  SNE::SNE(SNE&& other) noexcept {
     swap(*this, other);
   }
 
-  template <uint D>
-  SNE<D>& SNE<D>::operator=(SNE<D>&& other) noexcept {
+  SNE& SNE::operator=(SNE&& other) noexcept {
     swap(*this, other);
     return *this;
   }
 
-  template <uint D>
-  void SNE<D>::comp() {
-    runtimeAssert(_isInit, "SNE<D>::comp() called without proper initialization");
+  void SNE::comp() {
+    runtimeAssert(_isInit, "SNE::comp() called before initialization");
+
     compSimilarities();
     compMinimization();
   }
 
-  template <uint D>
-  void SNE<D>::compSimilarities() {
+  void SNE::compSimilarities() {
+    runtimeAssert(_isInit, "SNE::compSimilarities() called before initialization");
+
     _sneSimilarities.comp();
+    if (_params.nLowDims == 2) {
+      _minimization = sne::Minimization<2>(_sneSimilarities.buffers(), _params, _logger);
+    } else if (_params.nLowDims == 3) {
+      _minimization = sne::Minimization<3>(_sneSimilarities.buffers(), _params, _logger);
+    }
   }
 
-  template <uint D>
-  void SNE<D>::compMinimization() {
+  void SNE::compMinimization() {
+    const auto mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
+    runtimeAssert(_isInit, "SNE::compMinimization() called before initialization");
+    runtimeAssert(mIsInit, "SNE::compMinimization() called before SNE::compSimilarities()");
+
     util::ChronoTimer timer;
     timer.tick();
     for (uint i = 0; i < _params.iterations; ++i) {
@@ -85,12 +88,7 @@ namespace dh::sne {
     util::logTime(_logger, "[SNE] Minimization time", timer.get<util::TimerValue::eLast>());
   }
 
-  template <uint D>
-  void SNE<D>::compMinimizationStep() {
-    if (!_sneMinimization.isInit()) {
-      _sneMinimization = Minimization<D>(_sneSimilarities.buffers(), _params, _logger);
-    }
-
+  void SNE::compMinimizationStep() {
     if (_iteration == _params.momentumSwitchIter) {
       util::log(_logger, "[SNE]  Switching to final momemtum...");
     }
@@ -98,29 +96,28 @@ namespace dh::sne {
     if (_iteration == _params.removeExaggerationIter) {
       util::log(_logger, "[SNE]  Removing exaggeration...");
     }
-    
-    _sneMinimization.comp(_iteration);
+
+    std::visit([&](auto& m) { m.comp(_iteration); }, _minimization);
     _iteration++;
   }
 
-  template <uint D>
-  float SNE<D>::klDivergence() {
+  float SNE::klDivergence() {
+    runtimeAssert(_isInit, "SNE::klDivergence() called before initialization");
+    
     if (!_sneKLDivergence.isInit()) {
-      _sneKLDivergence = KLDivergence<D>(_params, _sneSimilarities.buffers(), _sneMinimization.buffers(), _logger);
+      const auto buffers = std::visit([](const auto& m) { return m.buffers(); }, _minimization);
+      _sneKLDivergence = KLDivergence(_params, _sneSimilarities.buffers(), buffers, _logger);
     }
 
     return _sneKLDivergence.comp();
   }
 
-  template <uint D>
-  std::vector<float> SNE<D>::embedding() const {
-    runtimeAssert(_sneKLDivergence.isInit(), "SNE<D>::embedding() called before minimization was started!");
-    std::vector<float> embedding(_params.n);
-    // TODO Implement with(out) padding
-    return embedding;
-  }
+  std::vector<float> SNE::embedding() const {
+    const auto mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
+    runtimeAssert(_isInit, "SNE::embedding() called before initialization");
+    runtimeAssert(mIsInit, "SNE::embedding() called before minimization");
 
-  // Template instantiations for 2/3 dimensions
-  template class SNE<2>;
-  template class SNE<3>;
+    std::vector<float> embedding(_params.n);
+    return embedding; // TODO Implement with(out) padding
+  }
 } // dh::sne
