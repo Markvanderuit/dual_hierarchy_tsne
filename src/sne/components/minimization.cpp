@@ -102,7 +102,7 @@ namespace dh::sne {
 
     // Generate randomized embedding data
     // Basically a copy of what BH-SNE used
-    // TODO: look at CUDA-tSNE, which has several options available for initialization
+    // TODO: look at CUDA-tSNE etc, they have several options available for initialization
     {
       util::log(_logger, "[Minimization]   Creating randomized embedding");
 
@@ -165,9 +165,6 @@ namespace dh::sne {
 
   template <uint D>
   void Minimization<D>::comp(uint iteration) {
-    // Data size is used a lot
-    const uint n = _params.n;
-
     // 1.
     // Compute embedding bounds
     {
@@ -178,7 +175,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
+      program.uniform<uint>("nPoints", _params.n);
       program.uniform<float>("padding", 0.0f);
 
       // Set buffer bindings
@@ -227,7 +224,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
+      program.uniform<uint>("nPoints", _params.n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eField));
@@ -256,8 +253,8 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPos", n);
-      program.uniform<float>("invPos", 1.f / static_cast<float>(n));
+      program.uniform<uint>("nPos", _params.n);
+      program.uniform<float>("invPos", 1.f / static_cast<float>(_params.n));
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));
@@ -267,7 +264,7 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, _buffers(BufferType::eAttractive));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n, 256u / 32u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n, 256u / 32u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
       timer.tock();
@@ -296,7 +293,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
+      program.uniform<uint>("nPoints", _params.n);
       program.uniform<float>("exaggeration", exaggeration);
 
       // Set buffer bindings
@@ -306,7 +303,7 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _buffers(BufferType::eGradients));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n, 256u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n, 256u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
       
       timer.tock();
@@ -328,7 +325,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
+      program.uniform<uint>("nPoints", _params.n);
       program.uniform<float>("eta", _params.eta);
       program.uniform<float>("minGain", _params.minimumGain);
       program.uniform<float>("mult", 1.0);
@@ -341,7 +338,7 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, _buffers(BufferType::eGain));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n, 256u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n, 256u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
       
       timer.tock();
@@ -365,7 +362,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
+      program.uniform<uint>("nPoints", _params.n);
       program.uniform<float>("scaling", scaling);
       program.uniform<vec>("center", boundsCenter);
 
@@ -374,21 +371,12 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eBounds));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n, 256u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n, 256u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
       
       timer.tock();
       glAssert();
     }
-
-    // TODO Remove debug
-    /* if (iteration == _params.iterations - 1) {
-      std::vector<vec> embedding(16);
-      glGetNamedBufferSubData(_buffers(BufferType::eEmbedding), 0, embedding.size() * sizeof(vec), embedding.data());
-      for (auto& v : embedding) {
-        std::cout << dh::to_string(v) << std::endl;
-      }
-    } */
   }
 
   // Template instantiations for 2/3 dimensions

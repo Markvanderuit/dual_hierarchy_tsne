@@ -75,14 +75,14 @@ int main(int argc, char** argv) {
     dh::sne::SNE sne(data, params, &logger);
 
     // Run minimization AND render result
-    /* {
+    {
+      // Do similarity computation
+      sne.compSimilarities();
+
       // Prep window
       window.setVsync(false);
       window.setVisible(true);
       window.display();
-
-      // Do similarity computation
-      sne.compSimilarities();
 
       // Set up cpu-side timer
       dh::util::ChronoTimer timer;
@@ -101,37 +101,28 @@ int main(int argc, char** argv) {
       timer.poll();
 
       // Output kl divergence and runtime
-      dh::util::logTime(&logger, "[SNE] Minimization time", timer.get<dh::util::TimerValue::eLast>());
       dh::util::logValue(&logger, "[SNE] KL-Divergence", sne.klDivergence());
+      dh::util::logTime(&logger, "[SNE] Minimization time", sne.minimizationTime());
+    }
 
-      // Render loop
-      window.setVsync(true);
-      while (window.canDisplay()) {
-        window.processEvents();
-        renderer.render();
-        window.display();
-      }
-    } */
-
-    // Run minimization, THEN render result
+    /* // Run minimization, THEN render result
     {
       // Do similarity computation
       sne.comp();
 
       // Output kl divergence
       dh::util::logValue(&logger, "[SNE] KL-Divergence", sne.klDivergence());
+      dh::util::logTime(&logger, "[SNE] Minimization time", sne.minimizationTime());
+    } */
 
-      // Prep window
-      window.setVsync(true);
-      window.setVisible(true);
+    // Render loop post-minimization
+    window.setVsync(true);
+    window.setVisible(true);
+    window.display();
+    while (window.canDisplay()) {
+      window.processEvents();
+      renderer.render();
       window.display();
-      
-      // Render loop
-      while (window.canDisplay()) {
-        window.processEvents();
-        renderer.render();
-        window.display();
-      }
     }
 
     dh::util::log(&logger, "Goodbye!");

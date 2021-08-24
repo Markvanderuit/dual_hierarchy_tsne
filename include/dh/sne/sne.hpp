@@ -28,6 +28,7 @@
 #include <vector>
 #include "dh/types.hpp"
 #include "dh/util/logger.hpp"
+#include "dh/util/timer.hpp"
 #include "dh/sne/params.hpp"
 #include "dh/sne/components/similarities.hpp"
 #include "dh/sne/components/minimization.hpp"
@@ -57,14 +58,12 @@ namespace dh::sne {
     void compSimilarities();      // Only compute similarities
     void compMinimization();      // Only perform minimization
     void compMinimizationStep();  // Only perform a single step of minimization
-    
-    // Compute and return KL-Divergence of current embedding
-    // (Don't do this while minimizing unless you don't care about performance)
-    float klDivergence();
 
-    // Return raw data of current embedding
-    // ( Don't do this while minimizing unless you don't care about performance)
+    // Getters
+    // (Don't call any of while minimizing unless you don't care about performance)
+    float klDivergence();
     std::vector<float> embedding() const;
+    std::chrono::milliseconds minimizationTime();
 
   private:
     // State
@@ -72,14 +71,14 @@ namespace dh::sne {
     uint _iteration;
     Params _params;
     util::Logger* _logger;
+    util::ChronoTimer _timer;
 
     // Subcomponents
-    Similarities _sneSimilarities;
+    Similarities _similarities;
     Minimization _minimization;
-    KLDivergence _sneKLDivergence;
+    KLDivergence _klDivergence;
 
   public:
-    // Getters
     bool isInit() const { return _isInit; }
 
     // Swap internals with another object
@@ -89,9 +88,10 @@ namespace dh::sne {
       swap(a._iteration, b._iteration);
       swap(a._params, b._params);
       swap(a._logger, b._logger);
-      swap(a._sneSimilarities, b._sneSimilarities);
+      swap(a._timer, b._timer);
+      swap(a._similarities, b._similarities);
       swap(a._minimization, b._minimization);
-      swap(a._sneKLDivergence, b._sneKLDivergence);
+      swap(a._klDivergence, b._klDivergence);
     }
   };
 } // dh::sne
