@@ -37,13 +37,11 @@ using uint = unsigned int;
 
 int main(int argc, char** argv) {
   try {
-    dh::util::DateCoutLogger logger;
-
     // Set example parameters
     dh::sne::Params params;
     params.n = 60000;
     params.nHighDims = 784;
-    params.nLowDims = 2;
+    params.nLowDims = 3;
     params.perplexity = 30;
     params.singleHierarchyTheta = 0.5;
     params.dualHierarchyTheta = 0.4;
@@ -54,7 +52,7 @@ int main(int argc, char** argv) {
     std::vector<uint> labels;
     dh::util::readBinFile(inputFileName, data, labels, params.n, params.nHighDims, true);
 
-    // Create window (and OpenGL context)
+    // Create window (and accompanying OpenGL context)
     dh::util::GLWindowInfo info;
     {
       // if only c++20's 'using enum' was a thing already
@@ -70,7 +68,8 @@ int main(int argc, char** argv) {
     }
     dh::util::GLWindow window(info);
 
-    // Create renderer and tsne runner
+    // Create logger, renderer and tsne components
+    dh::util::DateCoutLogger logger;
     dh::vis::Renderer renderer(window, params, labels);    
     dh::sne::SNE sne(data, params, &logger);
 
@@ -105,8 +104,8 @@ int main(int argc, char** argv) {
       dh::util::logTime(&logger, "[SNE] Minimization time", sne.minimizationTime());
     }
 
-    /* // Run minimization, THEN render result
-    {
+    // Run minimization only
+    /* {
       // Do similarity computation
       sne.comp();
 

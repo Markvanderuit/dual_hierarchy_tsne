@@ -76,7 +76,9 @@ namespace dh::vis {
     _embeddingHierarchy(embeddingHierarchy),
     _params(params),
     _lineWidth(1.0),
-    _lineOpacity(1.0) {
+    _lineOpacity(1.0),
+    _selectLvl(false),
+    _selectedLvl(1) {
     // Initialize shader program 
     {
       if constexpr (D == 2) {
@@ -172,8 +174,8 @@ namespace dh::vis {
     // Set uniforms
     _program.uniform<glm::mat4>("transform", proj * model_view);
     _program.uniform<float>("opacity", _lineOpacity);
-    _program.uniform<bool>("selectLvl", false);
-    _program.uniform<uint>("selectedLvl", 3);
+    _program.uniform<bool>("selectLvl", _selectLvl);
+    _program.uniform<uint>("selectedLvl", _selectedLvl);
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.bounds);
@@ -193,10 +195,16 @@ namespace dh::vis {
 
   template <uint D>
   void EmbeddingHierarchyRenderTask<D>::drawImGuiComponent() {
-    if (ImGui::CollapsingHeader("Embedding hierarchy settings", ImGuiTreeNodeFlags_Leaf)) {
+    if (ImGui::CollapsingHeader("Embedding hierarchy render settings")) {
       ImGui::Spacing();
       ImGui::SliderFloat("Line opacity##EmbeddingHierarchyRenderTask", &_lineOpacity, 0.0f, 1.0f);
       ImGui::SliderFloat("Line width##EmbeddingHierarchyRenderTask", &_lineWidth, 1.0f, 4.0f);
+      ImGui::Spacing();
+      ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Checkbox("Show single level only##EmbeddingHierarchyRenderTask", &_selectLvl);
+      constexpr uint minLvl = 1, maxLvl = 10;
+      ImGui::SliderScalar("Level##EmbeddingHierarchyRenderTask", ImGuiDataType_U32, &_selectedLvl, &minLvl, &maxLvl);
       ImGui::Spacing();
     }
   }

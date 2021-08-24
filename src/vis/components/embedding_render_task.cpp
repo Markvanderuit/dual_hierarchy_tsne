@@ -159,7 +159,7 @@ namespace dh::vis {
 
   template <uint D>
   void EmbeddingRenderTask<D>::drawImGuiComponent() {
-    if (ImGui::CollapsingHeader("Embedding settings", ImGuiTreeNodeFlags_Leaf)) {
+    if (ImGui::CollapsingHeader("Embedding render settings")) {
       ImGui::Spacing();
       if (_canDrawLabels) {
         ImGui::Checkbox("Use label colors", &_drawLabels);

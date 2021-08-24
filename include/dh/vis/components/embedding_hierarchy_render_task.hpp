@@ -70,6 +70,8 @@ namespace dh::vis {
     // ImGui state
     float _lineWidth;
     float _lineOpacity;
+    bool _selectLvl;
+    uint _selectedLvl;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
@@ -89,6 +91,8 @@ namespace dh::vis {
       swap(a._params, b._params);
       swap(a._lineWidth, b._lineWidth);
       swap(a._lineOpacity, b._lineOpacity);
+      swap(a._selectLvl, b._selectLvl);
+      swap(a._selectedLvl, b._selectedLvl);
       swap(a._buffers, b._buffers);
       swap(a._program, b._program);
       swap(a._vaoHandle, b._vaoHandle);

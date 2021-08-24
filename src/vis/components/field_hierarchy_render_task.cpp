@@ -75,7 +75,9 @@ namespace dh::vis {
     _fieldHierarchy(fieldHierarchy),
     _params(params),
     _lineWidth(1.0),
-    _lineOpacity(1.0) {
+    _lineOpacity(1.0),
+    _selectLvl(false),
+    _selectedLvl(1) {
     // Initialize shader program 
     {
       if constexpr (D == 2) {
@@ -161,8 +163,8 @@ namespace dh::vis {
     // Set uniforms
     _program.uniform<glm::mat4>("transform", proj * model_view);
     _program.uniform<float>("opacity", _lineOpacity);
-    _program.uniform<bool>("selectLvl", false);
-    _program.uniform<uint>("selectedLvl", 3);
+    _program.uniform<bool>("selectLvl", _selectLvl);
+    _program.uniform<uint>("selectedLvl", _selectedLvl);
     if constexpr (D == 2) {
       _program.uniform<bool>("sumLvls", false);
     }
@@ -185,10 +187,16 @@ namespace dh::vis {
 
   template <uint D>
   void FieldHierarchyRenderTask<D>::drawImGuiComponent() {
-    if (ImGui::CollapsingHeader("Field hierarchy settings", ImGuiTreeNodeFlags_Leaf)) {
+    if (ImGui::CollapsingHeader("Field hierarchy render settings")) {
       ImGui::Spacing();
       ImGui::SliderFloat("Line opacity##FieldHierarchyRenderTask", &_lineOpacity, 0.0f, 1.0f);
       ImGui::SliderFloat("Line width##FieldHierarchyRenderTask", &_lineWidth, 1.0f, 4.0f);
+      ImGui::Spacing();
+      ImGui::Separator();
+      ImGui::Spacing();
+      ImGui::Checkbox("Show single level only##FieldHierarchyRenderTask", &_selectLvl);
+      constexpr uint minLvl = 1, maxLvl = 10;
+      ImGui::SliderScalar("Level##FieldHierarchyRenderTask", ImGuiDataType_U32, &_selectedLvl, &minLvl, &maxLvl);
       ImGui::Spacing();
     }
   }

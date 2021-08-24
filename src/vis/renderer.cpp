@@ -195,16 +195,16 @@ namespace dh::vis {
 
   void Renderer::drawImGuiWindow() {    
     ImGui::SetNextWindowPos(ImVec2(24, 24), ImGuiCond_Appearing);
-    ImGui::SetNextWindowSize(ImVec2(512, 384), ImGuiCond_Appearing);
+    // ImGui::SetNextWindowSize(ImVec2(512, 384), ImGuiCond_Appearing);
 
     // Start body of main ImGui window
-    if (!ImGui::Begin("Dual-Hierarchy t-SNE Demo", nullptr)) {
+    if (!ImGui::Begin("Dual-Hierarchy t-SNE Demo", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
       ImGui::End();
       return;
     }
 
     // Render component enable/disable flags
-    ImGui::Text("Enable render components...");
+    ImGui::Text("Render components...");
     ImGui::Spacing();
     auto& queue = vis::RenderQueue::instance();
     if (auto ptr = queue.find("EmbeddingRenderTask"); ptr) {
@@ -222,14 +222,14 @@ namespace dh::vis {
     ImGui::NewLine();
     ImGui::Spacing();
 
-    // Let components handle their own specific settings
-    drawImGuiComponents();
-
     if (ImGui::CollapsingHeader("About")) {
       ImGui::Spacing();
       ImGui::Text(aboutText.c_str());
       ImGui::Spacing();
     }
+
+    // Let components handle their own specific settings
+    drawImGuiComponents();
 
     // End body of main ImGui window
     ImGui::End();
