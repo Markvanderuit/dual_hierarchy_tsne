@@ -35,7 +35,6 @@
 #include "dh/sne/components/buffers.hpp"
 
 namespace dh::sne {
-  template <uint D> // Dimension of produced embedding
   class Similarities {
   public:
     // Constr/destr
@@ -105,7 +104,7 @@ namespace dh::sne {
     bool isInit() const { return _isInit; }
 
     // std::swap impl
-    friend void swap(Similarities<D>& a, Similarities<D>& b) noexcept {
+    friend void swap(Similarities& a, Similarities& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
       swap(a._params, b._params);

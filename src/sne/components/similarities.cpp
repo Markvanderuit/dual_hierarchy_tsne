@@ -36,14 +36,12 @@ namespace dh::sne {
   constexpr uint nProbe = 12;      // Painfully large memory impact
   constexpr uint nListMult = 1;   // Painfully large memory impact
   
-  template <uint D>
-  Similarities<D>::Similarities()
+  Similarities::Similarities()
   : _isInit(false), _dataPtr(nullptr), _logger(nullptr) {
     // ...
   }
 
-  template <uint D>
-  Similarities<D>::Similarities(const std::vector<float>& data, Params params, util::Logger* logger )
+  Similarities::Similarities(const std::vector<float>& data, Params params, util::Logger* logger )
   : _isInit(false), _dataPtr(data.data()), _params(params), _logger(logger) {
     util::log(_logger, "[Similarities] Initializing...");
 
@@ -63,7 +61,7 @@ namespace dh::sne {
     }
 
     // Initialize buffer object handles
-    // Allocation is performed in Similarities<D>::comp() as the required
+    // Allocation is performed in Similarities::comp() as the required
     // memory size is not yet known
     glCreateBuffers(_buffers.size(), _buffers.data());
     glAssert();
@@ -72,28 +70,24 @@ namespace dh::sne {
     util::log(_logger, "[Similarities] Initialized");
   }
 
-  template <uint D>
-  Similarities<D>::~Similarities() {
+  Similarities::~Similarities() {
     if (_isInit) {
       glDeleteBuffers(_buffers.size(), _buffers.data());
       _isInit = false;
     }
   }
 
-  template <uint D>
-  Similarities<D>::Similarities(Similarities<D>&& other) noexcept {
+  Similarities::Similarities(Similarities&& other) noexcept {
     swap(*this, other);
   }
 
-  template <uint D>
-  Similarities<D>& Similarities<D>::operator=(Similarities<D>&& other) noexcept {
+  Similarities& Similarities::operator=(Similarities&& other) noexcept {
     swap(*this, other);
     return *this;
   }
 
-  template <uint D>
-  void Similarities<D>::comp() {
-    runtimeAssert(_isInit, "Similarities<D>::comp() called without proper initialization");
+  void Similarities::comp() {
+    runtimeAssert(_isInit, "Similarities::comp() called without proper initialization");
     util::log(_logger, "[Similarities] Computing...");
 
     // Data size, dimensionality, requested nearest neighbours
@@ -340,8 +334,4 @@ namespace dh::sne {
     glPollTimers(_timers.size(), _timers.data());
     util::log(_logger, "[Similarities] Computed");
   }
-
-  // Template instantiations for 2/3 dimensions
-  template class Similarities<2>;
-  template class Similarities<3>;
 } // dh::sne
