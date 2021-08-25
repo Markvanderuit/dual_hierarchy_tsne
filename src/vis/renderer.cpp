@@ -36,7 +36,7 @@ namespace dh::vis {
   // TODO Include version string from cmake?
   // TODO Move to constants
   const std::string aboutText = 
-    "Dual-Hierarchy t-SNE Demo Application.\n"
+    "Dual-Hierarchy t-SNE Demo\n"
     "\n"
     "Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)\n"
     "\n"
@@ -194,8 +194,7 @@ namespace dh::vis {
   }
 
   void Renderer::drawImGuiWindow() {    
-    ImGui::SetNextWindowPos(ImVec2(24, 24), ImGuiCond_Appearing);
-    // ImGui::SetNextWindowSize(ImVec2(512, 384), ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos(ImVec2(16, 16), ImGuiCond_Appearing);
 
     // Start body of main ImGui window
     if (!ImGui::Begin("Dual-Hierarchy t-SNE Demo", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {

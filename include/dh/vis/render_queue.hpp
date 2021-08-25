@@ -56,10 +56,7 @@ namespace dh::vis {
     std::string name() const { return _name; }
 
     // Compare function for sortable insertion
-    using Pointer = std::shared_ptr<RenderTask>;
-    friend bool cmpRenderTask(const Pointer& a, const Pointer& b) {
-      return a->priority() < b->priority() && a != b;
-    }
+    friend bool cmpRenderTask(const std::shared_ptr<RenderTask>& a, const std::shared_ptr<RenderTask>& b);
     
     // std::swap impl
     friend void swap(RenderTask& a, RenderTask& b) noexcept {
@@ -69,6 +66,11 @@ namespace dh::vis {
       swap(a._name, b._name);
     }
   };
+
+  inline
+  bool cmpRenderTask(const std::shared_ptr<RenderTask>& a, const std::shared_ptr<RenderTask>& b) {
+    return a->priority() < b->priority() && a != b;
+  }
 
   class RenderQueue {
   private:

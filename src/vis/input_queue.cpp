@@ -118,10 +118,10 @@ namespace dh::vis {
     // Forward keyboard input to ImGui
     auto& io = ImGui::GetIO();
     io.KeysDown[key] = (action == GLFW_PRESS || action == GLFW_REPEAT);
-    io.KeyCtrl = (mods & GLFW_MOD_CONTROL != 0);
-    io.KeyAlt = (mods & GLFW_MOD_ALT != 0);
-    io.KeyShift = (mods & GLFW_MOD_SHIFT != 0);
-    io.KeySuper = (mods & GLFW_MOD_SUPER != 0);
+    io.KeyCtrl = ((mods & GLFW_MOD_CONTROL) != 0);
+    io.KeyAlt = ((mods & GLFW_MOD_ALT) != 0);
+    io.KeyShift = ((mods & GLFW_MOD_SHIFT) != 0);
+    io.KeySuper = ((mods & GLFW_MOD_SUPER) != 0);
 
     // Ignore, imgui takes keyboard callback
     if (io.WantCaptureKeyboard) {

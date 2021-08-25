@@ -53,10 +53,7 @@ namespace dh::vis {
     int priority() const { return _priority; }
 
     // Compare function for sortable insertion
-    using Pointer = std::shared_ptr<InputTask>;
-    friend bool cmpInputTask(const Pointer& a, const Pointer& b) {
-      return a->priority() < b->priority() && a != b;
-    }
+    friend bool cmpInputTask(const std::shared_ptr<InputTask>& a, const std::shared_ptr<InputTask>& b);
     
     // std::swap impl
     friend void swap(InputTask& a, InputTask& b) noexcept {
@@ -64,6 +61,11 @@ namespace dh::vis {
       swap(a._priority, b._priority);
     }
   };
+
+  inline
+  bool cmpInputTask(const std::shared_ptr<InputTask>& a, const std::shared_ptr<InputTask>& b) {
+    return a->priority() < b->priority() && a != b;
+  }
 
   class InputQueue {
   private:
