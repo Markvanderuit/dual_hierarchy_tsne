@@ -60,10 +60,10 @@ namespace dh::sne {
     void compMinimizationStep();  // Only perform a single step of minimization
 
     // Getters
-    // (Don't call any of while minimizing unless you don't care about performance)
+    // (Don't call any of these *while* minimizing unless you don't care about performance)
     float klDivergence();
     std::vector<float> embedding() const;
-    std::chrono::milliseconds minimizationTime();
+    std::chrono::milliseconds minimizationTime() const;
 
   private:
     // State

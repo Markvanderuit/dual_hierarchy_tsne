@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+#include <glad/glad.h>
+#include "dh/util/aligned.hpp"
 #include "dh/util/error.hpp"
 #include "dh/sne/sne.hpp"
 
@@ -97,7 +99,7 @@ namespace dh::sne {
     _timer.poll();
   }
 
-  std::chrono::milliseconds SNE::minimizationTime() {
+  std::chrono::milliseconds SNE::minimizationTime() const {
     const auto mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
     runtimeAssert(_isInit, "SNE::minimizationTime() called before initialization");
     runtimeAssert(mIsInit, "SNE::minimizationTime() called before minimization");
@@ -123,7 +125,27 @@ namespace dh::sne {
     runtimeAssert(_isInit, "SNE::embedding() called before initialization");
     runtimeAssert(mIsInit, "SNE::embedding() called before minimization");
 
-    std::vector<float> embedding(_params.n);
-    return embedding; // TODO Implement with(out) padding
+    const auto buffers = std::visit([](const auto& m) { return m.buffers(); }, _minimization);
+    
+    if (_params.nLowDims == 2) {
+      // Copy embedding data over
+      std::vector<float> buffer(_params.n * 2);
+      glGetNamedBufferSubData(buffers.embedding, 0, buffer.size() * sizeof(float), buffer.data());
+      return buffer;
+    } else if (_params.nLowDims == 3) {
+      // Copy embedding data over to a padded type (technically 4 floats)
+      std::vector<dh::util::AlignedVec<3, float>> _buffer(_params.n);
+      glGetNamedBufferSubData(buffers.embedding, 0, _buffer.size() * sizeof(dh::util::AlignedVec<3, float>), _buffer.data());
+
+      // Copy embedding data over to unpadded type (3 floats)
+      std::vector<glm::vec<3, float, glm::highp>> buffer(_buffer.begin(), _buffer.end());
+      
+      // Copy embedding over to floats only
+      std::vector<float> embedding(_params.n * 3);
+      std::memcpy(embedding.data(), buffer.data(), embedding.size() * sizeof(float));
+      return embedding;
+    }
+
+    return {};
   }
 } // dh::sne
