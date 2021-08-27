@@ -7,12 +7,14 @@ find_package(CUDAToolkit REQUIRED)
 
 if(NOT MSVC)
 	message("adding CXX flags -std=c++14 -fPIC -m64	-Wall -g -O3  -msse4 -mpopcnt -fopenmp -Wno-sign-compare -fpermissive")
-	set(CMAKE_CXX_FLAGS "$ {CMAKE_CXX_FLAGS} -std=c++14 -fPIC -m64 -Wall -g -O3  -msse4 -mpopcnt -fopenmp -Wno-sign-compare -fpermissive")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fPIC -m64 -Wall -g -O3  -msse4 -mpopcnt -fopenmp -Wno-sign-compare -fpermissive")
 else(NOT MSVC)
 	# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 	add_definitions(-D__AVX__ -D__SSE__)
 endif(NOT MSVC)
 add_definitions(-DFINTEGER=int)
+
+find_package(OpenMP REQUIRED)
 
 # Specify FAISS source files
 file(GLOB faiss_sources
@@ -39,10 +41,12 @@ file(GLOB gpufaiss_sources
 
 # Specify FAISS library
 add_library(faiss STATIC ${faiss_sources})
-target_link_libraries(faiss OpenBLAS::OpenBLAS LAPACK::LAPACK)
+target_link_libraries(faiss OpenBLAS::OpenBLAS LAPACK::LAPACK OpenMP::OpenMP_CXX)
+target_compile_features(faiss PRIVATE cxx_std_14)
 target_include_directories(faiss PUBLIC include)
 
 # Specify gpuFAISS library
 add_library(gpufaiss STATIC ${gpufaiss_sources})
-target_link_libraries(gpufaiss faiss CUDA::cudart CUDA::cublas)
+target_link_libraries(gpufaiss faiss CUDA::cudart CUDA::cublas OpenMP::OpenMP_CXX)
+target_compile_features(gpufaiss PRIVATE cuda_std_14)
 target_include_directories(gpufaiss PUBLIC include)
