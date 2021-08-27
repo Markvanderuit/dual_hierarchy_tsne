@@ -22,33 +22,35 @@
  * SOFTWARE.
  */
 
-#include <glad/glad.h>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/sne/components/hierarchy/embedding_hierarchy.hpp"
+#include "dh/vis/components/embedding_hierarchy_render_task.hpp"
+#include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
-#include "dh/vis/components/embedding_hierarchy_render_task.hpp"
-#include "dh/sne/components/hierarchy/embedding_hierarchy.hpp"
 
 namespace dh::sne {
+  // Logging shorthands
+  using util::Logger;
+  const std::string prefix = util::genLoggerPrefix("[EmbeddingHierarchy]");
+
   template <uint D>
   EmbeddingHierarchy<D>::EmbeddingHierarchy()
-  : _isInit(false), _nRebuilds(0), _logger(nullptr) {
+  : _isInit(false), _nRebuilds(0) {
     // ...
   }
 
   template <uint D>
-  EmbeddingHierarchy<D>::EmbeddingHierarchy(MinimizationBuffers minimization, Layout layout, Params params, util::Logger* logger)
-  : _isInit(false), _nRebuilds(0), _minimization(minimization), _layout(layout), _params(params), _logger(logger) {
+  EmbeddingHierarchy<D>::EmbeddingHierarchy(MinimizationBuffers minimization, Layout layout, Params params)
+  : _isInit(false), _nRebuilds(0), _minimization(minimization), _layout(layout), _params(params) {
+    Logger::newt() << prefix << "Initializing...";
+
     // Constants
     constexpr uint nodek = (D == 2) ? 4 : 8;
     constexpr uint logk = (D == 2) ? 2 : 3;
     
-    util::log(_logger, "[EmbeddingHierarchy] Initializing...");
-
     // Initialize shader programs
     {
-      util::log(_logger, "[EmbeddingHierarchy]   Creating shader programs");
-
       _programs(ProgramType::eDispatch).addShader(util::GLShaderType::eCompute, rsrc::get("sne/dispatch.comp"));
       if constexpr (D == 2) {
         _programs(ProgramType::eMortonUnsortedComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/2D/mortonUnsorted.comp"));
@@ -72,8 +74,6 @@ namespace dh::sne {
     
     // Initialize buffer objects
     {
-      util::log(_logger, "[EmbeddingHierarchy]   Creating buffer storage");
-
       // Root node data set at initialization
       std::vector<glm::vec4> nodeData(_layout.nNodes, glm::vec4(0));
       nodeData[0].w = _layout.nPos;
@@ -91,16 +91,11 @@ namespace dh::sne {
       glNamedBufferStorage(_buffers(BufferType::eNode0), _layout.nNodes * sizeof(glm::vec4), nodeData.data(), GL_DYNAMIC_STORAGE_BIT);
       glNamedBufferStorage(_buffers(BufferType::eNode1), _layout.nNodes * sizeof(glm::vec4), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eMinB), _layout.nNodes * sizeof(vec), nullptr, 0);
-      glAssert();
-      
-      // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[EmbeddingHierarchy]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+      glAssert();      
     }
 
     // Initialize other components
     {
-      util::log(_logger, "[EmbeddingHierarchy]   Creating other components");
       keySort = util::KeySort(
         _buffers(BufferType::eMortonUnsorted),
         _buffers(BufferType::eMortonSorted),
@@ -115,8 +110,12 @@ namespace dh::sne {
       queue.emplace(vis::EmbeddingHierarchyRenderTask<D>(_minimization, buffers(), _params, 1));
     }
 
+    // Output memory use of OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::rest() << prefix << "Initialized";
+    Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+
     _isInit = true;
-    util::log(_logger, "[EmbeddingHierarchy] Initialized");
   }
 
   template <uint D>

@@ -22,26 +22,28 @@
  * SOFTWARE.
  */
 
-#include <glad/glad.h>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/sne/components/kl_divergence.hpp"
+#include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
-#include "dh/sne/components/kl_divergence.hpp"
 
 namespace dh::sne {
-  KLDivergence::KLDivergence()
-  : _isInit(false), _logger(nullptr) {
+  // Logging shorthands
+  using util::Logger;
+  const std::string prefix = util::genLoggerPrefix("[KLDivergence]");
 
+  KLDivergence::KLDivergence()
+  : _isInit(false) {
+    // ...
   }
 
-  KLDivergence::KLDivergence(Params params, SimilaritiesBuffers similarities, MinimizationBuffers minimization, util::Logger * logger)
-  : _isInit(false), _logger(logger), _params(params), _similarities(similarities), _minimization(minimization) {
-    util::log(_logger, "[KLDivergence] Initializing...");
+  KLDivergence::KLDivergence(Params params, SimilaritiesBuffers similarities, MinimizationBuffers minimization)
+  : _isInit(false), _params(params), _similarities(similarities), _minimization(minimization) {
+    Logger::newt() << prefix << "Initializing...";
     
     // Initialize shader programs
     {
-      util::log(_logger, "[KLDivergence]   Creating shader programs");
-
       if (_params.nLowDims == 2) {
         _programs(ProgramType::eQijSumComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/kl_divergence/2D/qijSum.comp"));
         _programs(ProgramType::eKLDSumComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/kl_divergence/2D/KLDSum.comp"));
@@ -59,21 +61,19 @@ namespace dh::sne {
 
     // Initialize buffer objects
     {
-      util::log(_logger, "[KLDivergence]   Creating buffer storage");
-
       glCreateBuffers(_buffers.size(), _buffers.data());
       glNamedBufferStorage(_buffers(BufferType::eQijSum), _params.n * sizeof(float), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eKLDSum), _params.n * sizeof(float), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eReduce), 256 * sizeof(float), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eReduceFinal), sizeof(float), nullptr, GL_DYNAMIC_STORAGE_BIT);
       glAssert();
-      
-      // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[KLDivergence]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
     }
     
-    util::log(_logger, "[KLDivergence] Initialized");
+    // Output memory use of OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::rest() << prefix << "Initialized";
+    Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+
     _isInit = true;
   }
 

@@ -27,7 +27,6 @@
 #include "dh/types.hpp"
 #include "dh/util/aligned.hpp"
 #include "dh/util/enum.hpp"
-#include "dh/util/logger.hpp"
 #include "dh/util/gl/timer.hpp"
 #include "dh/util/gl/program.hpp"
 #include "dh/sne/params.hpp"
@@ -46,7 +45,7 @@ namespace dh::sne {
   public:
     // Constr/destr
     Field();
-    Field(MinimizationBuffers minimization, Params params, util::Logger* logger = nullptr);
+    Field(MinimizationBuffers minimization, Params params);
     ~Field();
 
     // Copy constr/assignment is explicitly deleted
@@ -153,7 +152,6 @@ namespace dh::sne {
     bool _isInit;
     MinimizationBuffers _minimization;
     Params _params;
-    util::Logger* _logger;
     GLuint _stencilVAOHandle;
     GLuint _stencilFBOHandle;
     uint _hierarchyRebuildIterations;
@@ -181,6 +179,7 @@ namespace dh::sne {
       };
     }
     bool isInit() const { return _isInit; }
+    uvec size() const { return _size; }
     
     // std::swap impl
     friend void swap(Field& a, Field& b) noexcept {
@@ -188,7 +187,6 @@ namespace dh::sne {
       swap(a._isInit, b._isInit);
       swap(a._minimization, b._minimization);
       swap(a._params, b._params);
-      swap(a._logger, b._logger);
       swap(a._stencilVAOHandle, b._stencilVAOHandle);
       swap(a._stencilFBOHandle, b._stencilFBOHandle);
       swap(a._hierarchyRebuildIterations, b._hierarchyRebuildIterations);

@@ -27,7 +27,6 @@
 #include <variant>
 #include <vector>
 #include "dh/types.hpp"
-#include "dh/util/logger.hpp"
 #include "dh/util/timer.hpp"
 #include "dh/sne/params.hpp"
 #include "dh/sne/components/similarities.hpp"
@@ -36,13 +35,10 @@
 
 namespace dh::sne {
   class SNE {
-  private:
-    using Minimization = std::variant<Minimization<2>, Minimization<3>>;
-    
   public:
     // Constr/destr
     SNE();
-    SNE(const std::vector<float>& data, Params params, util::Logger* logger = nullptr);
+    SNE(const std::vector<float>& data, Params params);
     ~SNE();
 
     // Copy constr/assignment is explicitly deleted (no copying underlying handles)
@@ -60,18 +56,23 @@ namespace dh::sne {
     void compMinimizationStep();  // Only perform a single step of minimization
 
     // Getters
-    // (Don't call any of these *while* minimizing unless you don't care about performance)
+    // Don't call some of these *while* minimizing unless you don't care about performance
     float klDivergence();
     std::vector<float> embedding() const;
+    std::chrono::milliseconds similaritiesTime() const;
     std::chrono::milliseconds minimizationTime() const;
 
   private:
+    // sne::Minimization<D> uses template argument D to specify numbers of low dimensions
+    // but is otherwise identical in structure (on the CPU side, at least).
+    // Given that, we define both in the same place and use std::visit for runtime polymorphism 
+    using Minimization = std::variant<sne::Minimization<2>, sne::Minimization<3>>;
+
     // State
     bool _isInit;
-    uint _iteration;
     Params _params;
-    util::Logger* _logger;
-    util::ChronoTimer _timer;
+    util::ChronoTimer _similaritiesTimer;
+    util::ChronoTimer _minimizationTimer;
 
     // Subcomponents
     Similarities _similarities;
@@ -85,10 +86,9 @@ namespace dh::sne {
     friend void swap(SNE& a, SNE& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
-      swap(a._iteration, b._iteration);
       swap(a._params, b._params);
-      swap(a._logger, b._logger);
-      swap(a._timer, b._timer);
+      swap(a._similaritiesTimer, b._similaritiesTimer);
+      swap(a._minimizationTimer, b._minimizationTimer);
       swap(a._similarities, b._similarities);
       swap(a._minimization, b._minimization);
       swap(a._klDivergence, b._klDivergence);

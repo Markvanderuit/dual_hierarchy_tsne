@@ -27,7 +27,6 @@
 #include <vector>
 #include "dh/types.hpp"
 #include "dh/util/enum.hpp"
-#include "dh/util/logger.hpp"
 #include "dh/util/gl/timer.hpp"
 #include "dh/util/gl/program.hpp"
 #include "dh/util/cu/timer.cuh"
@@ -39,7 +38,7 @@ namespace dh::sne {
   public:
     // Constr/destr
     Similarities();
-    Similarities(const std::vector<float>& data, Params params, util::Logger* logger = nullptr);
+    Similarities(const std::vector<float>& data, Params params);
     ~Similarities();
 
     // Copy constr/assignment is explicitly deleted
@@ -84,7 +83,6 @@ namespace dh::sne {
     bool _isInit;
     Params _params;
     const float* _dataPtr;
-    util::Logger* _logger;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
@@ -94,6 +92,7 @@ namespace dh::sne {
   
   public:
     // Getters
+    bool isInit() const { return _isInit; }
     SimilaritiesBuffers buffers() const {
       return {
         _buffers(BufferType::eSimilarities),
@@ -101,7 +100,6 @@ namespace dh::sne {
         _buffers(BufferType::eNeighbors),
       };
     }
-    bool isInit() const { return _isInit; }
 
     // std::swap impl
     friend void swap(Similarities& a, Similarities& b) noexcept {
@@ -109,7 +107,6 @@ namespace dh::sne {
       swap(a._isInit, b._isInit);
       swap(a._params, b._params);
       swap(a._dataPtr, b._dataPtr);
-      swap(a._logger, b._logger);
       swap(a._buffers, b._buffers);
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);

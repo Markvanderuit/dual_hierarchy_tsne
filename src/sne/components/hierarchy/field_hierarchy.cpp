@@ -22,29 +22,31 @@
  * SOFTWARE.
  */
 
-#include <glad/glad.h>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/sne/components/hierarchy/field_hierarchy.hpp"
+#include "dh/vis/components/field_hierarchy_render_task.hpp"
+#include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
-#include "dh/vis/components/field_hierarchy_render_task.hpp"
-#include "dh/sne/components/hierarchy/field_hierarchy.hpp"
 
 namespace dh::sne {
+  // Logging shorthands
+  using util::Logger;
+  const std::string prefix = util::genLoggerPrefix("[FieldHierarchy]");
+
   template <uint D>
   FieldHierarchy<D>::FieldHierarchy()
-  : _isInit(false), _nRebuilds(0), _logger(nullptr) {
+  : _isInit(false), _nRebuilds(0) {
     // ...
   }
 
   template <uint D>
-  FieldHierarchy<D>::FieldHierarchy(FieldBuffers field, Layout constrLayout, Params params, util::Logger* logger)
-  : _isInit(false), _nRebuilds(0), _field(field), _constrLayout(constrLayout), _params(params), _logger(logger) {
-    util::log(_logger, "[FieldHierarchy] Initializing...");
+  FieldHierarchy<D>::FieldHierarchy(FieldBuffers field, Layout constrLayout, Params params)
+  : _isInit(false), _nRebuilds(0), _field(field), _constrLayout(constrLayout), _params(params) {
+    Logger::newt() << prefix << "Initializing...";
 
     // Initialize shader programs
     {
-      util::log(_logger, "[FieldHierarchy]   Creating shader programs");
-
       if constexpr (D == 2) {
         _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/leaves.comp"));
         _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/nodes.comp"));
@@ -61,16 +63,10 @@ namespace dh::sne {
 
     // Initialize buffer objects
     {
-      util::log(_logger, "[FieldHierarchy ]   Creating buffer storage");
-      
       glCreateBuffers(_buffers.size(), _buffers.data());
       glNamedBufferStorage(_buffers(BufferType::eNode), _constrLayout.nNodes * sizeof(uint), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eField), _constrLayout.nNodes * sizeof(glm::vec4), nullptr, 0);
       glAssert();
-
-      // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[FieldHierarchy]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
     }
 
     // Setup render task
@@ -78,8 +74,12 @@ namespace dh::sne {
       queue.emplace(vis::FieldHierarchyRenderTask<D>(buffers(), _params, 2));
     }
 
+    // Output memory use of OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::rest() << prefix << "Initialized";
+    Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+
     _isInit = true;
-    util::log(_logger, "[FieldHierarchy] Initialized");
   }
   
   template <uint D>
@@ -111,7 +111,7 @@ namespace dh::sne {
     // 1.
     // Ensure available memory accomodates the new layout; expand if the field has grown too large 
     if (rebuild && _constrLayout.nNodes < _compLayout.nNodes) {
-      util::log(_logger, "[FieldHierarchy]   Expanding field hierarchy");
+      Logger::newt() << prefix << "Expanding field hierarchy";
 
       // Compute new layout as nearest larger power of two
       const uvec newSize = uvec(dh::util::max(vec(glm::pow(vec(2), glm::ceil(glm::log(vec(_compLayout.size)) / vec(glm::log(2)))))));  
@@ -125,9 +125,8 @@ namespace dh::sne {
       glNamedBufferStorage(_buffers(BufferType::eField), _constrLayout.nNodes * sizeof(glm::vec4), nullptr, 0);
 
       // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::log(_logger, "[FieldHierarchy]   Expanded field hierarchy");
-      util::logValue(_logger, "[FieldHierarchy]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+      const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+      Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
     }
 
     // Clear hierarchy data

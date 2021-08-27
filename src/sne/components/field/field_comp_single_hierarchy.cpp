@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#include "dh/util/gl/error.hpp"
 #include "dh/sne/components/field.hpp"
+#include "dh/util/gl/error.hpp"
 
 namespace dh::sne {
   template <uint D>

@@ -27,11 +27,16 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/sne/components/field.hpp"
+#include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
-#include "dh/sne/components/field.hpp"
 
 namespace dh::sne {
+  // Logging shorthands
+  using util::Logger;
+  const std::string prefix = util::genLoggerPrefix("[Field]");
+
   // Constants
   constexpr uint knode = 4;
   constexpr uint logk = 2;
@@ -67,21 +72,18 @@ namespace dh::sne {
   }
   
   template <>
-  Field<2>::Field(MinimizationBuffers minimization, Params params, util::Logger* logger)
+  Field<2>::Field(MinimizationBuffers minimization, Params params)
   : _isInit(false),
     _minimization(minimization),
     _params(params),
-    _logger(logger),
     _hierarchyRebuildIterations(0),
     _size(0),
     _useEmbeddingHierarchy(params.singleHierarchyTheta > 0.0f),
     _useFieldHierarchy(params.dualHierarchyTheta > 0.0f) {
-    util::log(_logger, "[Field] Initializing...");
+    Logger::newt() << prefix << "Initializing...";
     
     // Initialize shader programs
-    {
-      util::log(_logger, "[Field]   Creating shader programs");
-      
+    {      
       _programs(ProgramType::eDispatch).addShader(util::GLShaderType::eCompute, rsrc::get("sne/dispatch.comp"));
       _programs(ProgramType::eQueryFieldComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/queryField.comp"));
       _programs(ProgramType::eFullCompactDraw).addShader(util::GLShaderType::eVertex, rsrc::get("sne/field/2D/fullCompactStencil.vert"));
@@ -103,8 +105,6 @@ namespace dh::sne {
 
     // Initialize buffer objects
     {
-      util::log(_logger, "[Field]   Creating buffer storage");
-      
       glCreateBuffers(_buffers.size(), _buffers.data());
       glNamedBufferStorage(_buffers(BufferType::eDispatch), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
       glNamedBufferStorage(_buffers(BufferType::ePixelQueueHead), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
@@ -132,16 +132,10 @@ namespace dh::sne {
         glNamedBufferStorage(_buffers(BufferType::ePairsInitQueueHead), sizeof(glm::uvec3), glm::value_ptr(glm::uvec3(initPairs.size(), 1, 1)), 0);
         glAssert();
       }
-      
-      // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[Field]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
     }
 
     // Initialize other components
     {
-      util::log(_logger, "[Field]   Creating other components");
-      
       // Create object handles
       glCreateTextures(GL_TEXTURE_2D, _textures.size(), _textures.data());
       glCreateFramebuffers(1, &_stencilFBOHandle);
@@ -164,20 +158,24 @@ namespace dh::sne {
       }
     }
 
+    // Output memory use of OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::rest() << prefix << "Initialized";
+    Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+
     // Embedding hierarchy used, initialize
     if (_useEmbeddingHierarchy) {
       const EmbeddingHierarchy<2>::Layout layout(_params.n);
-      _embeddingHierarchy = EmbeddingHierarchy<2>(_minimization, layout, _params, _logger);
+      _embeddingHierarchy = EmbeddingHierarchy<2>(_minimization, layout, _params);
     }
 
     // Field hierarchy used, initialize
     if (_useFieldHierarchy) {
       const FieldHierarchy<2>::Layout layout(fieldSizePrealloc);
-      _fieldHierarchy = FieldHierarchy<2>(buffers(), layout, _params, _logger);
+      _fieldHierarchy = FieldHierarchy<2>(buffers(), layout, _params);
     }
 
     _isInit = true;
-    util::log(_logger, "[Field] Initialized");
   }
 
   template <>
@@ -217,7 +215,5 @@ namespace dh::sne {
     glCreateBuffers(1, &_buffers(BufferType::ePixelQueue));
     glNamedBufferStorage(_buffers(BufferType::ePixelQueue), product(_size) * sizeof(uvec), nullptr, 0);
     glAssert();
-
-    util::logString(_logger, "[Field]   Resized field", dh::util::to_string(_size));
   }
 } // dh::sne

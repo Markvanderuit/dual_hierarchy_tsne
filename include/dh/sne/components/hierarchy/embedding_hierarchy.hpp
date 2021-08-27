@@ -27,7 +27,6 @@
 #include "dh/types.hpp"
 #include "dh/util/aligned.hpp"
 #include "dh/util/enum.hpp"
-#include "dh/util/logger.hpp"
 #include "dh/util/gl/program.hpp"
 #include "dh/util/gl/timer.hpp"
 #include "dh/util/cu/key_sort.cuh"
@@ -64,7 +63,7 @@ namespace dh::sne {
 
     // Constr/destr
     EmbeddingHierarchy();
-    EmbeddingHierarchy(MinimizationBuffers minimization, Layout layout, Params params, util::Logger* logger = nullptr);
+    EmbeddingHierarchy(MinimizationBuffers minimization, Layout layout, Params params);
     ~EmbeddingHierarchy();
 
     // Copy constr/assignment is explicitly deleted
@@ -128,7 +127,6 @@ namespace dh::sne {
     MinimizationBuffers _minimization;
     Layout _layout;
     Params _params;
-    util::Logger* _logger;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
@@ -159,7 +157,6 @@ namespace dh::sne {
       swap(a._minimization, b._minimization);
       swap(a._layout, b._layout);
       swap(a._params, b._params);
-      swap(a._logger, b._logger);
       swap(a._buffers, b._buffers);
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);

@@ -27,7 +27,6 @@
 #include "dh/types.hpp"
 #include "dh/util/aligned.hpp"
 #include "dh/util/enum.hpp"
-#include "dh/util/logger.hpp"
 #include "dh/util/gl/timer.hpp"
 #include "dh/util/gl/program.hpp"
 #include "dh/sne/params.hpp"
@@ -46,7 +45,7 @@ namespace dh::sne {
   public:
     // Constr/destr
     Minimization();
-    Minimization(SimilaritiesBuffers similarities, Params params, util::Logger* logger = nullptr);  
+    Minimization(SimilaritiesBuffers similarities, Params params);  
     ~Minimization(); 
 
     // Copy constr/assignment is explicitly deleted
@@ -57,8 +56,9 @@ namespace dh::sne {
     Minimization(Minimization&&) noexcept;
     Minimization& operator=(Minimization&&) noexcept;
 
-    // Compute a step of minimization
-    void comp(uint iteration);
+    // Computation
+    void comp();          // Compute full minimization (i.e. params.iterations)
+    void compIteration(); // Compute a single iteration of minimization
 
   private:
     enum class BufferType {
@@ -101,8 +101,8 @@ namespace dh::sne {
     // State
     bool _isInit;
     Params _params;
-    util::Logger* _logger;
     SimilaritiesBuffers _similarities;
+    uint _iteration;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
@@ -128,8 +128,8 @@ namespace dh::sne {
       using std::swap;
       swap(a._isInit, b._isInit);
       swap(a._params, b._params);
-      swap(a._logger, b._logger);
       swap(a._similarities, b._similarities);
+      swap(a._iteration, b._iteration);
       swap(a._buffers, b._buffers);
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);

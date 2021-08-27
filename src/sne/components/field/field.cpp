@@ -27,9 +27,9 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/sne/components/field.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
-#include "dh/sne/components/field.hpp"
 
 namespace dh::sne {
   // Constants
@@ -39,7 +39,7 @@ namespace dh::sne {
   
   template <uint D>
   Field<D>::Field()
-  : _isInit(false), _logger(nullptr) {
+  : _isInit(false) {
     // ...
   }
   

@@ -27,7 +27,6 @@
 #include "dh/types.hpp"
 #include "dh/util/aligned.hpp"
 #include "dh/util/enum.hpp"
-#include "dh/util/logger.hpp"
 #include "dh/util/gl/timer.hpp"
 #include "dh/util/gl/program.hpp"
 #include "dh/sne/params.hpp"
@@ -37,7 +36,7 @@ namespace dh::sne {
   class KLDivergence {
   public:
     KLDivergence();
-    KLDivergence(Params params, SimilaritiesBuffers similarities, MinimizationBuffers minimization, util::Logger * logger = nullptr);
+    KLDivergence(Params params, SimilaritiesBuffers similarities, MinimizationBuffers minimization);
     ~KLDivergence();
 
     // Copy constr/assignment is explicitly deleted
@@ -80,7 +79,6 @@ namespace dh::sne {
 
     // State
     bool _isInit;
-    util::Logger* _logger;
     Params _params;
     SimilaritiesBuffers _similarities;
     MinimizationBuffers _minimization;
@@ -98,7 +96,6 @@ namespace dh::sne {
     friend void swap(KLDivergence& a, KLDivergence& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
-      swap(a._logger, b._logger);
       swap(a._params, b._params);
       swap(a._similarities, b._similarities);
       swap(a._minimization, b._minimization);

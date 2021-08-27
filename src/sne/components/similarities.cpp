@@ -25,30 +25,33 @@
 #include <faiss/gpu/StandardGpuResources.h>
 #include <faiss/gpu/GpuIndexIVFFlat.h>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/sne/components/similarities.hpp"
+#include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
 #include "dh/util/cu/inclusive_scan.cuh"
-#include "dh/sne/components/similarities.hpp"
 
 namespace dh::sne {
+  // Logging shorthands
+  using util::Logger;
+  const std::string prefix = util::genLoggerPrefix("[Similarities]");
+
   // Params for FAISS
-  constexpr uint kMax = 192;       // Would not recommend exceeeding this value for 1M+ vector datasets
-  constexpr uint nProbe = 12;      // Painfully large memory impact
-  constexpr uint nListMult = 1;   // Painfully large memory impact
+  constexpr uint kMax = 192;      // Don't exceeed this value for big vector datasets unless you have a lot of coffee
+  constexpr uint nProbe = 12;
+  constexpr uint nListMult = 1;
   
   Similarities::Similarities()
-  : _isInit(false), _dataPtr(nullptr), _logger(nullptr) {
+  : _isInit(false), _dataPtr(nullptr) {
     // ...
   }
 
-  Similarities::Similarities(const std::vector<float>& data, Params params, util::Logger* logger )
-  : _isInit(false), _dataPtr(data.data()), _params(params), _logger(logger) {
-    util::log(_logger, "[Similarities] Initializing...");
+  Similarities::Similarities(const std::vector<float>& data, Params params)
+  : _isInit(false), _dataPtr(data.data()), _params(params) {
+    Logger::newt() << prefix << "Initializing...";
 
     // Initialize shader programs
     {
-      util::log(_logger, "[Similarities]   Creating shader programs");
-      
       _programs(ProgramType::eSimilaritiesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/similarities.comp"));
       _programs(ProgramType::eExpandComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/expand.comp"));
       _programs(ProgramType::eLayoutComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/layout.comp"));
@@ -61,19 +64,17 @@ namespace dh::sne {
     }
 
     // Initialize buffer object handles
-    // Allocation is performed in Similarities::comp() as the required
-    // memory size is not yet known
+    // Allocation is performed in Similarities::comp() as the required memory size is not yet known
     glCreateBuffers(_buffers.size(), _buffers.data());
     glAssert();
-    
+
     _isInit = true;
-    util::log(_logger, "[Similarities] Initialized");
+    Logger::rest() << prefix << "Initialized";
   }
 
   Similarities::~Similarities() {
-    if (_isInit) {
+    if (isInit()) {
       glDeleteBuffers(_buffers.size(), _buffers.data());
-      _isInit = false;
     }
   }
 
@@ -87,21 +88,24 @@ namespace dh::sne {
   }
 
   void Similarities::comp() {
-    runtimeAssert(_isInit, "Similarities::comp() called without proper initialization");
-    util::log(_logger, "[Similarities] Computing...");
+    runtimeAssert(isInit(), "Similarities::comp() called without proper initialization");
 
-    // Data size, dimensionality, requested nearest neighbours
+    // Data size, dimensionality, requested nearest neighboor size constants
     const uint n = _params.n;
     const uint d = _params.nHighDims;
     const uint k = std::min(kMax, 3 * static_cast<uint>(_params.perplexity) + 1);
-    
+
     // CPU-side temporary memory for KNN output
     // Though FAISS is CUDA-based, we move to CPU and back when switching to OpenGL
     // instead of using interopability, which requires double the memory
     std::vector<float> knnSquareDistances(n * k);
     std::vector<faiss::Index::idx_t> knnIndices(n * k);
-
-    util::log(_logger, "[Similarities]   Performing KNN search");
+    
+    // Progress bar for logging.... well, progress of the similarity computation
+    Logger::newl();
+    util::ProgressBar progressBar(prefix + "Computing...");
+    progressBar.setPostfix("Performing KNN search");
+    progressBar.setProgress(0.0f);
 
     // 1.
     // Compute approximate KNN of each point using FAISS
@@ -114,6 +118,7 @@ namespace dh::sne {
       // Use a single GPU device. For now, just grab device 0 and pray
       faiss::gpu::StandardGpuResources faissResources;
       faiss::gpu::GpuIndexIVFFlatConfig faissConfig;
+      faissResources.setCudaMallocWarning(false); // please.... stop
       faissConfig.device = 0;
       faissConfig.indicesOptions = faiss::gpu::INDICES_32_BIT;
       faissConfig.flatConfig.useFloat16 = true;
@@ -161,8 +166,6 @@ namespace dh::sne {
 
     // Initialize temporary buffer objects
     {
-      util::log(_logger, "[Similarities]   Creating temporary buffer storage");
-
       const std::vector<uint> zeroes(n * k, 0);
       const std::vector<uint> indices(knnIndices.begin(), knnIndices.end());
 
@@ -173,13 +176,11 @@ namespace dh::sne {
       glNamedBufferStorage(tempBuffers(TBufferType::eSizes), n * sizeof(uint), zeroes.data(), 0);
       glNamedBufferStorage(tempBuffers(TBufferType::eScan), n * sizeof(uint), nullptr, 0);
       glAssert();
-
-      // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(tempBuffers.size(), tempBuffers.data());
-      util::logValue(_logger, "[Similarities]   Temporary buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
     }
 
-    util::log(_logger, "[Similarities]   Performing similarity computation");
+    // Update progress bar
+    progressBar.setPostfix("Performing similarity computation");
+    progressBar.setProgress(1.0f / 6.0f);
 
     // 2.
     // Compute similarities over generated KNN. This is pretty much a direct copy of the formulation
@@ -211,7 +212,9 @@ namespace dh::sne {
       glAssert();
     }
 
-    util::log(_logger, "[Similarities]   Symmetrizing KNN data");
+    // Update progress bar
+    progressBar.setPostfix("Symmetrizing KNN data");
+    progressBar.setProgress(2.0f / 6.0f);
 
     // 3.
     // Expand KNN data so it becomes symmetric. That is, every neigbor referred by a point
@@ -239,6 +242,10 @@ namespace dh::sne {
       glAssert();
     }
 
+    // Update progress bar
+    progressBar.setPostfix("Allocating buffers");
+    progressBar.setProgress(3.0f / 6.0f);
+
     // 4.
     // Determine sizes of expanded neighborhoods in memory through prefix sum
     // Leverages CUDA CUB library underneath
@@ -251,8 +258,6 @@ namespace dh::sne {
 
     // Initialize permanent buffer objects
     {
-      util::log(_logger, "[Similarities]   Creating buffer storage");
-
       glNamedBufferStorage(_buffers(BufferType::eSimilarities), symmetricSize * sizeof(float), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eLayout), n * 2 * sizeof(uint), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eNeighbors), symmetricSize * sizeof(uint), nullptr, 0);
@@ -260,12 +265,12 @@ namespace dh::sne {
       glClearNamedBufferData(_buffers(BufferType::eSimilarities), GL_R32F, GL_RED, GL_FLOAT, nullptr);
       glClearNamedBufferData(_buffers(BufferType::eLayout), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
       glClearNamedBufferData(_buffers(BufferType::eNeighbors), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-      glAssert();
-    
-      // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[Similarities]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
+      glAssert();    
     }
+
+    // Update progress bar
+    progressBar.setPostfix("Computing layout");
+    progressBar.setProgress(4.0f / 6.0f);
 
     // 5.
     // Fill layout buffer
@@ -290,8 +295,10 @@ namespace dh::sne {
       timer.tock();
       glAssert();
     }
-
-    util::log(_logger, "[Similarities]   Symmetrizing similarities");
+    
+    // Update progress bar
+    progressBar.setPostfix("Symmetrizing similarities");
+    progressBar.setProgress(5.0f / 6.0f);
 
     // 6.
     // Generate expanded similarities and neighbor buffers, symmetrized and ready for
@@ -324,6 +331,14 @@ namespace dh::sne {
       timer.tock();
       glAssert();
     }
+    
+    // Update progress bar
+    progressBar.setPostfix("Done!");
+    progressBar.setProgress(1.0f);
+
+    // Output memory use of OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::curt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
 
     // Delete temporary buffers
     glDeleteBuffers(tempBuffers.size(), tempBuffers.data());
@@ -332,6 +347,5 @@ namespace dh::sne {
     // Poll twice so front/back timers are swapped
     glPollTimers(_timers.size(), _timers.data());
     glPollTimers(_timers.size(), _timers.data());
-    util::log(_logger, "[Similarities] Computed");
   }
 } // dh::sne

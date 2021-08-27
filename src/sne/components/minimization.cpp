@@ -25,34 +25,34 @@
 #include <algorithm>
 #include <random>
 #include <vector>
-#include <glad/glad.h>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/sne/components/minimization.hpp"
+#include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
 #include "dh/vis/components/embedding_render_task.hpp"
-#include "dh/sne/components/minimization.hpp"
 
 namespace dh::sne {
+  // Logging shorthands
+  using util::Logger;
+  const std::string prefix = util::genLoggerPrefix("[Minimization]");
+
+  // Params for field size
   constexpr uint fieldMinSize = 5;
 
   template <uint D>
   Minimization<D>::Minimization()
-  : _isInit(false), _logger(nullptr) {
+  : _isInit(false) {
     // ...
   }
 
   template <uint D>
-  Minimization<D>::Minimization(SimilaritiesBuffers similarities, Params params, util::Logger* logger)
-  : _isInit(false), _similarities(similarities), _params(params), _logger(logger) {
-    util::log(_logger, "[Minimization] Initializing...");
-
-    // Data size
-    const uint n = _params.n;
+  Minimization<D>::Minimization(SimilaritiesBuffers similarities, Params params)
+  : _isInit(false), _similarities(similarities), _params(params), _iteration(0) {
+    Logger::newt() << prefix << "Initializing...";
 
     // Initialize shader programs
-    {
-      util::log(_logger, "[Minimization]   Creating shader programs");
-      
+    {      
       if constexpr (D == 2) {
         _programs(ProgramType::eBoundsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/bounds.comp"));
         _programs(ProgramType::eZComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/minimization/2D/Z.comp"));
@@ -77,41 +77,33 @@ namespace dh::sne {
 
     // Initialize buffer objects
     {
-      util::log(_logger, "[Minimization]   Creating buffer storage");
-      
-      const std::vector<vec> zeroes(n, vec(0));
-      const std::vector<vec> ones(n, vec(1));
+      const std::vector<vec> zeroes(_params.n, vec(0));
+      const std::vector<vec> ones(_params.n, vec(1));
 
       glCreateBuffers(_buffers.size(), _buffers.data());
-      glNamedBufferStorage(_buffers(BufferType::eEmbedding), n * sizeof(vec), nullptr, GL_DYNAMIC_STORAGE_BIT);
+      glNamedBufferStorage(_buffers(BufferType::eEmbedding), _params.n * sizeof(vec), nullptr, GL_DYNAMIC_STORAGE_BIT);
       glNamedBufferStorage(_buffers(BufferType::eBounds), 4 * sizeof(vec), ones.data(), GL_DYNAMIC_STORAGE_BIT);
       glNamedBufferStorage(_buffers(BufferType::eBoundsReduce), 256 * sizeof(vec), ones.data(), 0);
       glNamedBufferStorage(_buffers(BufferType::eZ), 2 * sizeof(float), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eZReduce), 128 * sizeof(float), nullptr, 0);
-      glNamedBufferStorage(_buffers(BufferType::eField), n * 4 * sizeof(float), nullptr, 0);
-      glNamedBufferStorage(_buffers(BufferType::eAttractive), n * sizeof(vec), nullptr, 0);
-      glNamedBufferStorage(_buffers(BufferType::eGradients), n * sizeof(vec), nullptr, 0);
-      glNamedBufferStorage(_buffers(BufferType::ePrevGradients), n * sizeof(vec), zeroes.data(), 0);
-      glNamedBufferStorage(_buffers(BufferType::eGain), n * sizeof(vec), ones.data(), 0);
+      glNamedBufferStorage(_buffers(BufferType::eField), _params.n * 4 * sizeof(float), nullptr, 0);
+      glNamedBufferStorage(_buffers(BufferType::eAttractive), _params.n * sizeof(vec), nullptr, 0);
+      glNamedBufferStorage(_buffers(BufferType::eGradients), _params.n * sizeof(vec), nullptr, 0);
+      glNamedBufferStorage(_buffers(BufferType::ePrevGradients), _params.n * sizeof(vec), zeroes.data(), 0);
+      glNamedBufferStorage(_buffers(BufferType::eGain), _params.n * sizeof(vec), ones.data(), 0);
       glAssert();
-
-      // Report buffer storage size
-      const GLuint size = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      util::logValue(_logger, "[Minimization]   Buffer storage (mb)", static_cast<float>(size) / 1'048'576.0f);
     }
 
     // Generate randomized embedding data
     // Basically a copy of what BH-SNE used
     // TODO: look at CUDA-tSNE etc, they have several options available for initialization
     {
-      util::log(_logger, "[Minimization]   Creating randomized embedding");
-
       // Seed the (bad) rng
       std::srand(_params.seed);
       
       // Generate n random D-dimensional vectors
-      std::vector<vec> embedding(n, vec(0.f));
-      for (uint i = 0; i < n; ++i) {
+      std::vector<vec> embedding(_params.n, vec(0.f));
+      for (uint i = 0; i < _params.n; ++i) {
         vec v;
         float r;
 
@@ -128,12 +120,17 @@ namespace dh::sne {
       }
 
       // Copy to buffer
-      glNamedBufferSubData(_buffers(BufferType::eEmbedding), 0, n * sizeof(vec), embedding.data());
+      glNamedBufferSubData(_buffers(BufferType::eEmbedding), 0, _params.n * sizeof(vec), embedding.data());
       glAssert();
     }
 
+    // Output memory use of OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::rest() << prefix << "Initialized";
+    Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+
     // Setup field subcomponent
-    _field = Field<D>(buffers(), _params, _logger);
+    _field = Field<D>(buffers(), _params);
 
     // Setup render task
     if (auto& queue = vis::RenderQueue::instance(); queue.isInit()) {
@@ -141,7 +138,6 @@ namespace dh::sne {
     }
 
     _isInit = true;
-    util::log(_logger, "[Minimization] Initialized");
   }
 
   template <uint D>
@@ -164,7 +160,14 @@ namespace dh::sne {
   }
 
   template <uint D>
-  void Minimization<D>::comp(uint iteration) {
+  void Minimization<D>::comp() {
+    while (_iteration < _params.iterations) {
+      compIteration();
+    }
+  }
+
+  template <uint D>
+  void Minimization<D>::compIteration() {
     // 1.
     // Compute embedding bounds
     {
@@ -211,7 +214,7 @@ namespace dh::sne {
       size = uvec(glm::pow(2, glm::ceil(glm::log(static_cast<float>(size.x)) / glm::log(2.f))));
 
       // Delegate to subclass
-      _field.comp(size, iteration);
+      _field.comp(size, _iteration);
     }
 
     // 3.
@@ -274,11 +277,11 @@ namespace dh::sne {
     // Compute exaggeration factor
     // TODO COMPARE TO CUDA-SNE for simplification
     float exaggeration = 1.0f;
-    if (iteration <= _params.removeExaggerationIter) {
+    if (_iteration <= _params.removeExaggerationIter) {
       exaggeration = _params.exaggerationFactor;
-    } else if (iteration <= _params.removeExaggerationIter + _params.exponentialDecayIter) {
+    } else if (_iteration <= _params.removeExaggerationIter + _params.exponentialDecayIter) {
       float decay = 1.0f
-                  - static_cast<float>(iteration - _params.removeExaggerationIter)
+                  - static_cast<float>(_iteration - _params.removeExaggerationIter)
                   / static_cast<float>(_params.exponentialDecayIter);
       exaggeration = 1.0f + (_params.exaggerationFactor - 1.0f) * decay;
     }
@@ -311,7 +314,7 @@ namespace dh::sne {
     }
 
     // Precompute instead of doing it in shader N times
-    const float iterMult = (static_cast<double>(iteration) < _params.momentumSwitchIter) 
+    const float iterMult = (static_cast<double>(_iteration) < _params.momentumSwitchIter) 
                          ? _params.momentum 
                          : _params.finalMomentum;
 
@@ -376,6 +379,20 @@ namespace dh::sne {
       
       timer.tock();
       glAssert();
+    }
+
+    // Log progress; spawn progressbar on the current (new on first iter) line
+    // reporting current iteration and size of field texture
+    if (_iteration == 0) {
+      Logger::newl();
+    }
+    if ((++_iteration % 100) == 0) {
+      const std::string postfix = (_iteration < _params.iterations)
+                                ? "iter: " + std::to_string(_iteration) 
+                                + ", field: " + util::to_string(_field.size())
+                                : "Done!";
+      util::ProgressBar progressBar(prefix + "Computing...", postfix);
+      progressBar.setProgress(static_cast<float>(_iteration) / static_cast<float>(_params.iterations));
     }
   }
 
