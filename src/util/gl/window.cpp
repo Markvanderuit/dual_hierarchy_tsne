@@ -165,7 +165,7 @@ namespace dh::util {
 
   void GLWindow::processEvents()
   {
-    glfwPollEvents(); // FIXME not attached to window, actually
+    glfwPollEvents();
   }
 
   glm::ivec2 GLWindow::size() const

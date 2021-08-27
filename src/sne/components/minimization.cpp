@@ -95,8 +95,7 @@ namespace dh::sne {
     }
 
     // Generate randomized embedding data
-    // Basically a copy of what BH-SNE used
-    // TODO: look at CUDA-tSNE etc, they have several options available for initialization
+    // TODO: look at CUDA-tSNE's approach, they have several options available for initialization
     {
       // Seed the (bad) rng
       std::srand(_params.seed);
@@ -275,14 +274,12 @@ namespace dh::sne {
     }
 
     // Compute exaggeration factor
-    // TODO COMPARE TO CUDA-SNE for simplification
     float exaggeration = 1.0f;
     if (_iteration <= _params.removeExaggerationIter) {
       exaggeration = _params.exaggerationFactor;
     } else if (_iteration <= _params.removeExaggerationIter + _params.exponentialDecayIter) {
-      float decay = 1.0f
-                  - static_cast<float>(_iteration - _params.removeExaggerationIter)
-                  / static_cast<float>(_params.exponentialDecayIter);
+      float decay = 1.0f - static_cast<float>(_iteration - _params.removeExaggerationIter)
+                         / static_cast<float>(_params.exponentialDecayIter);
       exaggeration = 1.0f + (_params.exaggerationFactor - 1.0f) * decay;
     }
 
@@ -355,7 +352,7 @@ namespace dh::sne {
       const vec boundsRange = bounds.range();
       float scaling = 1.0f;
       if (exaggeration > 1.2f && boundsRange.y < 0.1f) {
-        scaling = 0.1f / boundsRange.y; // TODO update for 3D
+        scaling = 0.1f / boundsRange.y;
       }
       
       auto& timer = _timers(TimerType::eCenterEmbeddingComp);

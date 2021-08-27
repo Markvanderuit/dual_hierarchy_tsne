@@ -25,6 +25,19 @@
 #pragma once
 
 /**
+ * Major/minor version numbers.
+ */
+#define DH_VERSION_MAJOR 1
+#define DH_VERSION_MINOR 0
+
+/**
+ * Formatted version number
+ */
+#define DH_STR_EXPAND(x) #x
+#define DH_STR(x) DH_STR_EXPAND(x)
+#define DH_VERSION DH_STR(DH_VERSION_MAJOR) "." DH_STR(DH_VERSION_MINOR)
+
+/**
  * Enable the following checks, throwing an exception on failure
  * - Runtime checks for correct component use
  * - OpenGL shader compilation errors
@@ -34,8 +47,7 @@
 #define DH_ENABLE_ASSERT
 
 /**
- * Enable prepending of UTC timestamps to logs handled by dh::util::Logger
+ * Settings for anything handled by dh::util::Logger
  */
-#define DH_LOG_TIMESTAMPS
-
-#define DH_LOG_PREFIX_WIDTH 0
+#define DH_LOG_TIMESTAMPS       // Prepend UTC timestmaps to every log as prefix
+#define DH_LOG_PREFIX_WIDTH 0   // Have a minimum padding for every log's prefix

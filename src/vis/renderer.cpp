@@ -26,6 +26,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <glad/glad.h>
+#include "dh/constants.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/vis/render_queue.hpp"
 #include "dh/vis/input_queue.hpp"
@@ -33,16 +34,14 @@
 #include "dh/vis/renderer.hpp"
 
 namespace dh::vis {
-  // TODO Include version string from cmake?
-  // TODO Move to constants
   const std::string aboutText = 
     "Dual-Hierarchy t-SNE Demo\n"
     "\n"
     "Copyright (c) 2021 Mark van de Ruit (Delft University of Technology)\n"
     "\n"
-    "Version:  1.0.0\n"
-    "Source:   https://github.com/Markvanderuit/dual_hierarchy_tsne\n"
-    "License:  MIT\n";
+    "Version: " DH_VERSION "\n"
+    "Source:  https://github.com/Markvanderuit/dual_hierarchy_tsne\n"
+    "License: MIT\n";
 
   Renderer::Renderer()
   : _isInit(false), _fboSize(0) { }

@@ -64,7 +64,6 @@ namespace dh::sne {
 
       // Set uniforms (dual-subdivision program)
       auto& dsProgram = _programs(ProgramType::eDualHierarchyFieldIterativeComp);
-      dsProgram.bind(); // TODO Delete bind()? Likely not necessary
       dsProgram.uniform<uint>("eLvls", eLayout.nLvls);
       dsProgram.uniform<uint>("fLvls", fLayout.nLvls);
       dsProgram.uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
@@ -72,14 +71,12 @@ namespace dh::sne {
 
       // Set uniforms (single-subdivision program)
       auto& ssProgram = _programs(ProgramType::eDualHierarchyFieldRestComp);
-      ssProgram.bind(); // TODO Delete bind()? Likely not necessary
       ssProgram.uniform<uint>("fLvls", fLayout.nLvls);
       ssProgram.uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
       ssProgram.uniform<uint>("doBhCrit", true);
 
       // Set uniforms (dispatch)
       auto& dispatchProgram = _programs(ProgramType::eDispatch);
-      dispatchProgram.bind(); // TODO Delete bind()? Likely not necessary
       dispatchProgram.uniform<uint>("div", 256 / knode); 
 
       // Set buffer bindings reused throughout traversal
