@@ -64,20 +64,20 @@ namespace dh::sne {
 
       // Set uniforms (dual-subdivision program)
       auto& dsProgram = _programs(ProgramType::eDualHierarchyFieldIterativeComp);
-      dsProgram.uniform<uint>("eLvls", eLayout.nLvls);
-      dsProgram.uniform<uint>("fLvls", fLayout.nLvls);
-      dsProgram.uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
-      dsProgram.uniform<uint>("doBhCrit", true);
+      dsProgram.template uniform<uint>("eLvls", eLayout.nLvls);
+      dsProgram.template uniform<uint>("fLvls", fLayout.nLvls);
+      dsProgram.template uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
+      dsProgram.template uniform<uint>("doBhCrit", true);
 
       // Set uniforms (single-subdivision program)
       auto& ssProgram = _programs(ProgramType::eDualHierarchyFieldRestComp);
-      ssProgram.uniform<uint>("fLvls", fLayout.nLvls);
-      ssProgram.uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
-      ssProgram.uniform<uint>("doBhCrit", true);
+      ssProgram.template uniform<uint>("fLvls", fLayout.nLvls);
+      ssProgram.template uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
+      ssProgram.template uniform<uint>("doBhCrit", true);
 
       // Set uniforms (dispatch)
       auto& dispatchProgram = _programs(ProgramType::eDispatch);
-      dispatchProgram.uniform<uint>("div", 256 / knode); 
+      dispatchProgram.template uniform<uint>("div", 256 / knode); 
 
       // Set buffer bindings reused throughout traversal
       glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, _buffers(BufferType::eDispatch));
@@ -141,10 +141,10 @@ namespace dh::sne {
           // Bind program either for dual subdivision, or single subdivision
           if (state == DualHierarchyState::eDualSubdivide || state == DualHierarchyState::eDualSubdivideFinal) {
             dsProgram.bind();
-            dsProgram.uniform<uint>("dhLvl", i + 1);
+            dsProgram.template uniform<uint>("dhLvl", i + 1);
           } else {
             ssProgram.bind();
-            ssProgram.uniform<uint>("isLastIter", i == nrIters);
+            ssProgram.template uniform<uint>("isLastIter", i == nrIters);
           }
 
           // Set buffer bindings
@@ -182,7 +182,7 @@ namespace dh::sne {
       {
         auto& program = _programs(ProgramType::eDispatch);
         program.bind();
-        program.uniform<uint>("div", 256 / 4); 
+        program.template uniform<uint>("div", 256 / 4); 
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::ePairsLeafQueueHead));
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
@@ -195,7 +195,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("fLvls", fLayout.nLvls);
+      program.template uniform<uint>("fLvls", fLayout.nLvls);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, eBuffers.node0);
@@ -223,7 +223,7 @@ namespace dh::sne {
       {
         auto &program = _programs(ProgramType::eDispatch);
         program.bind();
-        program.uniform<uint>("div", 256);
+        program.template uniform<uint>("div", 256);
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::ePixelQueueHead));
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
@@ -236,8 +236,8 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("fLvls", fLayout.nLvls);
-      program.uniform<uint>("startLvl", fieldHierarchyInitLvl);
+      program.template uniform<uint>("fLvls", fLayout.nLvls);
+      program.template uniform<uint>("startLvl", fieldHierarchyInitLvl);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::ePixelQueue));

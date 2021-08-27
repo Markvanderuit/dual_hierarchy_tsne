@@ -53,8 +53,8 @@ namespace dh::sne {
       // (3D only) Set required uniforms, bind cellmap to a texture unit, and enable OR logic operations to 
       // operate on the voxel grid
       if constexpr (D == 3) {
-        program.uniform<int>("cellMap", 0);
-        program.uniform<uint>("zDims", std::min(128u, _size.z));
+        program.template uniform<int>("cellMap", 0);
+        program.template uniform<uint>("zDims", std::min(128u, _size.z));
         glBindTextureUnit(0, _textures(TextureType::eCellmap));
         glEnable(GL_COLOR_LOGIC_OP);
         glLogicOp(GL_OR);
@@ -89,10 +89,10 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uvec>("textureSize", _size);
-      program.uniform<int>("stencilSampler", 0);
+      program.template uniform<uvec>("textureSize", _size);
+      program.template uniform<int>("stencilSampler", 0);
       if constexpr (D == 3) {
-        program.uniform<uint>("gridDepth", std::min(128u, _size.z));
+        program.template uniform<uint>("gridDepth", std::min(128u, _size.z));
       }
 
       // Bind texture units (stencil texture is now input)
@@ -124,8 +124,8 @@ namespace dh::sne {
     program.bind();
 
     // Set uniforms
-    program.uniform<uvec>("textureSize", _size);
-    program.uniform<uint>("nPoints", _params.n);
+    program.template uniform<uvec>("textureSize", _size);
+    program.template uniform<uint>("nPoints", _params.n);
 
     // Bind buffers
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.embedding);

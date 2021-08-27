@@ -43,8 +43,8 @@ namespace dh::sne {
     const auto buffers = _embeddingHierarchy.buffers();
 
     // Set uniforms
-    program.uniform<uint>("nLvls", layout.nLvls);
-    program.uniform<uvec>("textureSize", _size);
+    program.template uniform<uint>("nLvls", layout.nLvls);
+    program.template uniform<uvec>("textureSize", _size);
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffers.node1);
@@ -78,7 +78,7 @@ namespace dh::sne {
     {
       auto &program = _programs(ProgramType::eDispatch);
       program.bind();
-      program.uniform<uint>("div", 256);
+      program.template uniform<uint>("div", 256);
 
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::ePixelQueueHead));
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
@@ -90,10 +90,10 @@ namespace dh::sne {
     program.bind();
 
     // Set uniforms
-    program.uniform<uint>("nLvls", layout.nLvls);
-    program.uniform<float>("theta2", _params.singleHierarchyTheta * _params.singleHierarchyTheta);
-    program.uniform<uvec>("textureSize", _size);
-    program.uniform<bool>("doBhCrit", true);
+    program.template uniform<uint>("nLvls", layout.nLvls);
+    program.template uniform<float>("theta2", _params.singleHierarchyTheta * _params.singleHierarchyTheta);
+    program.template uniform<uvec>("textureSize", _size);
+    program.template uniform<bool>("doBhCrit", true);
     
     // Bind buffers
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffers.node0);

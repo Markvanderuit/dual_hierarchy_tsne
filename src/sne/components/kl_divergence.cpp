@@ -104,7 +104,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
+      program.template uniform<uint>("nPoints", _params.n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.embedding);
@@ -115,7 +115,7 @@ namespace dh::sne {
       const uint end = _params.n;
       for (int begin = 0; begin < end; begin += step) {
         // Dispatch shader for a limited range
-        program.uniform<uint>("begin", begin);
+        program.template uniform<uint>("begin", begin);
         glDispatchCompute(std::min(step, end - begin), 1, 1);
       }
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -134,7 +134,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
+      program.template uniform<uint>("nPoints", _params.n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eQijSum));
@@ -142,10 +142,10 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _buffers(BufferType::eReduceFinal));
 
       // Dispatch shader
-      program.uniform<uint>("iter", 0u);
+      program.template uniform<uint>("iter", 0u);
       glDispatchCompute(256, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-      program.uniform<uint>("iter", 1u);
+      program.template uniform<uint>("iter", 1u);
       glDispatchCompute(1, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -164,7 +164,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
+      program.template uniform<uint>("nPoints", _params.n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.embedding);
@@ -179,7 +179,7 @@ namespace dh::sne {
       const uint end = _params.n;
       for (int begin = 0; begin < end; begin += step) {
         // Dispatch shader for a limited range
-        program.uniform<uint>("begin", begin);
+        program.template uniform<uint>("begin", begin);
         glDispatchCompute(std::min(step, end - begin), 1, 1);
       }
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -198,7 +198,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
+      program.template uniform<uint>("nPoints", _params.n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eKLDSum));
@@ -206,10 +206,10 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _buffers(BufferType::eReduceFinal));
 
       // Dispatch shader
-      program.uniform<uint>("iter", 0u);
+      program.template uniform<uint>("iter", 0u);
       glDispatchCompute(256, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-      program.uniform<uint>("iter", 1u);
+      program.template uniform<uint>("iter", 1u);
       glDispatchCompute(1, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 

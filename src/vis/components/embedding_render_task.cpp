@@ -142,11 +142,11 @@ namespace dh::vis {
     _program.bind();
 
     // Set uniforms
-    _program.uniform<glm::mat4>("model_view", model_view);
-    _program.uniform<glm::mat4>("proj", proj);
-    _program.uniform<float>("pointOpacity", _pointOpacity);
-    _program.uniform<float>("pointRadius", _pointRadius);
-    _program.uniform<bool>("drawLabels", _canDrawLabels && _drawLabels);
+    _program.template uniform<glm::mat4>("model_view", model_view);
+    _program.template uniform<glm::mat4>("proj", proj);
+    _program.template uniform<float>("pointOpacity", _pointOpacity);
+    _program.template uniform<float>("pointRadius", _pointRadius);
+    _program.template uniform<bool>("drawLabels", _canDrawLabels && _drawLabels);
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.bounds);

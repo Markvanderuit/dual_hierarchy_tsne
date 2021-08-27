@@ -193,11 +193,11 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
-      program.uniform<uint>("kNeighbours", k);
-      program.uniform<float>("perplexity", _params.perplexity);
-      program.uniform<uint>("nIters", 200);
-      program.uniform<float>("epsilon", 1e-4);
+      program.template uniform<uint>("nPoints", n);
+      program.template uniform<uint>("kNeighbours", k);
+      program.template uniform<float>("perplexity", _params.perplexity);
+      program.template uniform<uint>("nIters", 200);
+      program.template uniform<float>("epsilon", 1e-4);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, tempBuffers(TBufferType::eNeighbors));
@@ -227,8 +227,8 @@ namespace dh::sne {
       program.bind();
       
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
-      program.uniform<uint>("kNeighbours", k);
+      program.template uniform<uint>("nPoints", n);
+      program.template uniform<uint>("kNeighbours", k);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, tempBuffers(TBufferType::eNeighbors));
@@ -276,7 +276,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", n);
+      program.template uniform<uint>("nPoints", n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, tempBuffers(TBufferType::eScan));
@@ -307,8 +307,8 @@ namespace dh::sne {
       auto &program = _programs(ProgramType::eNeighborsComp);
       program.bind();
 
-      program.uniform<uint>("nPoints", n);
-      program.uniform<uint>("kNeighbours", k);
+      program.template uniform<uint>("nPoints", n);
+      program.template uniform<uint>("kNeighbours", k);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, tempBuffers(TBufferType::eNeighbors));

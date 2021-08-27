@@ -148,7 +148,7 @@ namespace dh::sne {
       {
         auto &program = _programs(ProgramType::eDispatch);
         program.bind();
-        program.uniform<uint>("div", 256);
+        program.template uniform<uint>("div", 256);
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _field.pixelQueueHead);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
@@ -160,7 +160,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("lvl", _compLayout.nLvls - 1);
+      program.template uniform<uint>("lvl", _compLayout.nLvls - 1);
       
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eNode));
@@ -196,7 +196,7 @@ namespace dh::sne {
       // Iterate through tree levels from bottom to top
       for (uint lvl = _compLayout.nLvls - 1; lvl > 0; lvl--) {
         // Set uniform
-        program.uniform<uint>("lvl", lvl);
+        program.template uniform<uint>("lvl", lvl);
         
         // Dispatch shader
         glDispatchCompute(ceilDiv(1u << (logk * lvl), 256u), 1, 1);

@@ -77,8 +77,8 @@ namespace dh::sne {
     }
 
     // Determine if field hierarchy should be actively used this iteration
-    const FieldHierarchy<D>::Layout fLayout(size);
-    const EmbeddingHierarchy<D>::Layout eLayout = _embeddingHierarchy.layout();
+    const typename FieldHierarchy<D>::Layout fLayout(size);
+    const typename EmbeddingHierarchy<D>::Layout eLayout = _embeddingHierarchy.layout();
     const int lvlDiff = static_cast<int>(eLayout.nLvls) - static_cast<int>(fLayout.nLvls);
     const bool fieldHierarchyActive = _useFieldHierarchy 
                                     && iteration >= _params.removeExaggerationIter
@@ -121,8 +121,8 @@ namespace dh::sne {
     program.bind();
 
     // Set uniforms, bind texture unit
-    program.uniform<uint>("nPoints", _params.n);
-    program.uniform<int>("fieldSampler", 0);
+    program.template uniform<uint>("nPoints", _params.n);
+    program.template uniform<int>("fieldSampler", 0);
     glBindTextureUnit(0, _textures(TextureType::eField));
 
     // Bind buffers

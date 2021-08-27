@@ -172,10 +172,10 @@ namespace dh::vis {
     _program.bind();
 
     // Set uniforms
-    _program.uniform<glm::mat4>("transform", proj * model_view);
-    _program.uniform<float>("opacity", _lineOpacity);
-    _program.uniform<bool>("selectLvl", _selectLvl);
-    _program.uniform<uint>("selectedLvl", _selectedLvl);
+    _program.template uniform<glm::mat4>("transform", proj * model_view);
+    _program.template uniform<float>("opacity", _lineOpacity);
+    _program.template uniform<bool>("selectLvl", _selectLvl);
+    _program.template uniform<uint>("selectedLvl", _selectedLvl);
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.bounds);

@@ -177,8 +177,8 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
-      program.uniform<float>("padding", 0.0f);
+      program.template uniform<uint>("nPoints", _params.n);
+      program.template uniform<float>("padding", 0.0f);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));
@@ -186,10 +186,10 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _buffers(BufferType::eBounds));
 
       // Dispatch shader
-      program.uniform<uint>("iter", 0);
+      program.template uniform<uint>("iter", 0);
       glDispatchCompute(128, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-      program.uniform<uint>("iter", 1);
+      program.template uniform<uint>("iter", 1);
       glDispatchCompute(1, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -226,7 +226,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
+      program.template uniform<uint>("nPoints", _params.n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eField));
@@ -234,10 +234,10 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _buffers(BufferType::eZ));
 
       // Dispatch shader
-      program.uniform<uint>("iter", 0);
+      program.template uniform<uint>("iter", 0);
       glDispatchCompute(128, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-      program.uniform<uint>("iter", 1);
+      program.template uniform<uint>("iter", 1);
       glDispatchCompute(1, 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
       
@@ -255,8 +255,8 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPos", _params.n);
-      program.uniform<float>("invPos", 1.f / static_cast<float>(_params.n));
+      program.template uniform<uint>("nPos", _params.n);
+      program.template uniform<float>("invPos", 1.f / static_cast<float>(_params.n));
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));
@@ -293,8 +293,8 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
-      program.uniform<float>("exaggeration", exaggeration);
+      program.template uniform<uint>("nPoints", _params.n);
+      program.template uniform<float>("exaggeration", exaggeration);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eAttractive));
@@ -325,11 +325,11 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
-      program.uniform<float>("eta", _params.eta);
-      program.uniform<float>("minGain", _params.minimumGain);
-      program.uniform<float>("mult", 1.0);
-      program.uniform<float>("iterMult", iterMult);
+      program.template uniform<uint>("nPoints", _params.n);
+      program.template uniform<float>("eta", _params.eta);
+      program.template uniform<float>("minGain", _params.minimumGain);
+      program.template uniform<float>("mult", 1.0);
+      program.template uniform<float>("iterMult", iterMult);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));
@@ -362,9 +362,9 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPoints", _params.n);
-      program.uniform<float>("scaling", scaling);
-      program.uniform<vec>("center", boundsCenter);
+      program.template uniform<uint>("nPoints", _params.n);
+      program.template uniform<float>("scaling", scaling);
+      program.template uniform<vec>("center", boundsCenter);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));

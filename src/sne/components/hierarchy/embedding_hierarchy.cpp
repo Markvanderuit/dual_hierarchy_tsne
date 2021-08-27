@@ -159,7 +159,7 @@ namespace dh::sne {
         program.bind();
 
         // Set uniforms
-        program.uniform<uint>("nPoints", _layout.nPos);
+        program.template uniform<uint>("nPoints", _layout.nPos);
 
         // Set buffer bindings
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.embedding);
@@ -184,7 +184,7 @@ namespace dh::sne {
         program.bind();
 
         // Set uniforms
-        program.uniform<uint>("nPoints", _layout.nPos);
+        program.template uniform<uint>("nPoints", _layout.nPos);
 
         // Set buffer bindings
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eIndicesSorted));
@@ -229,9 +229,9 @@ namespace dh::sne {
         const uint range = 1 + end - begin;
 
         // Set uniforms
-        program.uniform<uint>("isBottom", lvl == _layout.nLvls - 2); // All further subdivided nodes are leaves
-        program.uniform<uint>("rangeBegin", begin);
-        program.uniform<uint>("rangeEnd", end);
+        program.template uniform<uint>("isBottom", lvl == _layout.nLvls - 2); // All further subdivided nodes are leaves
+        program.template uniform<uint>("rangeBegin", begin);
+        program.template uniform<uint>("rangeEnd", end);
 
         // Dispatch shader
         glDispatchCompute(ceilDiv(range, 256u / nodek), 1, 1);
@@ -254,7 +254,7 @@ namespace dh::sne {
       if (rebuild) {
         auto &program = _programs(ProgramType::eDispatch);
         program.bind();
-        program.uniform<uint>("div", 256);
+        program.template uniform<uint>("div", 256);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eLeafQueueHead));
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
         glDispatchCompute(1, 1, 1);
@@ -304,8 +304,8 @@ namespace dh::sne {
         const uint range = end - begin;
                   
         // Set uniforms
-        program.uniform<uint>("rangeBegin", begin);
-        program.uniform<uint>("rangeEnd", end);
+        program.template uniform<uint>("rangeBegin", begin);
+        program.template uniform<uint>("rangeEnd", end);
 
         // Dispatch shader
         glDispatchCompute(ceilDiv(range, 256u), 1, 1);
