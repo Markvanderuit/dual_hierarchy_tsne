@@ -118,7 +118,6 @@ namespace dh::sne {
       glCreateBuffers(_buffers.size(), _buffers.data());
       glNamedBufferStorage(_buffers(BufferType::eDispatch), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
       glNamedBufferStorage(_buffers(BufferType::ePixelQueueHead), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
-      glNamedBufferStorage(_buffers(BufferType::ePixelQueueHeadReadback), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), GL_CLIENT_STORAGE_BIT); 
       glAssert();
 
       // Dual hierarchy approximation used; initialize work queues

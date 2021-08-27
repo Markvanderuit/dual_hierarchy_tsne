@@ -33,10 +33,10 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 // Buffer bindings
 layout(binding = 0, std430) restrict writeonly buffer Nod { uint nodeBuffer[]; };
 layout(binding = 1, std430) restrict readonly buffer Pixe { uvec3 pixelsBuffer[]; };
+layout(binding = 2, std430) restrict readonly buffer Pixh { uint pixelsBufferHead; };
 
 // Uniforms
-layout(location = 0) uniform uint nPixels;
-layout(location = 1) uniform uint lvl;
+layout(location = 0) uniform uint lvl;
 
 uint expandBits10(uint i) {
   i = (i | (i << 16u)) & 0x030000FF;
@@ -56,7 +56,7 @@ uint encode(uvec3 v) {
 void main() {
   // Check if invoc is within nr of selected pixels
   uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
-  if (i >= nPixels) {
+  if (i >= pixelsBufferHead) {
     return;
   }
 

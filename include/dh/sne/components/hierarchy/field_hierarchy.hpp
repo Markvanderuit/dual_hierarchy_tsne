@@ -42,19 +42,15 @@ namespace dh::sne {
   public:
     // Wrapper class for hierarchy's layout data
     struct Layout {
-      uint nPixels;   // Nr. of pixel positions in hierarchy
       uvec size;      // Field texture resolution
       uint nNodes;    // Nr. of nodes in hierarchy
       uint nLvls;     // Nr. of levels in hierarchy
 
       Layout()
-      : nPixels(0), size(0), nNodes(0), nLvls(0) { }
+      : size(0), nNodes(0), nLvls(0) { }
 
       Layout(uvec size)
-      : Layout(product(size), size) { }
-
-      Layout(uint nPixels, uvec size)
-      : nPixels(nPixels), size(size) {
+      : size(size) {
         constexpr uint nodek = (D == 2) ? 4 : 8;
         constexpr uint logk = (D == 2) ? 2 : 3;
 
@@ -91,6 +87,7 @@ namespace dh::sne {
 
   private:
     enum class BufferType {
+      eDispatch,
       eNode,  // Node type (2 lsb), leaf pointer to skip singleton chains (30 msb)
       eField, // Node data: sparse field density (x), sparse field gradient (yz/yzw)
       
@@ -98,6 +95,7 @@ namespace dh::sne {
     };
 
     enum class ProgramType {
+      eDispatch,
       eLeavesComp,
       eNodesComp,
 

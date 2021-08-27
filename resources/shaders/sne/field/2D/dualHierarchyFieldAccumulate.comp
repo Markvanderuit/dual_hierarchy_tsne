@@ -32,12 +32,12 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 // Buffer bindings
 layout(binding = 0, std430) restrict readonly buffer VPixe { uvec2 pixelsBuffer[]; };
-layout(binding = 1, std430) restrict readonly buffer VFiel { vec3 fieldBuffer[]; };
+layout(binding = 1, std430) restrict readonly buffer VPixh { uint pixelsBufferHead; };
+layout(binding = 2, std430) restrict readonly buffer VFiel { vec3 fieldBuffer[]; };
 
 // Uniforms
-layout(location = 0) uniform uint nPixels;
-layout(location = 1) uniform uint fLvls;
-layout(location = 2) uniform uint startLvl;
+layout(location = 0) uniform uint fLvls;
+layout(location = 1) uniform uint startLvl;
 
 // Image bindings
 layout(binding = 0, rgba32f) restrict writeonly uniform image2D fieldImage;
@@ -63,7 +63,7 @@ uint encode(uvec2 v) {
 void main() {
   // Check if invoc is within nr of items on leaf queue
   const uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
-  if (i >= nPixels) {
+  if (i >= pixelsBufferHead) {
     return;
   }
 

@@ -76,30 +76,13 @@ namespace dh::sne {
       compFullCompact();
     }
 
-    // Copy nr of flagged pixels from device to host-side buffer for cheaper readback later
-    // TODO is this necessary
-    glCopyNamedBufferSubData(_buffers(BufferType::ePixelQueueHead), 
-                             _buffers(BufferType::ePixelQueueHeadReadback), 
-                             0, 0, sizeof(uint));
-
-    // Clear field texture
-    // TODO is this necessary?
-    glClearTexImage(_textures(TextureType::eField), 0, GL_RGBA, GL_FLOAT, nullptr);
-
-    // Read back flagged pixels from host-side buffer
-    // TODO is this necessary
-    uint nPixels;
-    glGetNamedBufferSubData(_buffers(BufferType::ePixelQueueHeadReadback), 0, sizeof(uint), &nPixels);
-
     // Determine if field hierarchy should be actively used this iteration
-    bool fieldHierarchyActive = false;
-    const FieldHierarchy<D>::Layout fLayout(nPixels, _size);
-    if (_useFieldHierarchy) {
-      const int dualHierarchyLvlDiff = static_cast<int>(_embeddingHierarchy.layout().nLvls) - static_cast<int>(fLayout.nLvls);
-      if (iteration >= _params.removeExaggerationIter && dualHierarchyLvlDiff < maxDualHierarchyLvlDiff) {
-        fieldHierarchyActive = true;
-      }
-    }
+    const FieldHierarchy<D>::Layout fLayout(size);
+    const EmbeddingHierarchy<D>::Layout eLayout = _embeddingHierarchy.layout();
+    const int lvlDiff = static_cast<int>(eLayout.nLvls) - static_cast<int>(fLayout.nLvls);
+    const bool fieldHierarchyActive = _useFieldHierarchy 
+                                    && iteration >= _params.removeExaggerationIter
+                                    && lvlDiff < maxDualHierarchyLvlDiff;
 
     // Build field hierarchy if necessary
     if (fieldHierarchyActive) {
@@ -115,10 +98,10 @@ namespace dh::sne {
       compFullField();
     }
 
-    // Update field buffer in Minimization by querying the field texture
+    // Update field buffer in sne::Minimization by querying the field texture at N positions
     queryField();
 
-    // Update hierarchy rebuild countdown
+    // Update hierarchy refit/rebuild countdown
     if (_useEmbeddingHierarchy) {
       if (iteration <= (_params.removeExaggerationIter + hierarchyRebuildPadding)
       || _hierarchyRebuildIterations >= hierarchyRebuildIterations) {

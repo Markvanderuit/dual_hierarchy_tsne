@@ -221,25 +221,37 @@ namespace dh::sne {
     {
       // auto& timer = _timers(TimerType::eDualHierarchyFieldAccumulateComp);
       // timer.tick();
+      
+      // Divide pixel queue head by workgroup size for use as indirect dispatch buffer
+      {
+        auto &program = _programs(ProgramType::eDispatch);
+        program.bind();
+        program.uniform<uint>("div", 256);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::ePixelQueueHead));
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
+
+        glDispatchCompute(1, 1, 1);
+        glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+      }
 
       auto& program = _programs(ProgramType::eDualHierarchyFieldAccumulateComp);
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPixels", fLayout.nPixels);
       program.uniform<uint>("fLvls", fLayout.nLvls);
       program.uniform<uint>("startLvl", fieldHierarchyInitLvl);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::ePixelQueue));
-      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, fBuffers.field);
-      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _minimization.bounds);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::ePixelQueueHead));
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, fBuffers.field);
 
       // Bind output texture's image
       glBindImageTexture(0, _textures(TextureType::eField), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-      // Dispatch shader
-      glDispatchCompute(ceilDiv(fLayout.nPixels, 256u), 1, 1);
+      // Dispatch shader based on indirect dispatch buffer
+      glDispatchComputeIndirect(0);
       glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
       // timer.tock();

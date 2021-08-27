@@ -47,6 +47,7 @@ namespace dh::sne {
 
     // Initialize shader programs
     {
+      _programs(ProgramType::eDispatch).addShader(util::GLShaderType::eCompute, rsrc::get("sne/dispatch.comp"));
       if constexpr (D == 2) {
         _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/leaves.comp"));
         _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/2D/nodes.comp"));
@@ -64,6 +65,7 @@ namespace dh::sne {
     // Initialize buffer objects
     {
       glCreateBuffers(_buffers.size(), _buffers.data());
+      glNamedBufferStorage(_buffers(BufferType::eDispatch), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
       glNamedBufferStorage(_buffers(BufferType::eNode), _constrLayout.nNodes * sizeof(uint), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eField), _constrLayout.nNodes * sizeof(glm::vec4), nullptr, 0);
       glAssert();
@@ -121,6 +123,7 @@ namespace dh::sne {
       // TODO Look into optimizing this
       glDeleteBuffers(_buffers.size(), _buffers.data());
       glCreateBuffers(_buffers.size(), _buffers.data());
+      glNamedBufferStorage(_buffers(BufferType::eDispatch), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
       glNamedBufferStorage(_buffers(BufferType::eNode), _constrLayout.nNodes * sizeof(uint), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eField), _constrLayout.nNodes * sizeof(glm::vec4), nullptr, 0);
 
@@ -141,19 +144,33 @@ namespace dh::sne {
       auto& timer = _timers(TimerType::eLeavesComp);
       timer.tick();
       
+      // Divide pixel queue head by workgroup size for use as indirect dispatch buffer
+      {
+        auto &program = _programs(ProgramType::eDispatch);
+        program.bind();
+        program.uniform<uint>("div", 256);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _field.pixelQueueHead);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
+
+        glDispatchCompute(1, 1, 1);
+      }
+
       auto& program = _programs(ProgramType::eLeavesComp);
       program.bind();
 
       // Set uniforms
-      program.uniform<uint>("nPixels", _compLayout.nPixels);
       program.uniform<uint>("lvl", _compLayout.nLvls - 1);
       
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eNode));
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _field.pixelQueue);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _field.pixelQueueHead);
 
-      // Dispatch shader
-      glDispatchCompute(ceilDiv(_compLayout.nPixels, 256u), 1, 1);
+      // Dispatch compute shader based on Buffertype::eDispatch
+      glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, _buffers(BufferType::eDispatch));
+      glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+      glDispatchComputeIndirect(0);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
       timer.tock();

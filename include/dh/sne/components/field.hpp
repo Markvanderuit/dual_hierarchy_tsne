@@ -79,7 +79,6 @@ namespace dh::sne {
       // Work queue for pixels in field texture requiring computation
       ePixelQueue,
       ePixelQueueHead,
-      ePixelQueueHeadReadback,
       
       // Work queue of node pairs to start hierarchy traversal (precomputed)
       ePairsInitQueue,
