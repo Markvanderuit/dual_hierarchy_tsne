@@ -42,7 +42,7 @@ namespace dh::vis {
     "\n"
     "Version:  1.0.0\n"
     "Source:   https://github.com/Markvanderuit/dual_hierarchy_tsne\n"
-    "License:  MIT)\n";
+    "License:  MIT\n";
 
   Renderer::Renderer()
   : _isInit(false), _fboSize(0) { }
