@@ -25,90 +25,164 @@
 #pragma once
 
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <date/date.h>
+#include <indicators/indicators.hpp>
+#include "dh/constants.hpp"
 
 namespace dh::util {
   class Logger {
-  public:
-    virtual void writeLine(const std::string &str) const = 0;
-    virtual void flush() const = 0;
-  };
+  private:
+    // State
+    bool _isFirstLine;
+    std::ostream* _stream;
+    
+    // Constr, hidden for singleton
+    Logger() : _isFirstLine(true), _stream(nullptr) { }
+    Logger(std::ostream* stream) :  _isFirstLine(true), _stream(stream) { }
 
-  class CoutLogger : public Logger {
   public:
-    virtual void writeLine(const std::string &str) const override {
-      std::cout << str << '\n';
+    // Singleton direct accessor
+    static Logger& instance() {
+      static Logger instance;
+      return instance;
+    }
+
+    // Singleton setup/teardown functions
+    static void init(std::ostream* stream) { instance() = Logger(stream); }
+    static void dstr() { instance() = Logger(); }
+
+    // Obtain pointer to registered stream
+    static std::ostream* stream() { return instance()._stream; }
+
+    // Start new line for writes
+    static Logger& newl() {
+      Logger& logger = Logger::instance();
+      if (logger._isFirstLine) {
+        logger._isFirstLine = false;
+        return logger;
+      }
+      return logger << '\n';
+    }
+
+    // Use current line for writes
+    static Logger& curl() {
+      return instance();
+    }
+
+    // Reset and reuse current line for writes
+    static Logger& resl() {
+      return curl() << "\r\33[2K";
+    }
+
+    // Start new line for writes, and prepend timestamp
+    static Logger& newt() {
+      return newl() << Logger::time;
     }
     
-    virtual void flush() const override {
-      std::cout << std::flush;
+    // Use current line for writes, and prepend timestamp;
+    static Logger& curt() {
+      return curl() << Logger::time;
     }
-  };
 
-  class DateCoutLogger : public CoutLogger {
+    // Reset and reuse current line for writes, and prepend timestamp
+    static Logger& rest() {
+      return resl() << Logger::time;
+    }
+
   public:
-    virtual void writeLine(const std::string &str) const override {
+    // Accept generic input and forward to stream
+    template <typename T>
+    Logger& operator<<(const T& t) {
       using namespace date;
       using namespace std::chrono;
+      if (_stream) { *_stream << t; }
+      return *this;
+    }
 
-      std::cout << floor<milliseconds>(system_clock::now())
-                << " " << str << '\n';
+    // Accept ostream function manipulators and forward
+    using manip = std::ostream& (*)(std::ostream&);
+    Logger& operator<<(manip fp) {
+      if (_stream) { *_stream << fp; }
+      return *this;
+    }
+    
+    // Timestamp manipulator
+    static
+    std::ostream& time(std::ostream& ostr) {      
+#ifdef DH_LOG_TIMESTAMPS
+      // Obtain UTC timestamp in format hours:minutes:seconds.milliseconds
+      using namespace date;
+      using namespace std::chrono;
+      const auto curr = make_time(floor<milliseconds>(system_clock::now()) - floor<days>(system_clock::now()));
+      return ostr << '[' << curr << "] ";
+#else
+      return ostr;
+#endif // DH_LOG_TIMESTAMPS
     }
   };
+
+  class ProgressBar {
+  public:
+    ProgressBar(std::string_view prefix = "", std::string_view postfix = "")
+    : _prefix(prefix), _postfix(postfix) { }
+
+    void setProgress(float dec) {
+      // Logger does not have an output stream set, do not output progress
+      if (!Logger::stream()) {
+        return;
+      }
+
+#ifdef DH_LOG_TIMESTAMPS
+      // Obtain UTC timestamp in format hours:minutes:seconds.milliseconds
+      using namespace date;
+      using namespace std::chrono;
+      const auto curr = make_time(floor<milliseconds>(system_clock::now()) - floor<days>(system_clock::now()));
+      // Prepend timestamp to prefix
+      std::stringstream ss;
+      ss << '[' << curr << "] " << _prefix;
+      std::string prefix = ss.str();
+#else
+      std::string prefix = _prefix;
+#endif // DH_LOG_TIMESTAMPS
+
+      // Construct progress bar on the current line
+      indicators::ProgressBar bar {
+        indicators::option::BarWidth{30},
+        indicators::option::Start{" ["},
+        indicators::option::Fill{"="},
+        indicators::option::Lead{">"},
+        indicators::option::Remainder{" "},
+        indicators::option::End{"] "},
+        indicators::option::ForegroundColor{indicators::Color::white},
+        indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}},
+        indicators::option::PrefixText{prefix},
+        indicators::option::PostfixText{_postfix}
+      };
+      bar.set_progress(static_cast<size_t>(dec * 100.f));
+    }
+
+    void setPostfix(std::string_view str) {
+      _postfix = str;
+    }
+
+    void setPrefix(std::string_view str) {
+      _prefix = str;
+    }
+    
+  private:
+    std::string _prefix;
+    std::string _postfix;
+  };
   
-  template <class Logger, bool flush = false>
+  // Helper function for printing nice class names in the log output
   inline
-  void log(Logger* ptr, const std::string& str) {
-    if (ptr) {
-      ptr->writeLine(str);
-      if constexpr (flush) {
-        ptr->flush();
-      }
-    }
-  }
-
-  template <class Logger, typename T, bool flush = false>
-  inline
-  void logValue(Logger* ptr, const std::string& str, T t) {
-    if (ptr) {
-      std::stringstream ss;
-      ss << str << " : " << std::to_string(t);
-      ptr->writeLine(ss.str());
-      if constexpr (flush) {
-        ptr->flush();
-      }
-    }
-  }
-
-  template <class Logger, bool flush = false>
-  inline
-  void logString(Logger* ptr, const std::string& str, std::string &str2) {
-    if (ptr) {
-      std::stringstream ss;
-      ss << str << " : " << str2;
-      ptr->writeLine(ss.str());
-      if constexpr (flush) {
-        ptr->flush();
-      }
-    }
-  }
-
-  template <class Logger, typename Duration = std::chrono::milliseconds, bool flush = false>
-  inline
-  void logTime(Logger* ptr, const std::string& str, Duration duration) {
-    using namespace date;
-    using namespace std::chrono;
-
-    if (ptr) {
-      std::stringstream ss;
-      ss << str << " : " << duration;
-      ptr->writeLine(ss.str());
-      if constexpr (flush) {
-        ptr->flush();
-      }
-    }
+  std::string genLoggerPrefix(std::string_view str) {
+    std::stringstream ss;
+    ss << std::left << std::setw(DH_LOG_PREFIX_WIDTH) << str << ' ';
+    return ss.str();
   }
 } // dh::util

@@ -24,5 +24,18 @@
 
 #pragma once
 
-// Enable runtime assertion for some components; regular cuda/OpenGL error checking etc
+/**
+ * Enable the following checks, throwing an exception on failure
+ * - Runtime checks for correct component use
+ * - OpenGL shader compilation errors
+ * - OpenGL error code checking
+ * - CUDA error code checking
+ */
 #define DH_ENABLE_ASSERT
+
+/**
+ * Enable prepending of UTC timestamps to logs handled by dh::util::Logger
+ */
+#define DH_LOG_TIMESTAMPS
+
+#define DH_LOG_PREFIX_WIDTH 0

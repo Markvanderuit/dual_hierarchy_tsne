@@ -33,10 +33,10 @@
 namespace dh::util {
   struct RuntimeError : public std::exception {
     std::string message;  // Basic required message attached to error
-    std::string code;     // Optional error code provided by APIs (OpenGL/CUDA)
-    std::string log;      // Optional log provided by APIs (OpenGL)
-    std::string file;     // Optional file name, available during preprocessing
-    int line;             // Optional line nr, available during preprocessing
+    std::string code;     // Optional error code provided by APIs (OpenGL/CUDA return codes)
+    std::string log;      // Optional log provided by APIs (OpenGL shader compilation)
+    std::string file;     // Optional file name, obtained during preprocessing
+    int line;             // Optional line nr, obtained during preprocessing
 
     // Constr
     RuntimeError(const std::string& message)
@@ -45,7 +45,8 @@ namespace dh::util {
     // Impl. of std::exception::what(), assembles detailed error from provided data
     const char* what() const noexcept override {
       std::stringstream ss;
-      ss << "Runtime error\n";
+
+      ss << "\nRuntime error\n";
       ss << std::left << std::setw(16) << "  message:" << message << '\n';
 
       if (!file.empty()) {
@@ -60,6 +61,8 @@ namespace dh::util {
       if (!log.empty()) {
         ss << "  log:" << log << '\n';
       }
+
+      ss << '\n';
       
       _what = ss.str();
       return _what.c_str();

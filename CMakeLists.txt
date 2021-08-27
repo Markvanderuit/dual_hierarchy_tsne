@@ -43,6 +43,7 @@ target_link_libraries(util PUBLIC
   glad
   glfw
   glm::glm
+  indicators
   date::date
 )
 
@@ -53,7 +54,6 @@ target_include_directories(sne PUBLIC include)
 target_sources(sne PRIVATE ${shaders})
 target_link_libraries(sne PRIVATE 
   util 
-  indicators
   gpufaiss 
   ResourceEmbed
 )
