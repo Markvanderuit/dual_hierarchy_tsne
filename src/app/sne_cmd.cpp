@@ -29,7 +29,6 @@
 #include <cxxopts.hpp>
 #include "dh/util/io.hpp"
 #include "dh/util/logger.hpp"
-#include "dh/util/timer.hpp"
 #include "dh/util/gl/window.hpp"
 #include "dh/vis/renderer.hpp"
 #include "dh/sne/sne.hpp"
@@ -111,6 +110,9 @@ void cli(int argc, char** argv) {
 }
 
 void sne() {
+   // Set up logger to use standard output stream for demo
+  dh::util::Logger::init(&std::cout);
+
   // Load dataset
   std::vector<float> data;
   std::vector<uint> labels;
@@ -130,9 +132,8 @@ void sne() {
   dh::util::GLWindow window(info);
 
   // Create necessary components
-  dh::util::DateCoutLogger logger;
   dh::vis::Renderer renderer(window, params, labels);    
-  dh::sne::SNE sne(data, params, &logger);
+  dh::sne::SNE sne(data, params);
 
   // If visualization is requested, minimize and render at the same time
   if (progDoVisDuring) {
@@ -143,7 +144,7 @@ void sne() {
     window.setVisible(true);
     window.display();
 
-    // Render loop, with one minimization step per frame
+    // Render loop, one minimization step between frames
     for (uint i = 0; i < params.iterations; ++i) {
       window.processEvents();
       sne.compMinimizationStep();
@@ -154,18 +155,22 @@ void sne() {
     sne.comp();
   }
 
-  // If requested, output KLD and timing metrics
+  // If requested, compute and output KL-divergence (might take a while on large datasets)
   if (progDoKlDivergence) {
-      dh::util::logValue(&logger, "[SNE] KL-Divergence", sne.klDivergence());
+    const float kld = sne.klDivergence();
+    dh::util::Logger::newl() << "KL-divergence : " << kld;
   }
-  dh::util::logTime(&logger, "[SNE] Minimization time", sne.minimizationTime());
+
+  // Output timings
+  dh::util::Logger::newl() << "Similarities runtime : " << sne.similaritiesTime();
+  dh::util::Logger::newl() << "Minimization runtime : " << sne.minimizationTime();
 
   // If requested, output embedding to file 
   if (!optFilename.empty()) {
     dh::util::writeBinFile(optFilename, sne.embedding(), labels, params.n, params.nLowDims, progDoLabels);
   }
 
-  // If requested, render embedding after minimization is completed
+  // If requested, run visualization after minimization is completed
   if (progDoVisDuring || progDoVisAfter) {
     // Spawn window
     window.setVsync(true);
@@ -183,8 +188,15 @@ void sne() {
 
 int main(int argc, char** argv) {
   try {
-    cli(argc, argv);
-    sne();
+    // iptFilename = "C:/users/markv/documents/Repositories/dual_hierarchy_tsne/resources/data/mnist_labeled_60k_784d.bin";
+    // params.n = 60000;
+    // params.nHighDims = 784;
+    // params.nLowDims = 2;
+    // progDoVisAfter = true;
+    // progDoLabels = true;
+
+    cli(argc, argv); // Parse parameters from command line input
+    sne(); // Run rest of application
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
