@@ -14,7 +14,6 @@ else(NOT MSVC)
 endif(NOT MSVC)
 add_definitions(-DFINTEGER=int)
 
-find_package(OpenMP REQUIRED)
 
 # Specify FAISS source files
 file(GLOB faiss_sources
@@ -41,12 +40,19 @@ file(GLOB gpufaiss_sources
 
 # Specify FAISS library
 add_library(faiss STATIC ${faiss_sources})
-target_link_libraries(faiss OpenBLAS::OpenBLAS LAPACK::LAPACK OpenMP::OpenMP_CXX)
+target_link_libraries(faiss OpenBLAS::OpenBLAS LAPACK::LAPACK)
 target_compile_features(faiss PRIVATE cxx_std_14)
 target_include_directories(faiss PUBLIC include)
 
 # Specify gpuFAISS library
 add_library(gpufaiss STATIC ${gpufaiss_sources})
-target_link_libraries(gpufaiss faiss CUDA::cudart CUDA::cublas OpenMP::OpenMP_CXX)
+target_link_libraries(gpufaiss faiss CUDA::cudart CUDA::cublas)
 target_compile_features(gpufaiss PRIVATE cuda_std_14)
 target_include_directories(gpufaiss PUBLIC include)
+
+# Thanks for not updating OpenMP, microsoft
+if (NOT MSVC)
+  find_package(OpenMP REQUIRED)
+  target_link_libraries(faiss OpenMP::OpenMP_CXX)
+  target_link_libraries(gpufaiss OpenMP::OpenMP_CXX)
+endif(NOT MSVC)
