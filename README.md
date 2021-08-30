@@ -1,4 +1,7 @@
+![minimization](resources/misc/readme_header.png)
+
 # Dual-hierarchy t-SNE
+
 This repository contains a small library and demo application demonstrating a dual-hierarchy t-SNE implementation. For full details, see our paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
 
 In short, our method provides a faster minimization than FIt-SNE and linear-complexity t-SNE on 2D embeddings, and aditionally performs well on 3D embeddings. To achieve a speedup, we generate a pair of spatial hierarchies; one over the embedding, and another over the embedding's space. We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations involved.
@@ -9,9 +12,9 @@ First, ensure your system satisfies the following requirements:
 * [CMake](https://cmake.org/): version 3.21 or later is required.
 * [CUDA](https://developer.nvidia.com/cuda-toolkit): version 10.0 or later is required; other versions may work but are untested.
 * [OpenMP](https://www.openmp.org/): likely installed on your system or bundled with your compiler.
-* [GLFW](https://www.glfw.org): while GLFW is bundled, some Unix systems require X11 development packages for it to work (e.g. `sudo apt install xorg-dev` on Ubuntu). If you have issues with compilation due to GLFW dependencies, please refer to their [compilation](https://www.glfw.org/docs/3.3/compile.html) page.
+* [GLFW](https://www.glfw.org): while GLFW is bundled through [vcpkg](https://github.com/microsoft/vcpkg), some Unix systems require X11 development packages for it to work (e.g. `sudo apt install xorg-dev` on Ubuntu). If you have issues with compilation due to GLFW dependencies, please refer to their [compilation](https://www.glfw.org/docs/3.3/compile.html) page.
 
-Next, clone the repository and make sure to include the required submodules.
+Next, clone the repository, including required submodules.
 
 ```bash
 git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
@@ -25,12 +28,13 @@ Finally, you should be able to generate a CMake project and compile it. For exam
   cmake ..
   make
 ```
-During CMake configuration, [vcpkg](https://github.com/microsoft/vcpkg) is used to pull in a number of third-party dependencies. If you experience issues with compiling these, please refer to their respective build instructions for troubleshooting.
+
+During CMake configuration, [vcpkg](https://github.com/microsoft/vcpkg) pulls in a number of third-party dependencies. If you experience issues with compiling any of these, please refer to their respective build instructions for troubleshooting.
 
 ## Usage
 
 ### Library
-The CMake project provides three library build targets: `utils`, `vis`, and `sne`. The `utils` library provides utility and boilerplate code. The `vis` library provides a renderer for the demo application. The `sne` library contains the only parts that really matter.
+The CMake project provides three library build targets: *utils*, *vis*, and *sne*. The *utils* library provides utility and boilerplate code. The *vis* library provides a renderer for the demo application. The *sne* library contains the only parts that really matter.
 
 Below is an example showing its usage to minimize a small dataset:
 
@@ -53,7 +57,7 @@ int main() {
   params.dualHierarchyTheta = 0.25f;  // Approximation parameter
 
   // 2. Create and load dataset.
-  //    (skipping dataset loading code for this example)
+  //    I'm skipping dataset loading code for this example
   std::vector<float> dataset(n * params.nHighDims);
 
   // 3. Create SNE object
