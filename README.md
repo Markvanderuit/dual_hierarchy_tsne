@@ -1,6 +1,8 @@
+# Dual-hierarchy t-SNE
+
 ![minimization](resources/misc/readme_header.png)
 
-# Dual-hierarchy t-SNE
+## Introduction
 
 This repository contains a small library and demo application demonstrating a dual-hierarchy t-SNE implementation. For full details, see our paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
 
