@@ -1,31 +1,23 @@
 # Dual-hierarchy t-SNE
-This repository contains a small library and demo application demonstrating a t-SNE implementation for our paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
+This repository contains a small library and demo application demonstrating a dual-hierarchy t-SNE implementation. For full details, see our paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
 
-Our method obtains significant performance improvements over state-of-the-art techniques such as FIt-SNE and linear-complexity t-SNE for targeting 2D embeddings, and further remains performant when targeting 3D embeddings. To achieve a speedup, we generate a pair of spatial hierarchies; one over the embedding and another over the embedding's space. Considering the interactions between these hierarhices allows us to significantly reduce the number of N-body interactions required for the minimization.
-
-# Usage
+In short, our method provides a faster minimization than FIt-SNE and linear-complexity t-SNE on 2D embeddings, and aditionally performs well on 3D embeddings. To achieve a speedup, we generate a pair of spatial hierarchies; one over the embedding, and another over the embedding's space. We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations involved.
 
 ## Compilation
-First, clone the repository to your system, being sure to include submodules.
+First, ensure your system satisfies the following requirements:
+* Compiler: at least C++17 support is required; we've tested with [MSVC](https://visualstudio.microsoft.com/) 19.6 (Windows) and [GCC](https://gcc.gnu.org/) 11 (Ubuntu).
+* [CMake](https://cmake.org/): version 3.21 or later is required.
+* [CUDA](https://developer.nvidia.com/cuda-toolkit): version 10.0 or later is required; other versions may work but are untested.
+* [OpenMP](https://www.openmp.org/): likely installed on your system or bundled with your compiler.
+* [GLFW](https://www.glfw.org): while GLFW is bundled, some Unix systems require X11 development packages for it to work (e.g. `sudo apt install xorg-dev` on Ubuntu). If you have issues with compilation due to GLFW dependencies, please refer to their [compilation](https://www.glfw.org/docs/3.3/compile.html) page.
+
+Next, clone the repository and make sure to include the required submodules.
 
 ```bash
 git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
 ```
 
-Next, ensure your system satisfies the following requirements:
-
-* Compiler: C++17 support required; tested with [MSVC](https://visualstudio.microsoft.com/) 19.6 (Windows) and [GCC](https://gcc.gnu.org/) 11 (Ubuntu Linux).
-* [CMake](https://cmake.org/): version 3.21 or later required.
-* [CUDA](https://developer.nvidia.com/cuda-toolkit): version 10.0 or later; other versions may work but are untested.
-* [OpenMP](https://www.openmp.org/): likely installed on your system or bundled with your compiler.
-
-On some Unix-like systems, certain dependencies may need to be installed for the bundled GLFW library. For example, on Ubuntu/Debian Linux, X11 development packages are needed:
-
-```bash
-  sudo apt install xorg-dev
-```
-
-Finally, if you have satistied the requirements, you should be able to generate a CMake project and compile it. For example, on a Unix system:
+Finally, you should be able to generate a CMake project and compile it. For example, on a Unix system:
 
 ```bash
   mkdir dual_hierarchy_tsne/build
@@ -33,9 +25,14 @@ Finally, if you have satistied the requirements, you should be able to generate 
   cmake ..
   make
 ```
+During CMake configuration, [vcpkg](https://github.com/microsoft/vcpkg) is used to pull in a number of third-party dependencies. If you experience issues with compiling these, please refer to their respective build instructions for troubleshooting.
 
-## Library usage
-The CMake project consists of three libraries: `utils`, `sne`, `vis`. The `utils` library provides utility functions and wrapper code. The `vis` library provides rendering code for the demo application. The `sne` library contains the parts that really matter. An example showing its usage:
+## Usage
+
+### Library
+The CMake project provides three library build targets: `utils`, `vis`, and `sne`. The `utils` library provides utility and boilerplate code. The `vis` library provides a renderer for the demo application. The `sne` library contains the only parts that really matter.
+
+Below is an example showing its usage to minimize a small dataset:
 
 ```c++
 #include <vector>
@@ -78,20 +75,19 @@ int main() {
 }
 ```
 
-## Demo usage
+### Demo application
 The demo application (build target: `sne_cmd`, file: `src/app/sne_cmd.cpp`) provides a command-line application which can run t-SNE on arbitrary datasets, if they are provided as raw binary data. It additionally allows for starting a tiny renderer (the `vis` library) that shows the embedding, minimization, and the used dual-hierarchies.
 
 
-
-## Datasets
+### Datasets
 ...
 
-# Citation
+## Citation
 Please cite the following paper if you have applied it in your research:
 
 ...
 
-# License and third-party software
+## License and third-party software
 The source code in this repository is released under the MIT License. However, all used third-party software libraries are governed by their own respective licenes. Without the following libraries, this project would have been considerably harder:
 * [cxxopts](https://github.com/jarro2783/cxxopts)
 * [cub](https://github.com/NVIDIA/cub)
