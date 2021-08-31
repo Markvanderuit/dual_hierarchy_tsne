@@ -57,7 +57,7 @@ namespace dh::vis {
     _params(params),
     _canDrawLabels(false),
     _drawLabels(true),
-    _pointRadius(0.005f),
+    _pointRadius(D == 2 ? 0.002f : 0.005f),
     _pointOpacity(1.0f) {
     // Initialize shader program
     {
