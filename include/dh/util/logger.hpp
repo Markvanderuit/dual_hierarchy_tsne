@@ -46,10 +46,7 @@ namespace dh::util {
 
   public:
     // Singleton direct accessor
-    static Logger& instance() {
-      static Logger instance;
-      return instance;
-    }
+    static Logger& instance();
 
     // Singleton setup/teardown functions
     static void init(std::ostream* stream) { instance() = Logger(stream); }
