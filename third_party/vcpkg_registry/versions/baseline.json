@@ -1,0 +1,8 @@
+{
+  "default": {
+    "faiss": {
+      "baseline": "1.7.1",
+      "port-version": 0
+    }
+  }
+}

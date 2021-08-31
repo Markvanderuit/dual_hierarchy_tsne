@@ -1,0 +1,9 @@
+{
+  "versions": [
+    {
+      "version-string": "1.7.1",
+      "path": "$/ports/faiss",
+      "port-version": 0
+    }
+  ]
+}

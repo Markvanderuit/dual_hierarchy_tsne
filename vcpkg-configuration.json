@@ -1,0 +1,10 @@
+{
+  "registries": [
+    {
+      "kind": "filesystem",
+      "path": "third_party/vcpkg_registry",
+      "baseline": "default",
+      "packages": [ "faiss" ]   
+    }
+  ]
+}

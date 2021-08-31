@@ -6,8 +6,10 @@
     "date",
     "glfw3",
     "glm",
-    "lapack",
-    "openblas",
+    {
+      "name": "faiss",
+      "features": [ "gpu" ]
+    },
     {
       "name": "imgui",
       "features": [ "opengl3-glad-binding", "glfw-binding"] 
