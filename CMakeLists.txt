@@ -5,21 +5,24 @@ set(CMAKE_TOOLCHAIN_FILE
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake
   CACHE STRING "Vcpkg toolchain file")
 
+# Specify most likely cuda architectures (so not future proof)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES "72;75;86")
+endif()
+
 # Define C++/CUDA project
 project(DualHierarchytSNE LANGUAGES CXX CUDA)
 
 # Include third party libraries from vcpkg
 find_package(cxxopts CONFIG REQUIRED)
 find_package(date CONFIG REQUIRED)
-find_package(OpenBLAS CONFIG REQUIRED)
-find_package(LAPACK CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(faiss CONFIG REQUIRED)
 
 # Include third party libraries built from source (or added as header only interfaces)
 add_subdirectory(third_party/cub)
-add_subdirectory(third_party/faiss)
 add_subdirectory(third_party/glad)
 add_subdirectory(third_party/indicators)
 add_subdirectory(third_party/resource_embed)
@@ -54,7 +57,7 @@ target_include_directories(sne PUBLIC include)
 target_sources(sne PRIVATE ${shaders})
 target_link_libraries(sne PRIVATE 
   util 
-  gpufaiss 
+  faiss
   ResourceEmbed
 )
 
