@@ -2,7 +2,6 @@
   "name": "dual-hierarchy-tsne",
   "version-string": "0.1.0",
   "dependencies": [
-    "cxxopts",
     "date",
     {
       "name": "glad",
@@ -14,10 +13,29 @@
       "name": "faiss",
       "features": [ "gpu" ]
     },
-    {
-      "name": "imgui",
-      "features": [ "opengl3-glad-binding", "glfw-binding"] 
-    },
     "indicators"
-  ]
+  ],
+  "features": {
+    "vis": {
+      "description": "Build visualization library",
+      "dependencies": [
+        {
+          "name": "imgui",
+          "features": [ "opengl3-glad-binding", "glfw-binding"] 
+        }
+      ]
+    },
+    "python": {
+      "description": "Build python integration",
+      "dependencies": [
+        "pybind11"
+      ]
+    },
+    "demo": {
+      "description": "Build demo application",
+      "dependencies": [
+        "cxxopts"
+      ]
+    }
+  }
 }

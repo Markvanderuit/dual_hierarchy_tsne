@@ -4,25 +4,29 @@
 
 ## Introduction
 
-This repository contains a small library and demo application demonstrating a dual-hierarchy t-SNE implementation. For full details, see our paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
+This repository contains a library and accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)).
 
-In short, our method provides a faster minimization than FIt-SNE and linear-complexity t-SNE on 2D embeddings, and aditionally performs well on 3D embeddings. To achieve a speedup, we generate a pair of spatial hierarchies; one over the embedding, and another over the embedding's space. We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations involved.
+In short, our method accelerates the t-SNE minimization by generating a pair of spatial hierarchies; one over the embedding, and another over a discretization of the embedding's space.
+We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations performed.
+Our method runs fully on the GPU using OpenGL/CUDA, and currently outperforms both the CUDA implementation of FIt-SNE as well as linear-complexity t-SNE
+Finally, it scales to 3D embeddings as well.
+
+For full details and performance comparisons, check out our recent [paper](...) "*An Efficient Dual-Hierarchy t-SNE Minimization*"!
 
 ## Compilation
 First, ensure your system satisfies the following requirements:
-* Compiler: at least C++17 support is required; we've tested with [MSVC](https://visualstudio.microsoft.com/) 19.6 (Windows) and [GCC](https://gcc.gnu.org/) 11 (Ubuntu).
-* [CMake](https://cmake.org/): version 3.21 or later is required.
-* [CUDA](https://developer.nvidia.com/cuda-toolkit): version 10.0 or later is required; other versions may work but are untested.
-* [OpenMP](https://www.openmp.org/): likely installed on your system or bundled with your compiler.
-* [GLFW](https://www.glfw.org): while GLFW is bundled through [vcpkg](https://github.com/microsoft/vcpkg), some Unix systems require X11 development packages for it to work (e.g. `sudo apt install xorg-dev` on Ubuntu). If you have issues with compilation due to GLFW dependencies, please refer to their [compilation](https://www.glfw.org/docs/3.3/compile.html) page.
+* Compiler: C++17 support is required; we've tested with [MSVC](https://visualstudio.microsoft.com/) 19.6, [CLANG](https://clang.llvm.org/) 12, and [GCC](https://gcc.gnu.org/) 11.1 on Windows and Ubuntu.
+* [CMake](https://cmake.org/): 3.21 or later is required.
+* [CUDA](https://developer.nvidia.com/cuda-toolkit): 10.0 or later is required; other versions may work but are untested.
+* [GLFW](https://www.glfw.org): while this is bundled through vcpkg, some Unix systems require development packages for it to work (e.g. `sudo apt install xorg-dev` for X11 Ubuntu). Please refer to their excellent [compilation page](https://www.glfw.org/docs/3.3/compile.html) or vcpkg's error messages if you run into issues!
 
-Next, clone the repository, including required submodules.
+Next, clone the repository and include the required submodules.
 
 ```bash
 git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
 ```
 
-Finally, you should be able to generate a CMake project and compile it. For example, on a Unix system:
+Finally, you should be able to generate a CMake project and compile it. For example, on an arbitrary Unix system:
 
 ```bash
   mkdir dual_hierarchy_tsne/build
@@ -31,14 +35,14 @@ Finally, you should be able to generate a CMake project and compile it. For exam
   make
 ```
 
-During CMake configuration, [vcpkg](https://github.com/microsoft/vcpkg) pulls in a number of third-party dependencies. If you experience issues with compiling any of these, please refer to their respective build instructions for troubleshooting.
+During CMake configuration, [vcpkg](https://github.com/microsoft/vcpkg) pulls in a number of third-party dependencies. If you experience unexpected issues with any of these, please refer to their respective build instructions for troubleshooting.
 
 ## Usage
 
 ### Library
-The CMake project provides three library build targets: *utils*, *vis*, and *sne*. The *utils* library provides utility and boilerplate code. The *vis* library provides a renderer for the demo application. The *sne* library contains the only parts that really matter.
+The CMake project provides three library build targets: *utils*, *vis*, and *sne*. The *utils* library contains utility and boilerplate code. The *vis* library contains rendering code for the demo application discussed below. The *sne* library contains the only parts that really matter.
 
-Below is an example showing its usage to minimize a small dataset:
+Below is a minimal example showing its usage to minimize a small dataset:
 
 ```c++
 #include <vector>
@@ -58,22 +62,22 @@ int main() {
   params.perplexity = 30.0f;          // Perplexity parameter
   params.dualHierarchyTheta = 0.25f;  // Approximation parameter
 
-  // 2. Create and load dataset.
+  // 2. Create and load high-dimensional dataset
   //    I'm skipping dataset loading code for this example
-  std::vector<float> dataset(n * params.nHighDims);
+  std::vector<float> dataset(params.n * params.nHighDims);
 
-  // 3. Create SNE object
-  //    This is responsible for the full computation.
+  // 3. Construct SNE object
+  //    This manages all gpu objects, state, computation, etc.
   SNE sne(dataset, params);
 
-  // 3. Perform similarities computation and minimization
-  //    For better examples of using the SNE class, such as
+  // 4. Perform similarities computation and minimization
+  //    For expanded examples of using the SNE class, such as
   //    doing minimizations step-by-step, refer to:
-  //    a. the demo application: src/app/sne_cmd.cpp
-  //    b. the SNE header: include/dh/sne/sne.hpp
+  //    a. the SNE header: include/dh/sne/sne.hpp
+  //    b. the demo application: src/app/sne_cmd.cpp
   sne.comp();
 
-  // 4. Obtain KL-divergence and embedding data
+  // 5. Obtain KL-divergence and embedding data
   float kld = sne.klDivergence();
   std::vector<float> embedding = sne.embedding();
 
@@ -104,3 +108,11 @@ The source code in this repository is released under the MIT License. However, a
 * [GLM](https://glm.g-truc.net/0.9.9/)
 * [indicators](https://github.com/p-ranav/indicators)
 * [vcpkg](https://github.com/microsoft/vcpkg) 
+
+## References
+"...the **go to** statement should be abolished..." [[1]](#1).
+
+<a id="1">[1]</a> 
+Dijkstra, E. W. (1968). 
+Go to statement considered harmful. 
+Communications of the ACM, 11(3), 147-148.
