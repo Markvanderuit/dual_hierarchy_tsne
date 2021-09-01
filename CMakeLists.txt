@@ -1,5 +1,10 @@
 cmake_minimum_required (VERSION 3.21)
 
+# Specify project options
+option(BUILD_PYTHON "Build python integration if ON" ON)
+option(BUILD_VIS "Build visualization library if ON" ON)
+option(BUILD_DEMO "Build demo application if ON; requires BUILD_VIS" ON)
+
 # Specify vcpkg toolchain file
 set(CMAKE_TOOLCHAIN_FILE 
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake
@@ -20,11 +25,11 @@ find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(faiss CONFIG REQUIRED)
+find_package(indicators CONFIG REQUIRED)
 
 # Include third party libraries built from source (or added as header only interfaces)
 add_subdirectory(third_party/cub)
 add_subdirectory(third_party/glad)
-add_subdirectory(third_party/indicators)
 add_subdirectory(third_party/resource_embed)
 
 # Define function to add a library while recursively globbing its files from a specified directory
@@ -46,7 +51,7 @@ target_link_libraries(util PUBLIC
   glad
   glfw
   glm::glm
-  indicators
+  indicators::indicators
   date::date
 )
 
@@ -62,23 +67,27 @@ target_link_libraries(sne PRIVATE
 )
 
 # Specify vis library
-add_library_recurse(vis ${CMAKE_SOURCE_DIR}/src/vis ${CMAKE_SOURCE_DIR}/include/dh/vis)
-target_compile_features(vis PRIVATE cxx_std_17)
-target_include_directories(vis PUBLIC include)
-target_sources(vis PRIVATE ${shaders})
-target_link_libraries(vis PRIVATE
-  imgui::imgui
-  util 
-  sne 
-  ResourceEmbed
-)
+if (BUILD_VIS OR BUILD_DEMO)
+  add_library_recurse(vis ${CMAKE_SOURCE_DIR}/src/vis ${CMAKE_SOURCE_DIR}/include/dh/vis)
+  target_compile_features(vis PRIVATE cxx_std_17)
+  target_include_directories(vis PUBLIC include)
+  target_sources(vis PRIVATE ${shaders})
+  target_link_libraries(vis PRIVATE
+    imgui::imgui
+    util 
+    sne 
+    ResourceEmbed
+  )
+endif()
 
-# Add sne_cmd demo executable
-add_executable(sne_cmd ${CMAKE_SOURCE_DIR}/src/app/sne_cmd.cpp)
-target_compile_features(sne_cmd PRIVATE cxx_std_17)
-target_link_libraries(sne_cmd PRIVATE
-  cxxopts::cxxopts
-  util
-  sne
-  vis
-)
+# Specify sne_cmd demo application
+if (BUILD_DEMO AND BUILD_VIS)
+  add_executable(sne_cmd ${CMAKE_SOURCE_DIR}/src/app/sne_cmd.cpp)
+  target_compile_features(sne_cmd PRIVATE cxx_std_17)
+  target_link_libraries(sne_cmd PRIVATE
+    cxxopts::cxxopts
+    util
+    sne
+    vis
+  )
+endif()

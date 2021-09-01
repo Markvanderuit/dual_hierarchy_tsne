@@ -30,7 +30,7 @@
 #include <sstream>
 #include <string>
 #include <date/date.h>
-#include <indicators/indicators.hpp>
+#include <indicators/progress_bar.hpp>
 #include "dh/constants.hpp"
 
 namespace dh::util {
