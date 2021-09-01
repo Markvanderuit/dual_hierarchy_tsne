@@ -4,6 +4,10 @@
   "dependencies": [
     "cxxopts",
     "date",
+    {
+      "name": "glad",
+      "features": [ "gl-api-latest" ]
+    },
     "glfw3",
     "glm",
     {
