@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 
-#include <utility>
 #include <cuda_runtime.h>
 #define THRUST_IGNORE_CUB_VERSION_CHECK
 #include <cub/cub.cuh>
