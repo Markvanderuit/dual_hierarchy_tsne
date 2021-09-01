@@ -21,6 +21,7 @@ project(DualHierarchytSNE LANGUAGES CXX CUDA)
 # Include third party libraries from vcpkg
 find_package(cxxopts CONFIG REQUIRED)
 find_package(date CONFIG REQUIRED)
+find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
@@ -29,7 +30,6 @@ find_package(indicators CONFIG REQUIRED)
 
 # Include third party libraries built from source (or added as header only interfaces)
 add_subdirectory(third_party/cub)
-add_subdirectory(third_party/glad)
 add_subdirectory(third_party/resource_embed)
 
 # Define function to add a library while recursively globbing its files from a specified directory
@@ -48,7 +48,7 @@ target_compile_features(util PRIVATE cxx_std_17)
 target_include_directories(util PUBLIC include)
 target_link_libraries(util PUBLIC 
   cub 
-  glad
+  glad::glad
   glfw
   glm::glm
   indicators::indicators
