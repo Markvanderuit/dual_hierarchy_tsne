@@ -56,6 +56,11 @@ namespace dh::sne {
     // Gradient descent parameters
     float minimumGain = 0.1f;
     float eta = 200.f;
+
+    // float momentum = 0.2f;
+    // float finalMomentum = 0.5f;
+    // float exaggerationFactor = 4.0f;
+
     // TODO COMPARE TO CUDA-SNE for simplification
     float momentum = 0.5f;
     float finalMomentum = 0.8f;

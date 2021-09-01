@@ -22,14 +22,13 @@
  * SOFTWARE.
  */
 
-#include <faiss/gpu/StandardGpuResources.h>
-#include <faiss/gpu/GpuIndexIVFFlat.h>
 #include <resource_embed/resource_embed.hpp>
 #include "dh/sne/components/similarities.hpp"
 #include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
 #include "dh/util/cu/inclusive_scan.cuh"
+#include "dh/util/cu/knn.cuh"
 
 namespace dh::sne {
   // Logging shorthands
@@ -95,63 +94,6 @@ namespace dh::sne {
     const uint d = _params.nHighDims;
     const uint k = std::min(kMax, 3 * static_cast<uint>(_params.perplexity) + 1);
 
-    // CPU-side temporary memory for KNN output
-    // Though FAISS is CUDA-based, we move to CPU and back when switching to OpenGL
-    // instead of using interopability, which requires double the memory
-    std::vector<float> knnSquareDistances(n * k);
-    std::vector<faiss::Index::idx_t> knnIndices(n * k);
-    
-    // Progress bar for logging.... well, progress of the similarity computation
-    Logger::newl();
-    util::ProgressBar progressBar(prefix + "Computing...");
-    progressBar.setPostfix("Performing KNN search");
-    progressBar.setProgress(0.0f);
-
-    // 1.
-    // Compute approximate KNN of each point using FAISS
-    // Produce a fixed number (perplexity * 3 + 1) of neighbors
-    {
-      // Nr. of inverted lists used by FAISS. O(sqrt(n)) is apparently reasonable
-      // src: https://github.com/facebookresearch/faiss/issues/112
-      uint nLists = nListMult * static_cast<uint>(std::sqrt(n)); 
-
-      // Use a single GPU device. For now, just grab device 0 and pray
-      faiss::gpu::StandardGpuResources faissResources;
-      faiss::gpu::GpuIndexIVFFlatConfig faissConfig;
-      faissResources.setCudaMallocWarning(false); // please.... stop
-      faissConfig.device = 0;
-      faissConfig.indicesOptions = faiss::gpu::INDICES_32_BIT;
-      faissConfig.flatConfig.useFloat16 = true;
-        
-      // Construct search index
-      // Inverted file flat list gives accurate results at significant memory overhead.
-      faiss::gpu::GpuIndexIVFFlat faissIndex(
-        &faissResources,
-        d, 
-        nLists,
-        faiss::METRIC_L2, 
-        faissConfig
-      );
-      faissIndex.setNumProbes(nProbe);
-      faissIndex.train(n,  _dataPtr);
-      faissIndex.add(n,  _dataPtr);
-
-      // Perform actual search
-      // Store results device cide in cuKnnSquaredDistances, cuKnnIndices, as the
-      // rest of construction is performed on device as well.
-      faissIndex.search(
-        n,
-        _dataPtr,
-        k,
-        knnSquareDistances.data(),
-        knnIndices.data()
-      );
-      
-      // Tell FAISS to bugger off
-      faissIndex.reset();
-      faissIndex.reclaimMemory();
-    }
-    
     // Define temporary buffer object handles
     enum class TBufferType {
       eDistances,
@@ -167,15 +109,31 @@ namespace dh::sne {
     // Initialize temporary buffer objects
     {
       const std::vector<uint> zeroes(n * k, 0);
-      const std::vector<uint> indices(knnIndices.begin(), knnIndices.end());
-
       glCreateBuffers(tempBuffers.size(), tempBuffers.data());
-      glNamedBufferStorage(tempBuffers(TBufferType::eDistances), n * k * sizeof(float), knnSquareDistances.data(), 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors), n * k * sizeof(uint), indices.data(), 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eDistances), n * k * sizeof(float), nullptr, 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors), n * k * sizeof(uint), nullptr, 0);
       glNamedBufferStorage(tempBuffers(TBufferType::eSimilarities), n * k * sizeof(float), zeroes.data(), 0);
       glNamedBufferStorage(tempBuffers(TBufferType::eSizes), n * sizeof(uint), zeroes.data(), 0);
       glNamedBufferStorage(tempBuffers(TBufferType::eScan), n * sizeof(uint), nullptr, 0);
       glAssert();
+    }
+    
+    // Progress bar for logging steps of the similarity computation
+    Logger::newl();
+    util::ProgressBar progressBar(prefix + "Computing...");
+    progressBar.setPostfix("Performing KNN search");
+    progressBar.setProgress(0.0f);
+
+    // 1.
+    // Compute approximate KNN of each point, delegated to FAISS
+    // Produces a fixed number of neighbors
+    {
+      util::KNN knn(
+        _dataPtr,
+        tempBuffers(TBufferType::eDistances),
+        tempBuffers(TBufferType::eNeighbors),
+        n, k, d);
+      knn.comp();
     }
 
     // Update progress bar
@@ -330,13 +288,13 @@ namespace dh::sne {
     progressBar.setPostfix("Done!");
     progressBar.setProgress(1.0f);
 
-    // Output memory use of OpenGL buffer objects
-    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-    Logger::curt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
-
     // Delete temporary buffers
     glDeleteBuffers(tempBuffers.size(), tempBuffers.data());
     glAssert();
+
+    // Output memory use of persistent OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::curt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
 
     // Poll twice so front/back timers are swapped
     glPollTimers(_timers.size(), _timers.data());
