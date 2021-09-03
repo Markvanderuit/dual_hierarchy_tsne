@@ -13,20 +13,22 @@ Finally, it scales to 3D embeddings as well.
 
 For full details and performance comparisons, check out our recent [paper](...) "*An Efficient Dual-Hierarchy t-SNE Minimization*"!
 
-## Compilation
-First, ensure your system satisfies the following requirements:
-* Compiler: C++17 support is required; we've tested with [MSVC](https://visualstudio.microsoft.com/) 19.6, [CLANG](https://clang.llvm.org/) 12, and [GCC](https://gcc.gnu.org/) 11.1 on Windows and Ubuntu.
-* [CMake](https://cmake.org/): 3.21 or later is required.
-* [CUDA](https://developer.nvidia.com/cuda-toolkit): 10.0 or later is required; other versions may work but are untested.
-* [GLFW](https://www.glfw.org): while this is bundled through vcpkg, some Unix systems require development packages for it to work (e.g. `sudo apt install xorg-dev` for X11 Ubuntu). Please refer to their excellent [compilation page](https://www.glfw.org/docs/3.3/compile.html) or vcpkg's error messages if you run into issues!
+## Prerequisites
+Ensure your system satisfies the following requirements:
+* A compiler with C++17 support. Tested with MSVC 19.6, Clang 12, GCC 11.1
+* CMake 3.21 or later.
+* CUDA 10 or later.
 
-Next, clone the repository and include the required submodules.
+All other dependencies are bundled through vcpkg. Note that, for [GLFW](https://www.glfw.org), some Unix systems may require X11/Wayland development packages to be installed. Vcpkg should provide sufficient information for you to install these, but if you run into issues, refer to the [GLFW compilation page](https://www.glfw.org/docs/3.3/compile.html).
+
+## Compilation
+First, clone the repository and include the required submodules.
 
 ```bash
 git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
 ```
 
-Finally, you should be able to generate a CMake project and compile it. For example, on an arbitrary Unix system:
+Next, you should be able to generate a project and compile it. For example, by invoking CMake:
 
 ```bash
   mkdir dual_hierarchy_tsne/build
@@ -35,12 +37,11 @@ Finally, you should be able to generate a CMake project and compile it. For exam
   make
 ```
 
-During CMake configuration, [vcpkg](https://github.com/microsoft/vcpkg) pulls in a number of third-party dependencies. If you experience unexpected issues with any of these, please refer to their respective build instructions for troubleshooting.
-
 ## Usage
 
-### Library
-The CMake project provides three library build targets: *utils*, *vis*, and *sne*. The *utils* library contains utility and boilerplate code. The *vis* library contains rendering code for the demo application discussed below. The *sne* library contains the only parts that really matter.
+**Library**
+
+The CMake project provides three library build targets: *utils*, *vis*, and *sne*. The *utils* library contains utility and boilerplate code. The optional *vis* library contains rendering code for the demo application discussed below. The *sne* library contains the only parts that really matter.
 
 Below is a minimal example showing its usage to minimize a small dataset:
 
@@ -85,11 +86,12 @@ int main() {
 }
 ```
 
-### Demo application
-The demo application (build target: `sne_cmd`, file: `src/app/sne_cmd.cpp`) provides a command-line application which can run t-SNE on arbitrary datasets, if they are provided as raw binary data. It additionally allows for starting a tiny renderer (the `vis` library) that shows the embedding, minimization, and the used dual-hierarchies.
+**Demo application**
 
+The demo (build target: `sne_cmd`, file: `src/app/sne_cmd.cpp`) provides a command-line application which can run t-SNE on arbitrary datasets, if they are provided as raw binary data. It additionally allows for starting a tiny renderer (the `vis` library) that shows the embedding, minimization, and the used dual-hierarchies.
 
-### Datasets
+**Datasets**
+
 ...
 
 ## Citation
