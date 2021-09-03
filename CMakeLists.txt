@@ -1,18 +1,22 @@
 cmake_minimum_required (VERSION 3.21)
 
 # Specify project options
-option(BUILD_PYTHON "Build python integration if ON" OFF)
+option(BUILD_PYTHON "Build python integration if ON" ON)
 option(BUILD_VIS "Build visualization library if ON" ON)
 option(BUILD_DEMO "Build demo application if ON; requires BUILD_VIS" ON)
 
+# I prefer cleaning toilets to dealing with Faiss/Lapack/Openblas dynamic linking on msvc. UUUUGH.
+# set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE BOOL "No. Just No.")
+# set(VCPKG_HOST_TRIPLET "x64-windows-static" CACHE BOOL "No. Just No. V2.")
+
 # Tell vcpkg to include required features depending on project options
-if (BUILD_PYTHON)
+if(BUILD_PYTHON)
   list(APPEND VCPKG_MANIFEST_FEATURES "python")
 endif()
-if (BUILD_VIS OR BUILD_DEMO)
+if(BUILD_VIS OR BUILD_DEMO)
   list(APPEND VCPKG_MANIFEST_FEATURES "vis")
 endif()
-if (BUILD_DEMO)
+if(BUILD_DEMO)
   list(APPEND VCPKG_MANIFEST_FEATURES "demo")
 endif()
 
@@ -27,7 +31,10 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
 endif()
 
 # Specify C++/CUDA project
-project(DualHierarchytSNE LANGUAGES CXX CUDA)
+project(DH-SNE LANGUAGES CXX CUDA)
+
+# Include cuda toolkit for linking against CUBlas
+find_package(CUDAToolkit REQUIRED)
 
 # Include third party libraries provided through vcpkg
 find_package(date CONFIG REQUIRED)
@@ -38,13 +45,13 @@ find_package(faiss CONFIG REQUIRED)
 find_package(indicators CONFIG REQUIRED)
 
 # Include optional third party libraries provided through vcpkg
-if (BUILD_PYTHON)
+if(BUILD_PYTHON)
   find_package(pybind11 CONFIG REQUIRED)
 endif()
-if (BUILD_VIS OR BUILD_DEMO)
+if(BUILD_VIS OR BUILD_DEMO)
   find_package(imgui CONFIG REQUIRED)
 endif()
-if (BUILD_DEMO)
+if(BUILD_DEMO)
   find_package(cxxopts CONFIG REQUIRED)
 endif()
 
@@ -54,9 +61,12 @@ add_subdirectory(third_party/resource_embed)
 
 # Define function to add a library while recursively globbing its files from a specified directory
 function(add_library_recurse target srcDir inclDir)
+# file(GLOB_RECURSE includes ${inclDir}/*.hpp ${inclDir}/*.cuh)
   file(GLOB_RECURSE srcs ${srcDir}/*.cpp  ${srcDir}/*.cu)
-  file(GLOB_RECURSE includes ${inclDir}/*.hpp ${inclDir}/*.cuh)
-  add_library(${target} ${includes} ${srcs})
+  message("Added library ${target} using sources ${srcs}")
+  add_library(${target} ${srcs})
+  target_compile_features(${target} PRIVATE cxx_std_17)
+  target_include_directories(${target} PUBLIC include)
 endfunction()
 
 # Gather shader resources 
@@ -64,29 +74,35 @@ rsrcs_embed(shaders ${CMAKE_SOURCE_DIR}/resources/shaders)
 
 # Specify util library
 add_library_recurse(util ${CMAKE_SOURCE_DIR}/src/util ${CMAKE_SOURCE_DIR}/include/dh/util)
-target_compile_features(util PRIVATE cxx_std_17)
-target_include_directories(util PUBLIC include)
 target_link_libraries(util PUBLIC cub glad::glad glfw glm::glm indicators::indicators date::date faiss)
 
 # Specify sne library
 add_library_recurse(sne ${CMAKE_SOURCE_DIR}/src/sne ${CMAKE_SOURCE_DIR}/include/dh/sne)
-target_compile_features(sne PRIVATE cxx_std_17)
-target_include_directories(sne PUBLIC include)
-target_sources(sne PRIVATE ${shaders})
 target_link_libraries(sne PRIVATE util ResourceEmbed)
+target_sources(sne PRIVATE ${shaders}) # Add shaders to sne library
 
 # Specify optional vis library
-if (BUILD_VIS OR BUILD_DEMO)
+if(BUILD_VIS OR BUILD_DEMO)
   add_library_recurse(vis ${CMAKE_SOURCE_DIR}/src/vis ${CMAKE_SOURCE_DIR}/include/dh/vis)
-  target_compile_features(vis PRIVATE cxx_std_17)
-  target_include_directories(vis PUBLIC include)
-  target_sources(vis PRIVATE ${shaders})
-  target_link_libraries(vis PRIVATE imgui::imgui util  sne  ResourceEmbed)
+  target_link_libraries(vis PRIVATE imgui::imgui util ResourceEmbed)
+  target_sources(vis PRIVATE ${shaders}) # Add shaders to vis library
+  target_link_libraries(sne PUBLIC vis) # Link vis library against sne as it is available
 endif()
 
 # Specify optional sne_cmd demo application
-if (BUILD_DEMO AND BUILD_VIS)
+if(BUILD_VIS AND BUILD_DEMO)
   add_executable(sne_cmd ${CMAKE_SOURCE_DIR}/src/app/sne_cmd.cpp)
-  target_compile_features(sne_cmd PRIVATE cxx_std_17)
   target_link_libraries(sne_cmd PRIVATE cxxopts::cxxopts util sne vis)
+  target_compile_features(sne_cmd PRIVATE cxx_std_17)
+endif()
+
+# Specify optional python bindings
+if(BUILD_PYTHON)
+  pybind11_add_module(python_wrapper
+    ${CMAKE_SOURCE_DIR}/src/python/src/tsne.cpp
+    ${CMAKE_SOURCE_DIR}/src/python/src/bindings.cpp
+  )
+  target_compile_features(python_wrapper PRIVATE cxx_std_17)
+  target_include_directories(python_wrapper PRIVATE ${CMAKE_SOURCE_DIR}/src/python/include)
+  target_link_libraries(python_wrapper PRIVATE util sne vis pybind11::module)
 endif()
