@@ -38,7 +38,7 @@ namespace dh::sne {
   public:
     // Constr/destr
     Similarities();
-    Similarities(const std::vector<float>& data, Params params);
+    Similarities(const float * dataPtr, Params params);
     ~Similarities();
 
     // Copy constr/assignment is explicitly deleted

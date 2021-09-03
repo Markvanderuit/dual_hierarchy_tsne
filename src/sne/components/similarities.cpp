@@ -45,8 +45,8 @@ namespace dh::sne {
     // ...
   }
 
-  Similarities::Similarities(const std::vector<float>& data, Params params)
-  : _isInit(false), _dataPtr(data.data()), _params(params) {
+  Similarities::Similarities(const float * dataPtr, Params params)
+  : _isInit(false), _dataPtr(dataPtr), _params(params) {
     Logger::newt() << prefix << "Initializing...";
 
     // Initialize shader programs

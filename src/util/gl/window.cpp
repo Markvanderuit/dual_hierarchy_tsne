@@ -196,6 +196,11 @@ namespace dh::util {
     glfwSwapInterval(enabled ? 1 : 0);
   }
 
+  bool GLWindow::hasContext()
+  {
+    return glfwGetCurrentContext() != nullptr;
+  }
+
   GLWindow* GLWindow::currentWindow() 
   {
     return _currentWindow;

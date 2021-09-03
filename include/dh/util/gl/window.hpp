@@ -107,6 +107,7 @@ namespace dh::util {
     glm::ivec2 size() const;
 
     // Static access
+    static bool hasContext();
     static GLWindow *currentWindow();
 
     // Template window constructors

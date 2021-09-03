@@ -88,4 +88,4 @@ namespace dh::util {
       swap(a._locations, b._locations);
     }
   };
-} // dh
+} // dh::util

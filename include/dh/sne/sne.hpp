@@ -39,6 +39,7 @@ namespace dh::sne {
     // Constr/destr
     SNE();
     SNE(const std::vector<float>& data, Params params);
+    SNE(const float * dataPtr, Params params);
     ~SNE();
 
     // Copy constr/assignment is explicitly deleted (no copying underlying handles)
