@@ -51,3 +51,12 @@
  */
 #define DH_LOG_TIMESTAMPS       // Prepend UTC timestmaps to every log as prefix
 #define DH_LOG_PREFIX_WIDTH 0   // Have a minimum padding for every log's prefix
+
+
+/**
+ * Settings for visualization library and demo
+ */
+#define DH_ENABLE_VIS_IMGUI               // Include ImGui based gui components
+#define DH_ENABLE_VIS_EMBEDDING           // Include embedding render task
+#define DH_ENABLE_VIS_EMBEDDING_HIERARCHY // Include embedding hierarchy render task
+#define DH_ENABLE_VIS_FIELD_HIERARCHY     // Include field hierarchy render task

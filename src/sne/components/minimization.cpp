@@ -26,6 +26,7 @@
 #include <random>
 #include <vector>
 #include <resource_embed/resource_embed.hpp>
+#include "dh/constants.hpp"
 #include "dh/sne/components/minimization.hpp"
 #include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
@@ -131,10 +132,12 @@ namespace dh::sne {
     // Setup field subcomponent
     _field = Field<D>(buffers(), _params);
 
+#ifdef DH_ENABLE_VIS_EMBEDDING
     // Setup render task
     if (auto& queue = vis::RenderQueue::instance(); queue.isInit()) {
       queue.emplace(vis::EmbeddingRenderTask<D>(buffers(), _params, 0));
     }
+#endif // DH_ENABLE_VIS_EMBEDDING
 
     _isInit = true;
   }

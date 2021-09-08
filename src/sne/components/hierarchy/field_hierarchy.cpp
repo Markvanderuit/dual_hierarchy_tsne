@@ -23,6 +23,7 @@
  */
 
 #include <resource_embed/resource_embed.hpp>
+#include "dh/constants.hpp"
 #include "dh/sne/components/hierarchy/field_hierarchy.hpp"
 #include "dh/vis/components/field_hierarchy_render_task.hpp"
 #include "dh/util/logger.hpp"
@@ -71,10 +72,12 @@ namespace dh::sne {
       glAssert();
     }
 
+#ifdef DH_ENABLE_VIS_FIELD_HIERARCHY
     // Setup render task
     if (auto& queue = vis::RenderQueue::instance(); queue.isInit()) {
       queue.emplace(vis::FieldHierarchyRenderTask<D>(buffers(), _params, 2));
     }
+#endif // DH_ENABLE_VIS_FIELD_HIERARCHY
 
     // Output memory use of OpenGL buffer objects
     const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
