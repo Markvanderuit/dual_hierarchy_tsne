@@ -143,7 +143,9 @@ namespace dh::vis {
     ImGui::NewFrame();
 
     // Add ImGui components
+#ifdef DH_ENABLE_VIS_IMGUI
     drawImGuiWindow();
+#endif // DH_ENABLE_VIS_IMGUI
 
     // Model/view/proj matrices. 3D view matrix is provided by trackball
     glm::mat4 proj, model_view;

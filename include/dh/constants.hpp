@@ -56,7 +56,7 @@
 /**
  * Settings for visualization library and demo
  */
-#define DH_ENABLE_VIS_IMGUI               // Include ImGui based gui components
+// #define DH_ENABLE_VIS_IMGUI               // Include ImGui based gui components
 #define DH_ENABLE_VIS_EMBEDDING           // Include embedding render task
-#define DH_ENABLE_VIS_EMBEDDING_HIERARCHY // Include embedding hierarchy render task
-#define DH_ENABLE_VIS_FIELD_HIERARCHY     // Include field hierarchy render task
+// #define DH_ENABLE_VIS_EMBEDDING_HIERARCHY // Include embedding hierarchy render task
+// #define DH_ENABLE_VIS_FIELD_HIERARCHY     // Include field hierarchy render task

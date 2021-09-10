@@ -94,15 +94,9 @@ if(BUILD_VIS AND BUILD_DEMO)
   add_executable(sne_cmd ${CMAKE_SOURCE_DIR}/src/app/sne_cmd.cpp)
   target_link_libraries(sne_cmd PRIVATE cxxopts::cxxopts util sne vis)
   target_compile_features(sne_cmd PRIVATE cxx_std_17)
-endif()
 
-# Specify optional python bindings
-if(BUILD_PYTHON)
-  pybind11_add_module(python_wrapper
-    ${CMAKE_SOURCE_DIR}/src/python/src/tsne.cpp
-    ${CMAKE_SOURCE_DIR}/src/python/src/bindings.cpp
-  )
-  target_compile_features(python_wrapper PRIVATE cxx_std_17)
-  target_include_directories(python_wrapper PRIVATE ${CMAKE_SOURCE_DIR}/src/python/include)
-  target_link_libraries(python_wrapper PRIVATE util sne vis pybind11::module)
+  # TODO Remove, only for recording
+  add_executable(recording_cmd ${CMAKE_SOURCE_DIR}/src/app/recording_cmd.cpp)
+  target_link_libraries(recording_cmd PRIVATE cxxopts::cxxopts util sne vis)
+  target_compile_features(recording_cmd PRIVATE cxx_std_17)
 endif()

@@ -57,11 +57,13 @@ namespace dh::sne {
     float minimumGain = 0.1f;
     float eta = 200.f;
 
+    // Original params
     // float momentum = 0.2f;
     // float finalMomentum = 0.5f;
     // float exaggerationFactor = 4.0f;
 
-    // TODO COMPARE TO CUDA-SNE for simplification
+    // TODO Compare to TSNE-CUDA for simplification
+    // Params used by TSNE-CUDA, much better on *some* datasets
     float momentum = 0.5f;
     float finalMomentum = 0.8f;
     float exaggerationFactor = 12.0f;

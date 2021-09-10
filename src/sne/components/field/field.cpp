@@ -33,7 +33,7 @@
 
 namespace dh::sne {
   // Constants
-  constexpr uint hierarchyRebuildPadding = 50;
+  constexpr uint hierarchyRebuildPadding = 150;
   constexpr uint hierarchyRebuildIterations = 4;
   constexpr int maxDualHierarchyLvlDiff = 4;
   
