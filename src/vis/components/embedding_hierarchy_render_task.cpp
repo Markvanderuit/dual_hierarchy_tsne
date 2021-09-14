@@ -79,6 +79,9 @@ namespace dh::vis {
     _lineOpacity(1.0),
     _selectLvl(false),
     _selectedLvl(1) {
+    // Enable/disable render task by default
+    enable = DH_VIS_EMBEDDING_HIERARCHY_INIT;
+
     // Initialize shader program 
     {
       if constexpr (D == 2) {

@@ -59,6 +59,9 @@ namespace dh::vis {
     _drawLabels(true),
     _pointRadius(0.001f),
     _pointOpacity(1.0f) {
+    // Enable/disable render task by default
+    enable = DH_VIS_EMBEDDING_INIT;
+
     // Initialize shader program
     {
       if constexpr (D == 2) {

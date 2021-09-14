@@ -50,13 +50,16 @@
  * Settings for anything handled by dh::util::Logger
  */
 #define DH_LOG_TIMESTAMPS       // Prepend UTC timestmaps to every log as prefix
-#define DH_LOG_PREFIX_WIDTH 0   // Have a minimum padding for every log's prefix
+#define DH_LOG_PREFIX_WIDTH 20   // Have a minimum padding for every log's prefix
 
 
 /**
  * Settings for visualization library and demo
  */
-// #define DH_ENABLE_VIS_IMGUI               // Include ImGui based gui components
-#define DH_ENABLE_VIS_EMBEDDING           // Include embedding render task
-// #define DH_ENABLE_VIS_EMBEDDING_HIERARCHY // Include embedding hierarchy render task
-// #define DH_ENABLE_VIS_FIELD_HIERARCHY     // Include field hierarchy render task
+#define DH_ENABLE_VIS_IMGUI                   // Include ImGui based gui components
+#define DH_ENABLE_VIS_EMBEDDING               // Include embedding render task
+#define DH_ENABLE_VIS_EMBEDDING_HIERARCHY     // Include embedding hierarchy render task
+#define DH_ENABLE_VIS_FIELD_HIERARCHY         // Include field hierarchy render task
+#define DH_VIS_EMBEDDING_INIT true            // Enable embedding render task by default
+#define DH_VIS_EMBEDDING_HIERARCHY_INIT false // Enable embedding hierarchy render task by default
+#define DH_VIS_FIELD_HIERARCHY_INIT false     // Enable field hierarchy render task by default
