@@ -1,18 +1,10 @@
 cmake_minimum_required (VERSION 3.21)
 
 # Specify project options
-option(BUILD_PYTHON "Build python integration if ON" ON)
 option(BUILD_VIS "Build visualization library if ON" ON)
 option(BUILD_DEMO "Build demo application if ON; requires BUILD_VIS" ON)
 
-# I prefer cleaning toilets to dealing with Faiss/Lapack/Openblas dynamic linking on msvc. UUUUGH.
-# set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE BOOL "No. Just No.")
-# set(VCPKG_HOST_TRIPLET "x64-windows-static" CACHE BOOL "No. Just No. V2.")
-
 # Tell vcpkg to include required features depending on project options
-if(BUILD_PYTHON)
-  list(APPEND VCPKG_MANIFEST_FEATURES "python")
-endif()
 if(BUILD_VIS OR BUILD_DEMO)
   list(APPEND VCPKG_MANIFEST_FEATURES "vis")
 endif()
@@ -45,9 +37,6 @@ find_package(faiss CONFIG REQUIRED)
 find_package(indicators CONFIG REQUIRED)
 
 # Include optional third party libraries provided through vcpkg
-if(BUILD_PYTHON)
-  find_package(pybind11 CONFIG REQUIRED)
-endif()
 if(BUILD_VIS OR BUILD_DEMO)
   find_package(imgui CONFIG REQUIRED)
 endif()
@@ -61,7 +50,6 @@ add_subdirectory(third_party/resource_embed)
 
 # Define function to add a library while recursively globbing its files from a specified directory
 function(add_library_recurse target srcDir inclDir)
-# file(GLOB_RECURSE includes ${inclDir}/*.hpp ${inclDir}/*.cuh)
   file(GLOB_RECURSE srcs ${srcDir}/*.cpp  ${srcDir}/*.cu)
   message("Added library ${target} using sources ${srcs}")
   add_library(${target} ${srcs})

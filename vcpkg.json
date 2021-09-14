@@ -25,12 +25,6 @@
         }
       ]
     },
-    "python": {
-      "description": "Build python integration",
-      "dependencies": [
-        "pybind11"
-      ]
-    },
     "demo": {
       "description": "Build demo application",
       "dependencies": [
