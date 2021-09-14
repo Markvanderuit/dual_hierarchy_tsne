@@ -45,4 +45,40 @@ namespace dh::util {
     }
     return size;
   }
+
+  inline
+  GLuint glGetTextureSize(GLuint handle) {
+    GLint size = 0;
+
+    // Determine resolution
+    {
+      GLint w, h, d;
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_WIDTH, &w);
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_HEIGHT, &h);
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_DEPTH, &d);
+      size = w * h * d;
+    }
+
+    // Determine component size
+    if (size != 0) {
+      GLint r, g, b, a, d;
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_RED_SIZE, &r);
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_GREEN_SIZE, &g);
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_BLUE_SIZE, &b);
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_ALPHA_SIZE, &a);
+      glGetTextureLevelParameteriv(handle, 0, GL_TEXTURE_DEPTH_SIZE, &d);
+      size *= (r + g + b + a + d);
+    }
+
+    return size;
+  }
+
+  inline
+  GLuint glGetTexturesSize(GLsizei n, GLuint* handles) {
+    GLuint size = 0;
+    for (GLsizei i = 0; i < n; ++i) {
+      size += glGetTextureSize(handles[i]);
+    }
+    return size;
+  }
 } // dh::util
