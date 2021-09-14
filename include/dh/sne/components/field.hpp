@@ -179,6 +179,7 @@ namespace dh::sne {
     }
     bool isInit() const { return _isInit; }
     uvec size() const { return _size; }
+    size_t memSize() const;
     
     // std::swap impl
     friend void swap(Field& a, Field& b) noexcept {

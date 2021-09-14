@@ -138,6 +138,11 @@ namespace dh::sne {
     glAssert();
   }
 
+  template <uint D>
+  size_t Field<D>::memSize() const {
+    return util::glGetTexturesSize(_textures.size(), (GLuint *) _textures.data());
+  }
+
   // Template instantiations for 2/3 dimensions
   template Field<2>::Field();
   template Field<2>::Field(Field<2>&& other) noexcept;
@@ -145,10 +150,12 @@ namespace dh::sne {
   template Field<2>& Field<2>::operator=(Field<2>&& other) noexcept;
   template void Field<2>::comp(util::AlignedVec<2, uint> size, uint iteration);
   template void Field<2>::queryField();
+  template size_t Field<2>::memSize() const;
   template Field<3>::Field();
   template Field<3>::Field(Field<3>&& other) noexcept;
   template Field<3>::~Field();
   template Field<3>& Field<3>::operator=(Field<3>&& other) noexcept;
   template void Field<3>::comp(util::AlignedVec<3, uint> size, uint iteration);
   template void Field<3>::queryField();
+  template size_t Field<3>::memSize() const;
 } // dh::sne

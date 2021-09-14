@@ -126,8 +126,7 @@ namespace dh::sne {
 
     // Output memory use of OpenGL buffer objects
     const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-    Logger::rest() << prefix << "Initialized";
-    Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+    Logger::rest() << prefix << "Initialized, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
 
     // Setup field subcomponent
     _field = Field<D>(buffers(), _params);
@@ -387,9 +386,19 @@ namespace dh::sne {
       Logger::newl();
     }
     if ((++_iteration % 100) == 0) {
+      // Assemble string to print field's dimensions and memory usage
+      std::stringstream fieldStr;
+      {
+        const uvec fieldSize = _field.size();
+        fieldStr << fieldSize[0] << "x" << fieldSize[1];
+        if constexpr (D == 3) {
+          fieldStr << "x" << fieldSize[2];
+        }
+        fieldStr << " (" << (static_cast<float>(_field.memSize()) / 1'048'576.0f) << " mb)";
+      }
+      
       const std::string postfix = (_iteration < _params.iterations)
-                                ? "iter: " + std::to_string(_iteration) 
-                                + ", field: " + util::to_string(_field.size())
+                                ? "iter: " + std::to_string(_iteration) + ", field: " + fieldStr.str()
                                 : "Done!";
       util::ProgressBar progressBar(prefix + "Computing...", postfix);
       progressBar.setProgress(static_cast<float>(_iteration) / static_cast<float>(_params.iterations));

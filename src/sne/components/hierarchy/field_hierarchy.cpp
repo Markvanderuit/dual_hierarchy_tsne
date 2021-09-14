@@ -81,8 +81,7 @@ namespace dh::sne {
 
     // Output memory use of OpenGL buffer objects
     const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-    Logger::rest() << prefix << "Initialized";
-    Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+    Logger::rest() << prefix << "Initialized, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
 
     _isInit = true;
   }
@@ -116,7 +115,7 @@ namespace dh::sne {
     // 1.
     // Ensure available memory accomodates the new layout; expand if the field has grown too large 
     if (rebuild && _constrLayout.nNodes < _compLayout.nNodes) {
-      Logger::newt() << prefix << "Expanding field hierarchy";
+      Logger::newt() << prefix << "Expanding hierarchy";
 
       // Compute new layout as nearest larger power of two
       const uvec newSize = uvec(dh::util::max(vec(glm::pow(vec(2), glm::ceil(glm::log(vec(_compLayout.size)) / vec(glm::log(2)))))));  
@@ -132,7 +131,7 @@ namespace dh::sne {
 
       // Report buffer storage size
       const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-      Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+      Logger::rest() << prefix << "Expanded hierarchy, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
       Logger::newl();
     }
 
