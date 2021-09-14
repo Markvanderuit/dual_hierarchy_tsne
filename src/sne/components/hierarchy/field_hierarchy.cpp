@@ -133,6 +133,7 @@ namespace dh::sne {
       // Report buffer storage size
       const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
       Logger::newt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+      Logger::newl();
     }
 
     // Clear hierarchy data

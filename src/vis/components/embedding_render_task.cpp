@@ -57,7 +57,7 @@ namespace dh::vis {
     _params(params),
     _canDrawLabels(false),
     _drawLabels(true),
-    _pointRadius(D == 2 ? 0.002f : 0.002f),
+    _pointRadius(0.001f),
     _pointOpacity(1.0f) {
     // Initialize shader program
     {
@@ -165,7 +165,7 @@ namespace dh::vis {
         ImGui::Checkbox("Use label colors", &_drawLabels);
       }
       ImGui::SliderFloat("Point opacity", &_pointOpacity, 0.0f, 1.0f);
-      ImGui::SliderFloat("Point radius", &_pointRadius, 0.001f, 0.01f, "%.4f");
+      ImGui::SliderFloat("Point radius", &_pointRadius, 0.0001f, 0.01f, "%.4f");
       ImGui::Spacing();
     }
   }
