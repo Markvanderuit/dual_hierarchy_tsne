@@ -142,8 +142,8 @@ namespace dh::sne {
 
     enum class DualHierarchyState {
       eDualSubdivide,
-      eDualSubdivideFinal,
-      ePushRest,
+      eDualSubdivideLast,
+      eSingleSubdivideFirst,
       eSingleSubdivide
     };
 
