@@ -59,9 +59,6 @@ namespace dh::sne {
 
     // 1. Perform dual-hierarchy traversal
     {
-      // auto& timer = _timers(TimerType::eField);
-      // timer.tick();
-
       // Set uniforms (dual-subdivision program)
       auto& dsProgram = _programs(ProgramType::eDualHierarchyFieldIterativeComp);
       dsProgram.template uniform<uint>("eLvls", eLayout.nLvls);
@@ -77,9 +74,9 @@ namespace dh::sne {
 
       // Set uniforms (dispatch)
       auto& dispatchProgram = _programs(ProgramType::eDispatch);
-      dispatchProgram.template uniform<uint>("div", 256 / knode); 
+      dispatchProgram.template uniform<uint>("div", 256 / knode);
 
-      // Set buffer bindings reused throughout traversal
+      // Set buffer bindings which are reused throughout traversal
       glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, _buffers(BufferType::eDispatch));
       // Buffers 0-1 are continuously rebound
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, eBuffers.embeddingSorted);
@@ -101,27 +98,30 @@ namespace dh::sne {
       // Track traversal state during iteration
       DualHierarchyState state = DualHierarchyState::eDualSubdivide;
 
+      // Perform traversal level by level until leaves are reached
       for (uint i = fieldHierarchyInitLvl; i <= nrIters; ++i) {
         // Update traversal state
         if (state == DualHierarchyState::eDualSubdivide && i == progrIter) {
-          state = DualHierarchyState::eDualSubdivideFinal;
-        } else if (state == DualHierarchyState::eDualSubdivideFinal) {
-          state = DualHierarchyState::ePushRest;
-        } else if (state == DualHierarchyState::ePushRest) {
+          state = DualHierarchyState::eDualSubdivideLast;
+        } else if (state == DualHierarchyState::eDualSubdivideLast) {
+          state = DualHierarchyState::eSingleSubdivideFirst;
+        } else if (state == DualHierarchyState::eSingleSubdivideFirst) {
           state = DualHierarchyState::eSingleSubdivide;
         }
 
-        // Select the correct input/output queues depending on traversal state
-        GLuint iQueue = (state == DualHierarchyState::ePushRest)
-                      ? _buffers(BufferType::ePairsRestQueue) : _buffers(BufferType::ePairsInputQueue);
-        GLuint iQueueHead = (state == DualHierarchyState::ePushRest)
-                      ? _buffers(BufferType::ePairsRestQueueHead) : _buffers(BufferType::ePairsInputQueueHead);
-        GLuint oQueue = _buffers(BufferType::ePairsOutputQueue);
-        GLuint oQueueHead = _buffers(BufferType::ePairsOutputQueueHead);
+        // Select the correct input queue depending on traversal state
+        // * normally, use the current input queue
+        // * when state is eSingleSubdivideFirst, use the accumulated rest queue instead
+        GLuint iQueue = (state == DualHierarchyState::eSingleSubdivideFirst)
+                      ? _buffers(BufferType::ePairsRestQueue) 
+                      : _buffers(BufferType::ePairsInputQueue);
+        GLuint iQueueHead = (state == DualHierarchyState::eSingleSubdivideFirst)
+                      ? _buffers(BufferType::ePairsRestQueueHead) 
+                      : _buffers(BufferType::ePairsInputQueueHead);
 
         // Reset output queue (set head to 0)
-        if (state != DualHierarchyState::ePushRest) {
-          glClearNamedBufferSubData(oQueueHead,
+        if (state != DualHierarchyState::eSingleSubdivideFirst) {
+          glClearNamedBufferSubData(_buffers(BufferType::ePairsOutputQueueHead),
             GL_R32UI, 0, sizeof(uint), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
         }
 
@@ -139,7 +139,7 @@ namespace dh::sne {
         // Perform one step down the dual hierarchy
         {
           // Bind program either for dual subdivision, or single subdivision
-          if (state == DualHierarchyState::eDualSubdivide || state == DualHierarchyState::eDualSubdivideFinal) {
+          if (state == DualHierarchyState::eDualSubdivide || state == DualHierarchyState::eDualSubdivideLast) {
             dsProgram.bind();
             dsProgram.template uniform<uint>("dhLvl", i + 1);
           } else {
@@ -153,8 +153,8 @@ namespace dh::sne {
           // 2-4 remain the same throughout traversal
           glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, iQueue);
           glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, iQueueHead);
-          glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, oQueue);
-          glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, oQueueHead);
+          glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, _buffers(BufferType::ePairsOutputQueue));
+          glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, _buffers(BufferType::ePairsOutputQueueHead));
           // 9-13 remain the same throughout traversal
 
           // Dispatch shader based on indirect dispatch buffer
@@ -163,21 +163,15 @@ namespace dh::sne {
         }
 
         // Swap input and output queues (by swapping their handles)
-        if (state != DualHierarchyState::eDualSubdivideFinal) {
+        if (state != DualHierarchyState::eDualSubdivideLast) {
           std::swap(_buffers(BufferType::ePairsInputQueue), _buffers(BufferType::ePairsOutputQueue));
           std::swap(_buffers(BufferType::ePairsInputQueueHead), _buffers(BufferType::ePairsOutputQueueHead));
         }
       }
-
-      // timer.tock();
-      // glAssert();
     }    
 
     // 2. Compute remaining large leaves of the dual hierarchy
     {
-      // auto& timer = _timers(TimerType::eDualHierarchyFieldLeafComp);
-      // timer.tick();
-
       // Divide leaf queue head by workgroup size for use as indirect dispatch buffer
       {
         auto& program = _programs(ProgramType::eDispatch);
@@ -209,16 +203,10 @@ namespace dh::sne {
       // Dispatch shader based on indirect dispatch buffer
       glDispatchComputeIndirect(0);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-      // timer.tock();
-      // glAssert();
     }
 
     // 3. Accumulate sparsely computed values in the field hierarchy into a gpu texture
     {
-      // auto& timer = _timers(TimerType::eDualHierarchyFieldAccumulateComp);
-      // timer.tick();
-      
       // Divide pixel queue head by workgroup size for use as indirect dispatch buffer
       {
         auto &program = _programs(ProgramType::eDispatch);
@@ -250,9 +238,6 @@ namespace dh::sne {
       // Dispatch shader based on indirect dispatch buffer
       glDispatchComputeIndirect(0);
       glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
-
-      // timer.tock();
-      // glAssert();
     }
     
     timer.tock();

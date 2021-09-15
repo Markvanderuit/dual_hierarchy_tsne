@@ -44,7 +44,7 @@ namespace dh::sne {
 
     // Set uniforms
     program.template uniform<uint>("nLvls", layout.nLvls);
-    program.template uniform<uvec>("textureSize", _size);
+    program.template uniform<uint, D>("textureSize", _size);
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffers.node1);
@@ -92,7 +92,7 @@ namespace dh::sne {
     // Set uniforms
     program.template uniform<uint>("nLvls", layout.nLvls);
     program.template uniform<float>("theta2", _params.singleHierarchyTheta * _params.singleHierarchyTheta);
-    program.template uniform<uvec>("textureSize", _size);
+    program.template uniform<uint, D>("textureSize", _size);
     program.template uniform<bool>("doBhCrit", true);
     
     // Bind buffers

@@ -145,8 +145,8 @@ namespace dh::vis {
     _program.bind();
 
     // Set uniforms
-    _program.template uniform<glm::mat4>("model_view", model_view);
-    _program.template uniform<glm::mat4>("proj", proj);
+    _program.template uniform<float, 4, 4>("model_view", model_view);
+    _program.template uniform<float, 4, 4>("proj", proj);
     _program.template uniform<float>("pointOpacity", _pointOpacity);
     _program.template uniform<float>("pointRadius", _pointRadius);
     _program.template uniform<bool>("drawLabels", _canDrawLabels && _drawLabels);

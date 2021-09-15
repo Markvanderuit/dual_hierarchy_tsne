@@ -366,7 +366,7 @@ namespace dh::sne {
       // Set uniforms
       program.template uniform<uint>("nPoints", _params.n);
       program.template uniform<float>("scaling", scaling);
-      program.template uniform<vec>("center", boundsCenter);
+      program.template uniform<float, D>("center", boundsCenter);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));

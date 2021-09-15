@@ -294,7 +294,7 @@ namespace dh::sne {
 
     // Output memory use of persistent OpenGL buffer objects
     const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-    Logger::curt() << prefix << "Allocated buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+    Logger::curt() << prefix << "Completed, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
 
     // Poll twice so front/back timers are swapped
     glPollTimers(_timers.size(), _timers.data());

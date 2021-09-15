@@ -164,7 +164,7 @@ namespace dh::vis {
     _program.bind();
 
     // Set uniforms
-    _program.template uniform<glm::mat4>("transform", proj * model_view);
+    _program.template uniform<float, 4, 4>("transform", proj * model_view);
     _program.template uniform<float>("opacity", _lineOpacity);
     _program.template uniform<bool>("selectLvl", _selectLvl);
     _program.template uniform<uint>("selectedLvl", _selectedLvl);

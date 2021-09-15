@@ -73,12 +73,21 @@ namespace dh::sne {
 
   // Linearly grow buffer size in powers of two for finer approximations
   inline
-  uint compBufferSize(uint minBufferSize, float theta) {
-    float f = std::pow(2.0f, std::ceil(std::log2((
-      std::pow(8.0f, 2.0f * std::max(0.0f, 0.5f - theta))
-    ))));
+  uint compBufferSize3D(uint minBufferSize, float theta, uint n) {
+    // Size of one pair is 8 bytes
+    constexpr const size_t pairSize = 2 * sizeof(uint);
 
-    return static_cast<uint>(f) * minBufferSize;
+    // Estimate hierarchy levels based on embedding size
+    const uint nLvls = 1 + static_cast<uint>(std::ceil(std::log2(n) / logk));
+    const uint nNodes = (1u << (logk * (nLvls - 1)));
+
+    // Estimate nr. of comparisons per node dependent on theta
+    // Nice quadratic curve seems to work well. Scaled by 8 for 3D. Poohey.
+    const uint nComparisons = 8 * static_cast<uint>(std::pow(2.0f, std::ceil(std::log2((
+      std::pow(16.0f, 2.0f * std::max(0.0f, 0.5f - theta))
+    )))));
+
+    return pairSize * nNodes * nComparisons;
   }
 
   template <>
@@ -125,8 +134,8 @@ namespace dh::sne {
         _initQueueSize = initPairs.size() * sizeof(glm::uvec2);
 
         // Linearly grow buffers in powers of two for finer approximations
-        const uint iBufferSize = compBufferSize(inputQueueMinSize, _params.dualHierarchyTheta);
-        const uint lBufferSize = compBufferSize(leafQueueMinSize, _params.dualHierarchyTheta);
+        const uint iBufferSize = compBufferSize3D(inputQueueMinSize, _params.dualHierarchyTheta, _params.n);
+        const uint lBufferSize = compBufferSize3D(leafQueueMinSize, _params.dualHierarchyTheta, _params.n) / 2;
 
         glNamedBufferStorage(_buffers(BufferType::ePairsInitQueue), _initQueueSize, initPairs.data(), 0);
         glNamedBufferStorage(_buffers(BufferType::ePairsInputQueue), iBufferSize, nullptr, 0);
