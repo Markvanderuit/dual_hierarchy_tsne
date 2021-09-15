@@ -40,10 +40,9 @@ layout(binding = 0, std430) restrict readonly buffer FieldBuffer { vec3 fields[]
 
 // Uniform locations
 layout(location = 0) uniform mat4 transform;
-layout(location = 1) uniform float opacity;
+layout(location = 1) uniform vec4 color;
 layout(location = 2) uniform bool selectLvl;
 layout(location = 3) uniform uint selectedLvl;
-layout(location = 4) uniform bool sumLvls;
 
 uint shrinkBits15(uint i) {
   i = i & 0x55555555u;
@@ -82,25 +81,10 @@ void main() {
   pos.y = 1.0f - pos.y;
   gl_Position = transform * vec4(pos, 0, 1);
 
-  vec3 field = fields[uint(gl_InstanceID)];
-  if (sumLvls) {
-    // Gather field values for this node
-    const uint addr = (uint(gl_InstanceID) - 1) >> BVH_LOGK_2D;
-    const uint stop = 0x2AAAAAAAu >> (31u - BVH_LOGK_2D * (2));
-    for (uint k = addr; k >= stop; k = (k - 1) >> BVH_LOGK_2D) {
-      field += fields[k];
-    }
-  }
-
   // Generate output color
   if ((nodeIn & 3) == 0 || (selectLvl && fLvl != selectedLvl)) {
     colorOut = vec4(0);
   } else {
-    // if (field != vec3(0)) {
-    //   colorOut = vec4(0.5 + 0.5 * normalize(field.yz), 0.5, opacity);
-    // } else {
-    //   colorOut = vec4(0.5, 0.5, 0.5, opacity);
-    // }
-    colorOut = vec4(1.0, 0.4, 0.1, opacity); // for header image
+    colorOut = color;
   }
 }

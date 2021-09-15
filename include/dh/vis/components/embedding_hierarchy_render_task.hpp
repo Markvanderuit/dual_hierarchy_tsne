@@ -69,7 +69,7 @@ namespace dh::vis {
 
     // ImGui state
     float _lineWidth;
-    float _lineOpacity;
+    glm::vec4 _lineColor;
     bool _selectLvl;
     uint _selectedLvl;
 
@@ -90,7 +90,7 @@ namespace dh::vis {
       swap(a._embeddingHierarchy, b._embeddingHierarchy);
       swap(a._params, b._params);
       swap(a._lineWidth, b._lineWidth);
-      swap(a._lineOpacity, b._lineOpacity);
+      swap(a._lineColor, b._lineColor);
       swap(a._selectLvl, b._selectLvl);
       swap(a._selectedLvl, b._selectedLvl);
       swap(a._buffers, b._buffers);

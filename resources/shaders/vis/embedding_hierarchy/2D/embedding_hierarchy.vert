@@ -50,7 +50,7 @@ layout(binding = 0, std430) restrict readonly buffer BoundsBuffer { Bounds bound
 
 // Uniform locations
 layout(location = 0) uniform mat4 transform;
-layout(location = 1) uniform float opacity;
+layout(location = 1) uniform vec4 color;
 layout(location = 2) uniform bool selectLvl;
 layout(location = 3) uniform uint selectedLvl;
 
@@ -74,11 +74,10 @@ void main() {
   pos.y = 1.0f - pos.y;
   gl_Position = transform * vec4(pos, 0, 1);
 
-
-  // Generate output color
+  // Generate output color dependent on whether anything is visible
   if (node0In.w == 0 || (selectLvl && (gl_InstanceID < offset || gl_InstanceID >= range))) {
     colorOut = vec4(0);
   } else {
-    colorOut = vec4(0.1, 0.4, 1.0, opacity); // color for header image
+    colorOut = color;
   }
 }

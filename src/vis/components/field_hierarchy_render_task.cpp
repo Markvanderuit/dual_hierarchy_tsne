@@ -75,7 +75,7 @@ namespace dh::vis {
     _fieldHierarchy(fieldHierarchy),
     _params(params),
     _lineWidth(1.0),
-    _lineOpacity(1.0),
+    _lineColor(1.0, 0.4, 0.1, 1.0),
     _selectLvl(false),
     _selectedLvl(1) {
     // Enable/disable render task by default
@@ -165,12 +165,9 @@ namespace dh::vis {
 
     // Set uniforms
     _program.template uniform<float, 4, 4>("transform", proj * model_view);
-    _program.template uniform<float>("opacity", _lineOpacity);
+    _program.template uniform<float, 4>("color", _lineColor);
     _program.template uniform<bool>("selectLvl", _selectLvl);
     _program.template uniform<uint>("selectedLvl", _selectedLvl);
-    if constexpr (D == 2) {
-      _program.template uniform<bool>("sumLvls", false);
-    }
 
     // Set buffer bindings
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _fieldHierarchy.field);
@@ -192,8 +189,8 @@ namespace dh::vis {
   void FieldHierarchyRenderTask<D>::drawImGuiComponent() {
     if (ImGui::CollapsingHeader("Field hierarchy render settings")) {
       ImGui::Spacing();
-      ImGui::SliderFloat("Line opacity##FieldHierarchyRenderTask", &_lineOpacity, 0.0f, 1.0f);
       ImGui::SliderFloat("Line width##FieldHierarchyRenderTask", &_lineWidth, 1.0f, 4.0f);
+      ImGui::ColorPicker4("Line color##FieldHierarchyRenderTask", glm::value_ptr(_lineColor), ImGuiColorEditFlags_AlphaBar);
       ImGui::Spacing();
       ImGui::Separator();
       ImGui::Spacing();

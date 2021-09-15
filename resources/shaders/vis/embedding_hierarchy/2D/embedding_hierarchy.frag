@@ -32,7 +32,7 @@ layout(location = 0) out vec4 colorOut;
 
 // Uniform locations
 layout(location = 0) uniform mat4 transform;
-layout(location = 1) uniform float opacity;
+layout(location = 1) uniform vec4 color;
 layout(location = 2) uniform bool selectLvl;
 layout(location = 3) uniform uint selectedLvl;
 

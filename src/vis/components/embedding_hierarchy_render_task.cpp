@@ -76,7 +76,7 @@ namespace dh::vis {
     _embeddingHierarchy(embeddingHierarchy),
     _params(params),
     _lineWidth(1.0),
-    _lineOpacity(1.0),
+    _lineColor(0.1, 0.4, 1.0, 1.0),
     _selectLvl(false),
     _selectedLvl(1) {
     // Enable/disable render task by default
@@ -176,7 +176,7 @@ namespace dh::vis {
 
     // Set uniforms
     _program.template uniform<float, 4, 4>("transform", proj * model_view);
-    _program.template uniform<float>("opacity", _lineOpacity);
+    _program.template uniform<float, 4>("color", _lineColor);
     _program.template uniform<bool>("selectLvl", _selectLvl);
     _program.template uniform<uint>("selectedLvl", _selectedLvl);
 
@@ -200,8 +200,8 @@ namespace dh::vis {
   void EmbeddingHierarchyRenderTask<D>::drawImGuiComponent() {
     if (ImGui::CollapsingHeader("Embedding hierarchy render settings")) {
       ImGui::Spacing();
-      ImGui::SliderFloat("Line opacity##EmbeddingHierarchyRenderTask", &_lineOpacity, 0.0f, 1.0f);
       ImGui::SliderFloat("Line width##EmbeddingHierarchyRenderTask", &_lineWidth, 1.0f, 4.0f);
+      ImGui::ColorPicker4("Line color##EmbeddingHierarchyRenderTask", glm::value_ptr(_lineColor), ImGuiColorEditFlags_AlphaBar);
       ImGui::Spacing();
       ImGui::Separator();
       ImGui::Spacing();
