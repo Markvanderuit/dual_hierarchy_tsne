@@ -163,7 +163,6 @@ namespace dh::vis {
     glViewport(0, 0, _fboSize.x, _fboSize.y);
 
     // Clear framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, _fboHandle);
     constexpr glm::vec4 clearColor(1.0f, 1.0f, 1.0f, 0.0f);
     constexpr float clearDepth = 1.0f;
     glClearNamedFramebufferfv(_fboHandle, GL_COLOR, 0, glm::value_ptr(clearColor));
@@ -172,11 +171,13 @@ namespace dh::vis {
     // Specify depth testing
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LEQUAL);
 
     // Specify blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
     
+    glBindFramebuffer(GL_FRAMEBUFFER, _fboHandle);
     for (auto& ptr : RenderQueue::instance().queue()) {
       ptr->render(model_view, proj, _labelsHandle);
     }
@@ -224,7 +225,7 @@ namespace dh::vis {
 
     if (ImGui::CollapsingHeader("About")) {
       ImGui::Spacing();
-      ImGui::Text(aboutText.c_str());
+      ImGui::Text("%s", aboutText.c_str());
       ImGui::Spacing();
     }
 
