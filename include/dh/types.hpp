@@ -25,8 +25,9 @@
 #pragma once
 
 namespace dh {
-  using GLuint = unsigned int; // Matches GLAD, use to prevent unnecessary glad.h includes
-  using uint = unsigned int;   // Matches GLSL, use to keep syntax similar
+  using GLuint = unsigned int; // Matches GLAD, use to prevent unnecessary glad includes but retain notation for OpenGL handles etc.
+  using GLint = int;           // Matches GLAD, use to prevent unnecessary glad includes but retain notation for OpenGL handles etc.
+  using uint = unsigned int;   // Matches GLSL, use to retain notation for unsigned integers outside shader code
   
   // Rounded up division of some n by div
   template <typename genType> 

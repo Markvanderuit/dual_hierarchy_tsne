@@ -24,10 +24,12 @@
 
 #pragma once
 
+#include <any>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include "dh/types.hpp"
+#include "dh/util/aligned.hpp"
 
 namespace dh::util {
   // Used OpenGL shader types
@@ -53,8 +55,7 @@ namespace dh::util {
     GLProgram& operator=(GLProgram&&) noexcept;
 
     // Swap internals with another progam object
-    // void swap(GLProgram& other) noexcept;
-    friend void swap(GLProgram& a, GLProgram& b) noexcept;
+    // friend void swap(GLProgram& a, GLProgram& b) noexcept;
 
     // Compile shader from source, then store for later linking
     void addShader(GLShaderType type, const std::string& src);
@@ -65,19 +66,56 @@ namespace dh::util {
     // Bind program object for execution or rendering state
     void bind();
 
-    // Set uniform at location s to value t.
-    // Backed by implementations for float/int/uint and glm::vec/mat types
-    template <typename T>
-    void uniform(const std::string& s, T t);
+    // Base type uniform function
+    // Supports uint, int, float, bool
+    template <typename GenType>
+    void uniform(const std::string& s, GenType t) {
+      if (!implUniformValue(s, t)) implUniform<GenType, 1, 1>(implUniformLocation(s), &t);
+    }
+
+    // Vector type uniform function
+    // Supports GLM-based N-component vectors of type uint, int, float, bool
+    template <typename GenType, int N, glm::qualifier Q,
+              template <int, typename, glm::qualifier> class ImplType>
+    void uniform(const std::string& s, ImplType<N, GenType, Q> t) {
+      if (!implUniformValue(s, t)) implUniform<GenType, N, 1>(implUniformLocation(s), &(t.x));
+    }
     
+    // Matrix type uniform function
+    // Supports GLM-based 4x4 matrices of type float (others are unimplemented due to lack of use)
+    template <typename GenType, int M, uint N, glm::qualifier Q,
+              template <int, int, typename, glm::qualifier> class ImplType>
+    void uniform(const std::string& s, ImplType<M, N, GenType, Q> t) {
+      if (!implUniformValue(s, t)) implUniform<GenType, M, N>(implUniformLocation(s), &(t[0].x));
+    }
+
   private:
     // State
     GLuint _handle;
     std::vector<GLuint> _shaderHandles;
-    std::unordered_map<std::string, int> _locations;
+    std::unordered_map<std::string, int> _impUniformLocationCache;
+    std::unordered_map<std::string, std::any> _implUniformValueCache;
   
-    // Cache uniform locations in an unordered map for lookup
-    int location(const std::string& s);
+    // Helper function to set uniform values
+    template <typename GenType, int M, int N>
+    void implUniform(GLint location, const GenType* t);
+    
+    // Helper function to cache uniform locations, preventing program queries
+    GLint implUniformLocation(const std::string& s);
+
+    // Helper function to cache uniform values, preventing unnecessary state changes
+    template <typename T>
+    bool implUniformValue(const std::string& s, const T& value) {
+      auto f = _implUniformValueCache.find(s);
+
+      // Value was not previously cached, or does not match cache
+      if (f == _implUniformValueCache.end() || std::any_cast<T>(f->second) != value) {
+        _implUniformValueCache[s] = value;
+        return false;
+      }
+
+      return true;
+    }
 
   public:
     // std::swap impl
@@ -85,7 +123,8 @@ namespace dh::util {
       using std::swap;
       swap(a._handle, b._handle);
       swap(a._shaderHandles, b._shaderHandles);
-      swap(a._locations, b._locations);
+      swap(a._impUniformLocationCache, b._impUniformLocationCache);
+      swap(a._implUniformValueCache, b._implUniformValueCache);
     }
   };
 } // dh::util
