@@ -90,7 +90,7 @@ namespace dh::sne {
       ePairsOutputQueue,
       ePairsOutputQueueHead,
 
-      // Work queue of node pairs which fall outside iterative hierarchy traversal
+      // Work queue of node pairs which fall outside dual-subdivide hierarchy traversal
       ePairsRestQueue,
       ePairsRestQueueHead,
       
@@ -116,8 +116,8 @@ namespace dh::sne {
       eSingleHierarchyFieldComp,
       
       // Programs for computation with dual hierarchy
-      eDualHierarchyFieldIterativeComp,
-      eDualHierarchyFieldRestComp,
+      eDualHierarchyFieldDualSubdivideComp,
+      eDualHierarchyFieldSingleSubdivideComp,
       eDualHierarchyFieldLeafComp,
       eDualHierarchyFieldAccumulateComp,
 

@@ -120,8 +120,8 @@ namespace dh::sne {
       _programs(ProgramType::eFullFieldComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/fullField.comp"));
       _programs(ProgramType::eSingleHierarchyCompactComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/singleHierarchyCompact.comp"));
       _programs(ProgramType::eSingleHierarchyFieldComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/singleHierarchyField.comp"));
-      _programs(ProgramType::eDualHierarchyFieldIterativeComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/dualHierarchyFieldIterative.comp"));
-      _programs(ProgramType::eDualHierarchyFieldRestComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/dualHierarchyFieldRest.comp"));
+      _programs(ProgramType::eDualHierarchyFieldDualSubdivideComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/dualHierarchyFieldIterative.comp"));
+      _programs(ProgramType::eDualHierarchyFieldSingleSubdivideComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/dualHierarchyFieldRest.comp"));
       _programs(ProgramType::eDualHierarchyFieldLeafComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/dualHierarchyFieldLeaf.comp"));
       _programs(ProgramType::eDualHierarchyFieldAccumulateComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/2D/dualHierarchyFieldAccumulate.comp"));
       

@@ -60,21 +60,17 @@ namespace dh::sne {
     // 1. Perform dual-hierarchy traversal
     {
       // Set uniforms (dual-subdivision program)
-      auto& dsProgram = _programs(ProgramType::eDualHierarchyFieldIterativeComp);
+      auto& dsProgram = _programs(ProgramType::eDualHierarchyFieldDualSubdivideComp);
       dsProgram.template uniform<uint>("eLvls", eLayout.nLvls);
       dsProgram.template uniform<uint>("fLvls", fLayout.nLvls);
       dsProgram.template uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
       dsProgram.template uniform<uint>("doBhCrit", true);
 
       // Set uniforms (single-subdivision program)
-      auto& ssProgram = _programs(ProgramType::eDualHierarchyFieldRestComp);
+      auto& ssProgram = _programs(ProgramType::eDualHierarchyFieldSingleSubdivideComp);
       ssProgram.template uniform<uint>("fLvls", fLayout.nLvls);
       ssProgram.template uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
       ssProgram.template uniform<uint>("doBhCrit", true);
-
-      // Set uniforms (dispatch)
-      auto& dispatchProgram = _programs(ProgramType::eDispatch);
-      dispatchProgram.template uniform<uint>("div", 256 / knode);
 
       // Set buffer bindings which are reused throughout traversal
       glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, _buffers(BufferType::eDispatch));
@@ -110,7 +106,7 @@ namespace dh::sne {
         }
 
         // Select the correct input queue depending on traversal state
-        // * normally, use the current input queue
+        // * in general, use the current input queue
         // * when state is eSingleSubdivideFirst, use the accumulated rest queue instead
         GLuint iQueue = (state == DualHierarchyState::eSingleSubdivideFirst)
                       ? _buffers(BufferType::ePairsRestQueue) 
@@ -127,7 +123,9 @@ namespace dh::sne {
 
         // Divide input queue head by workgroup size for use as indirect dispatch buffer
         {
-          dispatchProgram.bind();
+          auto& program = _programs(ProgramType::eDispatch);
+          program.bind();
+          program.template uniform<uint>("div", 256 / knode); 
           
           glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, iQueueHead);
           glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
@@ -163,10 +161,8 @@ namespace dh::sne {
         }
 
         // Swap input and output queues (by swapping their handles)
-        if (state != DualHierarchyState::eDualSubdivideLast) {
-          std::swap(_buffers(BufferType::ePairsInputQueue), _buffers(BufferType::ePairsOutputQueue));
-          std::swap(_buffers(BufferType::ePairsInputQueueHead), _buffers(BufferType::ePairsOutputQueueHead));
-        }
+        std::swap(_buffers(BufferType::ePairsInputQueue), _buffers(BufferType::ePairsOutputQueue));
+        std::swap(_buffers(BufferType::ePairsInputQueueHead), _buffers(BufferType::ePairsOutputQueueHead));
       }
     }    
 
