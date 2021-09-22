@@ -81,4 +81,33 @@ namespace dh::util {
     }
     return size;
   }
+
+  /**
+   * NVIDIA-only memory queries using the GL_NVX_gpu_memory_info extension. Given that we
+   * depend on CUDA anyways, there's no point in adapting to other systems for now.
+   * 
+   * Note: these are guesstimates, and not representative of actual current memory status,
+   * as storage allocations tend to lag behind until they're actually necessary. Bummer.
+   */
+  #define GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX 0x9048
+  #define GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX 0x9049
+
+  inline
+  GLuint glGetTotalMemory() {
+    GLint r;
+    glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX, &r);
+    return (GLuint) r;
+  }
+
+  inline
+  GLuint glGetAvailableMemory() {
+    GLint r;
+    glGetIntegerv(GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX, &r);
+    return (GLuint) r;
+  }
+
+  inline
+  GLuint glGetReservedMemory() {
+    return glGetTotalMemory() - glGetAvailableMemory();
+  }
 } // dh::util
