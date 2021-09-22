@@ -43,8 +43,7 @@ namespace dh::sne {
   constexpr uint embeddingHierarchyInitLvl = 2;
   constexpr uint fieldHierarchyInitLvl = 2;
   constexpr util::AlignedVec<3, uint> fieldSizePrealloc(128);
-  constexpr uint inputQueueMinSize = 256 * 1024 * 1024;
-  constexpr uint leafQueueMinSize = 128 * 1024 * 1024;
+  constexpr uint queueHighWater = 1024 * 1024 * 1024;
 
   // Incrementing bit flags for fast voxel grid computation
   constexpr auto initCellData = []() {  
@@ -70,25 +69,6 @@ namespace dh::sne {
     }
     return a;
   }();
-
-  // Linearly grow buffer size in powers of two for finer approximations
-  inline
-  uint compBufferSize3D(uint minBufferSize, float theta, uint n) {
-    // Size of one pair is 8 bytes
-    constexpr const size_t pairSize = 2 * sizeof(uint);
-
-    // Estimate hierarchy levels based on embedding size
-    const uint nLvls = 1 + static_cast<uint>(std::ceil(std::log2(n) / logk));
-    const uint nNodes = (1u << (logk * (nLvls - 1)));
-
-    // Estimate nr. of comparisons per node dependent on theta
-    // Nice quadratic curve seems to work well. Scaled by 8 for 3D. Poohey.
-    const uint nComparisons = 8 * static_cast<uint>(std::pow(2.0f, std::ceil(std::log2((
-      std::pow(16.0f, 2.0f * std::max(0.0f, 0.5f - theta))
-    )))));
-
-    return pairSize * nNodes * nComparisons;
-  }
 
   template <>
   Field<3>::Field(MinimizationBuffers minimization, Params params)
@@ -133,15 +113,15 @@ namespace dh::sne {
       if (_useFieldHierarchy) {
         _initQueueSize = initPairs.size() * sizeof(glm::uvec2);
 
-        // Linearly grow buffers in powers of two for finer approximations
-        const uint iBufferSize = compBufferSize3D(inputQueueMinSize, _params.dualHierarchyTheta, _params.n);
-        const uint lBufferSize = compBufferSize3D(leafQueueMinSize, _params.dualHierarchyTheta, _params.n) / 2;
+        // Reserve significant memory for queues. Estimation of actual required sizes is difficult.
+        const uint totalQueueSize = util::glGetAvailableMemory() - queueHighWater;
+        const uint queueSize = totalQueueSize / 4u;
 
         glNamedBufferStorage(_buffers(BufferType::ePairsInitQueue), _initQueueSize, initPairs.data(), 0);
-        glNamedBufferStorage(_buffers(BufferType::ePairsInputQueue), iBufferSize, nullptr, 0);
-        glNamedBufferStorage(_buffers(BufferType::ePairsOutputQueue), iBufferSize, nullptr, 0);
-        glNamedBufferStorage(_buffers(BufferType::ePairsRestQueue), iBufferSize, nullptr, 0);
-        glNamedBufferStorage(_buffers(BufferType::ePairsLeafQueue), lBufferSize, nullptr, 0);
+        glNamedBufferStorage(_buffers(BufferType::ePairsInputQueue), queueSize, nullptr, 0);
+        glNamedBufferStorage(_buffers(BufferType::ePairsOutputQueue), queueSize, nullptr, 0);
+        glNamedBufferStorage(_buffers(BufferType::ePairsRestQueue), queueSize, nullptr, 0);
+        glNamedBufferStorage(_buffers(BufferType::ePairsLeafQueue), queueSize, nullptr, 0);
         glNamedBufferStorage(_buffers(BufferType::ePairsInputQueueHead), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
         glNamedBufferStorage(_buffers(BufferType::ePairsOutputQueueHead), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
         glNamedBufferStorage(_buffers(BufferType::ePairsRestQueueHead), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
