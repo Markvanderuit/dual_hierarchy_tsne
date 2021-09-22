@@ -107,7 +107,7 @@ namespace dh::util {
     faissConfig.device = 0;
     faissConfig.indicesOptions = faiss::gpu::INDICES_32_BIT;
     faissConfig.flatConfig.useFloat16 = true;
-    faissConfig.interleavedLayout = true;
+    faissConfig.interleavedLayout = false;
 
     // Construct search index
     // Inverted file flat list gives accurate results at significant memory overhead.
@@ -123,6 +123,7 @@ namespace dh::util {
 
     // Add data in batches
     for (size_t i = 0; i < ceilDiv((size_t) _n, addBatchSize); ++i) {
+      std::cout << "Add " << i << std::endl;
       const size_t offset = i * addBatchSize;
       const size_t size = std::min(addBatchSize, _n - offset);
       faissIndex.add(size, _dataPtr + (_d * offset));
@@ -134,6 +135,7 @@ namespace dh::util {
 
     // Perform search in batches   
     for (size_t i = 0; i < ceilDiv((size_t) _n, searchBatchSize); ++i) {
+      std::cout << "Search " << i << std::endl;
       const size_t offset = i * searchBatchSize;
       const size_t size = std::min(searchBatchSize, _n - offset);
       faissIndex.search(
@@ -144,22 +146,6 @@ namespace dh::util {
         ((faiss::Index::idx_t *) tempIndicesHandle) + (_k * offset)
       );
     }
-
-    /* faissIndex.search(
-      _n, // - 256,
-      _dataPtr,
-      _k,
-      (float *) _interopBuffers(BufferType::eDistances).cuHandle(),
-      (faiss::Index::idx_t *) tempIndicesHandle
-    ); */
-
-    /* faissIndex.search(
-      _n,
-      _dataPtr,
-      _k,
-      (float *) _interopBuffers(BufferType::eDistances).cuHandle(),
-      (faiss::Index::idx_t *) tempIndicesHandle
-    ); */
     
     // Tell FAISS to bugger off
     faissIndex.reset();

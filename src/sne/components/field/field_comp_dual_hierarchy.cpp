@@ -23,6 +23,7 @@
  */
 
 #include "dh/sne/components/field.hpp"
+#include "dh/util/logger.hpp"
 #include "dh/util/gl/error.hpp"
 
 namespace dh::sne {
@@ -89,7 +90,7 @@ namespace dh::sne {
       const uint minLvls = std::min(fLayout.nLvls, eLayout.nLvls);
       const uint maxLvls = std::max(fLayout.nLvls, eLayout.nLvls);
       const uint nrIters = ceilDiv(minLvls + maxLvls, 2u) + 2u;
-      const uint progrIter = minLvls - 2u;
+      const uint dualSubdivideLastLvl = minLvls - 2u;
 
       // Track traversal state during iteration
       DualHierarchyState state = DualHierarchyState::eDualSubdivide;
@@ -97,7 +98,7 @@ namespace dh::sne {
       // Perform traversal level by level until leaves are reached
       for (uint i = fieldHierarchyInitLvl; i <= nrIters; ++i) {
         // Update traversal state
-        if (state == DualHierarchyState::eDualSubdivide && i == progrIter) {
+        if (state == DualHierarchyState::eDualSubdivide && i == dualSubdivideLastLvl) {
           state = DualHierarchyState::eDualSubdivideLast;
         } else if (state == DualHierarchyState::eDualSubdivideLast) {
           state = DualHierarchyState::eSingleSubdivideFirst;
@@ -159,6 +160,41 @@ namespace dh::sne {
           glDispatchComputeIndirect(0);
           glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         }
+        
+       /*  {
+          GLuint input, output, rest, leaf;
+          glGetNamedBufferSubData(_buffers(BufferType::ePairsInputQueueHead), 0, sizeof(uint), &input);
+          glGetNamedBufferSubData(_buffers(BufferType::ePairsOutputQueueHead), 0, sizeof(uint), &output);
+          glGetNamedBufferSubData(_buffers(BufferType::ePairsRestQueueHead), 0, sizeof(uint), &rest);
+          glGetNamedBufferSubData(_buffers(BufferType::ePairsLeafQueueHead), 0, sizeof(uint), &leaf);
+
+          std::string ststr;
+          switch (state)  {
+          case DualHierarchyState::eDualSubdivide:
+            ststr = "eDualSubdivide";
+            break;          
+          case DualHierarchyState::eDualSubdivideLast:
+            ststr = "eDualSubdivideLast";
+            break;        
+          case DualHierarchyState::eSingleSubdivideFirst:
+            ststr = "eSingleSubdivideFirst";
+            break;   
+          case DualHierarchyState::eSingleSubdivide:
+            ststr = "eSingleSubdivide";
+            break;  
+          }
+
+          const uint eNodes = 1u << (logk * (eLayout.nLvls - 1));
+          const uint fNodes = 1u << (logk * (fLayout.nLvls - 1));
+
+          util::Logger::newl() 
+            << "iteration " << i << ", eLvls " << eLayout.nLvls << ", fLvls " << fLayout.nLvls << '\n'
+            << ststr << ", eNodes " << eNodes << ", fNodes " << fNodes << "\n\t"
+            << "input : " << input << ",    " 
+            << "output : " << output << ",    " 
+            << "rest : " << rest << ",    " 
+            << "leaf : " << leaf << '\n'; 
+        } */
 
         // Swap input and output queues (by swapping their handles)
         std::swap(_buffers(BufferType::ePairsInputQueue), _buffers(BufferType::ePairsOutputQueue));
