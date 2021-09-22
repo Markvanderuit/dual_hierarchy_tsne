@@ -22,16 +22,20 @@
  * SOFTWARE.
  */
 
+#include <iostream>
 #include <cuda_runtime.h>
 #include <faiss/gpu/StandardGpuResources.h>
 #include <faiss/gpu/GpuIndexIVFFlat.h>
 #include "dh/util/cu/knn.cuh"
 #include "dh/util/cu/error.cuh"
+#include "dh/types.hpp"
 
 namespace dh::util {
   // Tuning parameters for FAISS
   constexpr uint nProbe = 12;
-  constexpr uint nListMult = 1;
+  constexpr uint nListMult = 4;
+  constexpr size_t addBatchSize = 32768;
+  constexpr size_t searchBatchSize = 16384;
 
   // Downcast kernel to move from int64_t to int32_t data
   // Used because FAISS sticks to returning 64 bit indices
@@ -92,12 +96,8 @@ namespace dh::util {
       buffer.map();
     }
 
-    // Create temporary space for 64 bit faiss indices
-    void * tempIndicesHandle;
-    cudaMalloc(&tempIndicesHandle, _n * _k * sizeof(faiss::Index::idx_t));
-
     // Nr. of inverted lists used by FAISS IVL.
-    // O(sqrt(n)) is apparently reasonable
+    // x * O(sqrt(n)) is apparently reasonable?
     // src: https://github.com/facebookresearch/faiss/issues/112
     const uint nLists = nListMult * static_cast<uint>(std::sqrt(_n)); 
 
@@ -107,7 +107,7 @@ namespace dh::util {
     faissConfig.device = 0;
     faissConfig.indicesOptions = faiss::gpu::INDICES_32_BIT;
     faissConfig.flatConfig.useFloat16 = true;
-    faissConfig.interleavedLayout = false;
+    faissConfig.interleavedLayout = true;
 
     // Construct search index
     // Inverted file flat list gives accurate results at significant memory overhead.
@@ -120,18 +120,46 @@ namespace dh::util {
     );
     faissIndex.setNumProbes(nProbe);
     faissIndex.train(_n, _dataPtr);
-    faissIndex.add(_n, _dataPtr);
 
-    // Perform actual search
-    // Store results device cide in cuKnnSquaredDistances, cuKnnIndices, as the
-    // rest of construction is performed on device as well.
-    faissIndex.search(
+    // Add data in batches
+    for (size_t i = 0; i < ceilDiv((size_t) _n, addBatchSize); ++i) {
+      const size_t offset = i * addBatchSize;
+      const size_t size = std::min(addBatchSize, _n - offset);
+      faissIndex.add(size, _dataPtr + (_d * offset));
+    }
+
+    // Create temporary space for storing 64 bit faiss indices
+    void * tempIndicesHandle;
+    cudaMalloc(&tempIndicesHandle, _n * _k * sizeof(faiss::Index::idx_t));
+
+    // Perform search in batches   
+    for (size_t i = 0; i < ceilDiv((size_t) _n, searchBatchSize); ++i) {
+      const size_t offset = i * searchBatchSize;
+      const size_t size = std::min(searchBatchSize, _n - offset);
+      faissIndex.search(
+        size,
+        _dataPtr + (_d * offset),
+        _k,
+        ((float *) _interopBuffers(BufferType::eDistances).cuHandle()) + (_k * offset),
+        ((faiss::Index::idx_t *) tempIndicesHandle) + (_k * offset)
+      );
+    }
+
+    /* faissIndex.search(
+      _n, // - 256,
+      _dataPtr,
+      _k,
+      (float *) _interopBuffers(BufferType::eDistances).cuHandle(),
+      (faiss::Index::idx_t *) tempIndicesHandle
+    ); */
+
+    /* faissIndex.search(
       _n,
       _dataPtr,
       _k,
       (float *) _interopBuffers(BufferType::eDistances).cuHandle(),
       (faiss::Index::idx_t *) tempIndicesHandle
-    );
+    ); */
     
     // Tell FAISS to bugger off
     faissIndex.reset();
