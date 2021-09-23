@@ -2,16 +2,15 @@
 
 ![minimization](resources/misc/readme_header.png)
 
+---
+
 ## Introduction
 
-This repository contains a library and an accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)).
+This repository contains a library and an accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)). For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
 
 In short, our method accelerates the t-SNE minimization by generating a pair of spatial hierarchies; one over the embedding, and another over a discretization of the embedding's space.
 We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations performed.
-Our method runs fully on the GPU using OpenGL/CUDA, and currently outperforms both the CUDA implementation of FIt-SNE as well as linear-complexity t-SNE
-Finally, it scales to 3D embeddings as well.
-
-For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
+Our method runs fully on the GPU using OpenGL/CUDA, and currently outperforms GPU implementations of both FIt-SNE [[1]](#1) and linear-complexity t-SNE [[2]](#2). Finally, it scales to 3D embeddings as well.
 
 ## Compilation
 Ensure your system satisfies the following requirements:
@@ -133,21 +132,25 @@ Please cite the following paper if you found it useful in your research:
 ```
 
 ## License and third-party software
-The source code in this repository is released under the MIT License. However, all used third-party software libraries are governed by their own respective licenes. Without the following libraries, this project would have been considerably harder:
-* [cxxopts](https://github.com/jarro2783/cxxopts)
-* [cub](https://github.com/NVIDIA/cub)
-* [date](https://github.com/HowardHinnant/date)
-* [faiss](https://github.com/facebookresearch/faiss)
-* [glad](https://glad.dav1d.de/)
-* [GLFW](https://www.glfw.org/)
-* [GLM](https://glm.g-truc.net/0.9.9/)
-* [indicators](https://github.com/p-ranav/indicators)
-* [vcpkg](https://github.com/microsoft/vcpkg) 
+The source code in this repository is released under the MIT License. However, all used third-party software libraries are governed by their own respective licenes. Without the following libraries, this project would have been considerably harder: 
+[cxxopts](https://github.com/jarro2783/cxxopts),
+[cub](https://github.com/NVIDIA/cub),
+[date](https://github.com/HowardHinnant/date),
+[dear ImGui](https://github.com/ocornut/imgui),
+[faiss](https://github.com/facebookresearch/faiss),
+[glad](https://glad.dav1d.de/),
+[GLFW](https://www.glfw.org/),
+[GLM](https://glm.g-truc.net/0.9.9/),
+[indicators](https://github.com/p-ranav/indicators),
+[vcpkg](https://github.com/microsoft/vcpkg).
 
 ## References
-"...the **go to** statement should be abolished..." [[1]](#1).
 
 <a id="1">[1]</a> 
-Dijkstra, E. W. (1968). 
-Go to statement considered harmful. 
-Communications of the ACM, 11(3), 147-148.
+Linderman, G. C., Rach, M., Hoskins, J. G., Steinerberger, S., and Kluger, Y. (2017).
+*Efficient Algorithms for t-distributed stochastic neighbor embedding*.
+
+
+<a id="2">[2]</a> 
+Pezotti, N., Mordvintsev, A., Höllt, T., Lelieveldt, B. P. F., Eisemann, E. and Vilanova, A. (2018).
+*Linear t-SNE optimization for the web*.
