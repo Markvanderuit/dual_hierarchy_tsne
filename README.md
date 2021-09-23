@@ -2,8 +2,6 @@
 
 ![minimization](resources/misc/readme_header.png)
 
----
-
 ## Introduction
 
 This repository contains a library and an accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)). For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
@@ -20,15 +18,10 @@ Ensure your system satisfies the following requirements:
 
 All other dependencies are bundled through vcpkg. Note that some Unix systems may require X11/Wayland development packages to be installed for [GLFW](https://www.glfw.org). Vcpkg tries to provide sufficient information for you to install these, but if you run into any issues, refer to the [GLFW compilation page](https://www.glfw.org/docs/3.3/compile.html).
 
-Next, clone the repository and include the required submodules.
+Next, clone the repository (include the required submodules) and configure it using CMake. Compilation using Make would happen as, for example:
 
 ```bash
-git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
-```
-
-Finally, you should be able to generate a project and compile it. For example, by invoking CMake:
-
-```bash
+  git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
   mkdir dual_hierarchy_tsne/build
   cd dual_hierarchy_tsne/build
   cmake ..
@@ -108,7 +101,7 @@ Adding either the `--visDuring` or `--visAfter` parameters spawns a renderer dur
 
 The renderer can visualize the dual-hierarchies used in our technique, if you check the `Embedding hierarchy`/`Field hierarchy` flags in the UI. Note that `--visDuring` may slow down the actual minimization, especially if large hierarchies are used.
 
-You can use `./sne_cmd -h` to list all other program parameters. Common parameters are perplexity (`-p`), number of iterations (`-i`), Barnes-Hut approximation (`-t`), and output file (`-o`). Adding `--lbl` indicates the input dataset contains labels, while `--kld` indicates KL-divergence should be computed afterwards.
+You can use `./sne_cmd -h` to list all other program parameters. Common parameters are perplexity (`-p`, default 30), number of iterations (`-i`, default 1000), Barnes-Hut approximation (`-t`, default 0.25), and output file (`-o`). Adding `--lbl` indicates the input dataset contains labels, while `--kld` indicates KL-divergence should be computed afterwards.
 
 **Datasets**
 
