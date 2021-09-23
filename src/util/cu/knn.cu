@@ -28,7 +28,6 @@
 #include <faiss/gpu/GpuIndexIVFFlat.h>
 #include "dh/util/cu/knn.cuh"
 #include "dh/util/cu/error.cuh"
-#include "dh/types.hpp"
 
 namespace dh::util {
   // Tuning parameters for FAISS
@@ -80,16 +79,6 @@ namespace dh::util {
     return *this;
   }
 
-  void swap(KNN& a, KNN& b) noexcept {
-    using std::swap;
-    swap(a._isInit, b._isInit);
-    swap(a._n, b._n);
-    swap(a._k, b._k);
-    swap(a._d, b._d);
-    swap(a._dataPtr, b._dataPtr);
-    swap(a._interopBuffers, b._interopBuffers);
-  }
-
   void KNN::comp() {
     // Map interop buffers for access on CUDA side
     for (auto& buffer : _interopBuffers) {
@@ -97,7 +86,7 @@ namespace dh::util {
     }
 
     // Nr. of inverted lists used by FAISS IVL.
-    // x * O(sqrt(n)) is apparently reasonable?
+    // x * O(sqrt(n)) | x := 4, is apparently reasonable?
     // src: https://github.com/facebookresearch/faiss/issues/112
     const uint nLists = nListMult * static_cast<uint>(std::sqrt(_n)); 
 
@@ -107,7 +96,7 @@ namespace dh::util {
     faissConfig.device = 0;
     faissConfig.indicesOptions = faiss::gpu::INDICES_32_BIT;
     faissConfig.flatConfig.useFloat16 = true;
-    faissConfig.interleavedLayout = false;
+    faissConfig.interleavedLayout = false; // memory impact; 3M point dataset can't fit in 8GB? Bah.
 
     // Construct search index
     // Inverted file flat list gives accurate results at significant memory overhead.
@@ -123,7 +112,6 @@ namespace dh::util {
 
     // Add data in batches
     for (size_t i = 0; i < ceilDiv((size_t) _n, addBatchSize); ++i) {
-      std::cout << "Add " << i << std::endl;
       const size_t offset = i * addBatchSize;
       const size_t size = std::min(addBatchSize, _n - offset);
       faissIndex.add(size, _dataPtr + (_d * offset));
@@ -135,7 +123,6 @@ namespace dh::util {
 
     // Perform search in batches   
     for (size_t i = 0; i < ceilDiv((size_t) _n, searchBatchSize); ++i) {
-      std::cout << "Search " << i << std::endl;
       const size_t offset = i * searchBatchSize;
       const size_t size = std::min(searchBatchSize, _n - offset);
       faissIndex.search(
@@ -151,7 +138,7 @@ namespace dh::util {
     faissIndex.reset();
     faissIndex.reclaimMemory();
 
-    // Free temporary indices memory, after writing it to 32 bit interoperability buffer
+    // Free 64-bit temporary indices, after downcasting to 32 bit in the interop buffer
     kernDownCast<<<1024, 256>>>(_n * _k, (int64_t *) tempIndicesHandle, (int32_t *) _interopBuffers(BufferType::eIndices).cuHandle());
     cudaDeviceSynchronize();
     cudaFree(tempIndicesHandle);

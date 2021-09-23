@@ -43,9 +43,6 @@ namespace dh::util {
     KNN(KNN&&) noexcept;
     KNN& operator=(KNN&&) noexcept;
 
-    // Swap internals with another object
-    friend void swap(KNN& a, KNN& b) noexcept;
-
     // Perform KNN computation, storing results in provided buffers
     void comp();
 
@@ -63,5 +60,17 @@ namespace dh::util {
     uint _n, _k, _d;
     const float* _dataPtr;
     EnumArray<BufferType, CUGLInteropBuffer> _interopBuffers;
+
+  public:
+    // std::swap impl
+    friend void swap(KNN& a, KNN& b) noexcept {
+      using std::swap;
+      swap(a._isInit, b._isInit);
+      swap(a._n, b._n);
+      swap(a._k, b._k);
+      swap(a._d, b._d);
+      swap(a._dataPtr, b._dataPtr);
+      swap(a._interopBuffers, b._interopBuffers);
+    }
   };
 } // dh::util

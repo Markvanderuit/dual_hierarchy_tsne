@@ -62,7 +62,7 @@ namespace dh::sne {
   template <uint D>
   void Field<D>::comp(uvec size, uint iteration) {
     // Resize field if necessary
-    resize(size);
+    resizeField(size);
 
     // Build embedding hierarchy if necessary
     if (_useEmbeddingHierarchy) {

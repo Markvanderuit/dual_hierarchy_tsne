@@ -60,7 +60,7 @@ namespace dh::sne {
     void comp(uvec size, uint iteration);
 
   private:
-    // Functions called by Field::comp(uint);
+    // Functions called by Field::comp(size, uint);
     // 1. Functions used by full computation
     void compFullCompact();
     void compFullField();
@@ -70,7 +70,7 @@ namespace dh::sne {
     // 3. Functions used by dual hierarchy computation
     void compDualHierarchyField();
     // 4. Functions used by all computations
-    void resize(uvec size);
+    void resizeField(uvec size);
     void queryField();
     
     enum class BufferType {

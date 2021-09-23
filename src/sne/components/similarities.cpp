@@ -35,10 +35,8 @@ namespace dh::sne {
   using util::Logger;
   const std::string prefix = util::genLoggerPrefix("[Similarities]");
 
-  // Params for FAISS
-  constexpr uint kMax = 192;      // Don't exceeed this value for big vector datasets unless you have a lot of coffee
-  constexpr uint nProbe = 12;
-  constexpr uint nListMult = 1;
+  // Constants
+  constexpr uint kMax = 192; // Don't exceeed this value for big vector datasets unless you have a lot of coffee and memopry
   
   Similarities::Similarities()
   : _isInit(false), _dataPtr(nullptr) {
@@ -89,32 +87,22 @@ namespace dh::sne {
   void Similarities::comp() {
     runtimeAssert(isInit(), "Similarities::comp() called without proper initialization");
 
-    // Data size, dimensionality, requested nearest neighboor size constants
-    const uint n = _params.n;
-    const uint d = _params.nHighDims;
+    // Actual k for KNN is limited to kMax, and is otherwise (3 * perplexity + 1)
     const uint k = std::min(kMax, 3 * static_cast<uint>(_params.perplexity) + 1);
 
     // Define temporary buffer object handles
-    enum class TBufferType {
-      eDistances,
-      eNeighbors,
-      eSimilarities,
-      eSizes,
-      eScan,
-
-      Length
-    };
+    enum class TBufferType { eDistances, eNeighbors, eSimilarities, eSizes, eScan, Length };
     util::EnumArray<TBufferType, GLuint> tempBuffers;
 
     // Initialize temporary buffer objects
     {
-      const std::vector<uint> zeroes(n * k, 0);
+      const std::vector<uint> zeroes(_params.n * k, 0);
       glCreateBuffers(tempBuffers.size(), tempBuffers.data());
-      glNamedBufferStorage(tempBuffers(TBufferType::eDistances), n * k * sizeof(float), nullptr, 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors), n * k * sizeof(uint), nullptr, 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eSimilarities), n * k * sizeof(float), zeroes.data(), 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eSizes), n * sizeof(uint), zeroes.data(), 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eScan), n * sizeof(uint), nullptr, 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eDistances), _params.n * k * sizeof(float), nullptr, 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors), _params.n * k * sizeof(uint), nullptr, 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eSimilarities), _params.n * k * sizeof(float), zeroes.data(), 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eSizes), _params.n * sizeof(uint), zeroes.data(), 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eScan), _params.n * sizeof(uint), nullptr, 0);
       glAssert();
     }
     
@@ -132,7 +120,7 @@ namespace dh::sne {
         _dataPtr,
         tempBuffers(TBufferType::eDistances),
         tempBuffers(TBufferType::eNeighbors),
-        n, k, d);
+        _params.n, k, _params.nHighDims);
       knn.comp();
     }
 
@@ -151,7 +139,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.template uniform<uint>("nPoints", n);
+      program.template uniform<uint>("nPoints", _params.n);
       program.template uniform<uint>("kNeighbours", k);
       program.template uniform<float>("perplexity", _params.perplexity);
       program.template uniform<uint>("nIters", 200);
@@ -163,7 +151,7 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, tempBuffers(TBufferType::eSimilarities));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n, 256u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n, 256u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
       
       timer.tock();
@@ -185,7 +173,7 @@ namespace dh::sne {
       program.bind();
       
       // Set uniforms
-      program.template uniform<uint>("nPoints", n);
+      program.template uniform<uint>("nPoints", _params.n);
       program.template uniform<uint>("kNeighbours", k);
 
       // Set buffer bindings
@@ -193,7 +181,7 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, tempBuffers(TBufferType::eSizes));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n, 256u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n, 256u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
       timer.tock();
@@ -209,14 +197,14 @@ namespace dh::sne {
     // Leverages CUDA CUB library underneath
     uint symmetricSize;
     {
-      util::InclusiveScan scan(tempBuffers(TBufferType::eSizes), tempBuffers(TBufferType::eScan), n);
+      util::InclusiveScan scan(tempBuffers(TBufferType::eSizes), tempBuffers(TBufferType::eScan), _params.n);
       scan.comp();
-      glGetNamedBufferSubData(tempBuffers(TBufferType::eScan), (n - 1) * sizeof(uint), sizeof(uint), &symmetricSize);
+      glGetNamedBufferSubData(tempBuffers(TBufferType::eScan), (_params.n - 1) * sizeof(uint), sizeof(uint), &symmetricSize);
     }
 
     // Initialize permanent buffer objects
     glNamedBufferStorage(_buffers(BufferType::eSimilarities), symmetricSize * sizeof(float), nullptr, 0);
-    glNamedBufferStorage(_buffers(BufferType::eLayout), n * 2 * sizeof(uint), nullptr, 0);
+    glNamedBufferStorage(_buffers(BufferType::eLayout), _params.n * 2 * sizeof(uint), nullptr, 0);
     glNamedBufferStorage(_buffers(BufferType::eNeighbors), symmetricSize * sizeof(uint), nullptr, 0);
     glAssert();    
 
@@ -234,14 +222,14 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.template uniform<uint>("nPoints", n);
+      program.template uniform<uint>("nPoints", _params.n);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, tempBuffers(TBufferType::eScan));
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eLayout));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n, 256u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n, 256u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
       timer.tock();
@@ -265,7 +253,7 @@ namespace dh::sne {
       auto &program = _programs(ProgramType::eNeighborsComp);
       program.bind();
 
-      program.template uniform<uint>("nPoints", n);
+      program.template uniform<uint>("nPoints", _params.n);
       program.template uniform<uint>("kNeighbours", k);
 
       // Set buffer bindings
@@ -277,7 +265,7 @@ namespace dh::sne {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, _buffers(BufferType::eSimilarities));
 
       // Dispatch shader
-      glDispatchCompute(ceilDiv(n * k, 256u), 1, 1);
+      glDispatchCompute(ceilDiv(_params.n * k, 256u), 1, 1);
       glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
       timer.tock();

@@ -67,7 +67,7 @@ namespace dh::sne {
     _params(params),
     _hierarchyRebuildIterations(0),
     _size(0),
-    _useEmbeddingHierarchy(params.singleHierarchyTheta > 0.0f),
+  _useEmbeddingHierarchy(params.dualHierarchyTheta > 0.0f),
     _useFieldHierarchy(params.dualHierarchyTheta > 0.0f) {
     Logger::newt() << prefix << "Initializing...";
     
@@ -165,7 +165,7 @@ namespace dh::sne {
   }
 
   template <>
-  void Field<2>::resize(uvec size) {
+  void Field<2>::resizeField(uvec size) {
     if (_size == size) {
       return;
     }
