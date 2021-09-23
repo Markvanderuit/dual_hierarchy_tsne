@@ -13,22 +13,21 @@ Finally, it scales to 3D embeddings as well.
 
 For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
 
-## Prerequisites
+## Compilation
 Ensure your system satisfies the following requirements:
-* A compiler with C++17 support. Tested with MSVC 19.6, Clang 12, GCC 11.1
+* A C++17 compiler; tested with MSVC 19.6, Clang 12, GCC 11.
 * CMake 3.21 or later.
 * CUDA 10 or later.
 
-All other dependencies are bundled through vcpkg. Note that some Unix systems may require X11/Wayland development packages to be installed for [GLFW](https://www.glfw.org). Vcpkg should provide sufficient information for you to install these, but if you run into any issues, refer to the [GLFW compilation page](https://www.glfw.org/docs/3.3/compile.html).
+All other dependencies are bundled through vcpkg. Note that some Unix systems may require X11/Wayland development packages to be installed for [GLFW](https://www.glfw.org). Vcpkg tries to provide sufficient information for you to install these, but if you run into any issues, refer to the [GLFW compilation page](https://www.glfw.org/docs/3.3/compile.html).
 
-## Compilation
-First, clone the repository and include the required submodules.
+Next, clone the repository and include the required submodules.
 
 ```bash
 git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
 ```
 
-Next, you should be able to generate a project and compile it. For example, by invoking CMake:
+Finally, you should be able to generate a project and compile it. For example, by invoking CMake:
 
 ```bash
   mkdir dual_hierarchy_tsne/build
@@ -36,6 +35,7 @@ Next, you should be able to generate a project and compile it. For example, by i
   cmake ..
   make
 ```
+Please note that on the very first run of any application including the built libraries, CUDA's compute cache is still being built for FAISS, which may take several minutes.
 
 ## Usage
 
@@ -90,12 +90,12 @@ int main() {
 
 **Demo application**
 
-The demo (build target: `sne_cmd`, file: `src/app/sne_cmd.cpp`) provides a command-line application which can run t-SNE on arbitrary datasets, if they are provided as raw binary data. It additionally allows for starting a tiny renderer (the `vis` library) that shows the embedding, minimization, and the used dual-hierarchies.
+The demo (build target: `sne_cmd`, file: `src/app/sne_cmd.cpp`) provides a command-line application which can run t-SNE on arbitrary datasets, if they are provided in a raw binary (single-precision floating point) format. It additionally allows for starting a tiny renderer (the `vis` library) that shows the embedding, minimization, and the used dual-hierarchies.
 
 Below is a basic example using an MNIST dataset with labels. The following line:
 
 ```bash
-./sne_cmd <path/to/mnist.bin> 60000 784 2 --lbl --kld --visAfter
+./sne_cmd <path/to/mnist.bin> 60000 784 2 --lbl --kld
 ```
 performs a 2D embedding of the 60.000x784 dataset, outputting something like the following:
 ```bash
@@ -103,11 +103,33 @@ KL-divergence : 1.28378
 Similarities runtime : 2248ms
 Minimization runtime : 1164ms
 ```
-while spawning the following window:
+Adding either the `--visDuring` or `--visAfter` parameters spawns a renderer during/after minimization:
 
-![minimization](resources/misc/readme_window.png)
+<table>
+  <tr><th> 
+  
+  ``--visDuring`` 
+  
+  </th>
+  <th> 
+  
+  ``--visAfter`` 
+  
+  </th></tr>
+  <tr><td>
+  
+  ![minimization](resources/misc/readme_window.png)
 
-You can use `./sne_cmd -h` to list all program parameters. Common parameters are perplexity (`-p`), number of iterations (`-i`), and Barnes-Hut approximation (`-t`). Adding `--lbl` indicates the dataset contains labels, while `--kld` indicates KL-divergence should be computed afterwards. Finally, adding `--visDuring`/`--visAfter` spawns a renderer during/after minimization. Note that `--visDuring` may slow down the actual minimization. The renderer can visualize the dual-hierarchies used in our technique, if you check the `Embeding hierarchy`/`Field hierarchy` flags in the UI.
+  </td><td>
+
+  ![minimization](resources/misc/readme_window.png)
+
+  </td></tr>
+</table>
+
+The renderer can visualize the dual-hierarchies used in our technique, if you check the `Embedding hierarchy`/`Field hierarchy` flags in the UI. Note that `--visDuring` may slow down the actual minimization, especially if large hierarchies are used.
+
+You can use `./sne_cmd -h` to list all other program parameters. Common parameters are perplexity (`-p`), number of iterations (`-i`), Barnes-Hut approximation (`-t`), and output file (`-o`). Adding `--lbl` indicates the input dataset contains labels, while `--kld` indicates KL-divergence should be computed afterwards.
 
 **Datasets**
 

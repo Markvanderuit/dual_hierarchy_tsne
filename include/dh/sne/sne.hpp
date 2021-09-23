@@ -35,6 +35,8 @@
 
 namespace dh::sne {
   class SNE {
+    using millis = std::chrono::milliseconds;
+
   public:
     // Constr/destr
     SNE();
@@ -60,12 +62,12 @@ namespace dh::sne {
     // Don't call some of these *while* minimizing unless you don't care about performance
     float klDivergence();
     std::vector<float> embedding() const;
-    std::chrono::milliseconds similaritiesTime() const;
-    std::chrono::milliseconds minimizationTime() const;
+    millis similaritiesTime() const;
+    millis minimizationTime() const;
 
   private:
     // sne::Minimization<D> uses template argument D to specify numbers of low dimensions
-    // but is otherwise identical in structure (on the CPU side, at least).
+    // but is identical in structure (on the CPU side, at least).
     // Given that, we define both in the same place and use std::visit for runtime polymorphism 
     using Minimization = std::variant<sne::Minimization<2>, sne::Minimization<3>>;
 
