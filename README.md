@@ -113,12 +113,11 @@ You can use `./sne_cmd -h` to list all other program parameters. Common paramete
 
 **Datasets**
 
-A simple MNIST test dataset (60.000 vectors, 784 dimensions, with labels) is provided in a compressed file [here](resources/data). 
-<!-- `/resources/data/mnist_labeled_60k_784d.zip`. We additionally used the following datasets -->
+A MNIST test file (60.000x784, with labels) is provided in a compressed file [here](resources/data). In our paper, we additionally used the following datasets:
 
-* [Fashion-MNIST](https://surfdrive.surf.nl/files/index.php/s/ErqzvT1WdIk1tBp) 60.000 vectors, 784 dimensions, with labels. Original from [zalandoresearch/fashion-mnist](https://github.com/zalandoresearch/fashion-mnist).
-* [ImageNet](https://surfdrive.surf.nl/files/index.php/s/EkjTCi2M6s4Gelo) 1.281.167 vectors, 128 dimenions, with labels. Original from [ZJULearning/AtSNE](https://github.com/ZJULearning/AtSNE).
-* [Word2Vec](https://surfdrive.surf.nl/files/index.php/s/O1lrFqYq4e1Y80o) 3.000.000 vectors, 128 dimensions, without labels. Original from the [Word2Vec website](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?resourcekey=0-wjGZdNAUop6WykTtMip30g).
+* [Fashion-MNIST](https://surfdrive.surf.nl/files/index.php/s/ErqzvT1WdIk1tBp) 60.000x784, with labels. Original from [zalandoresearch/fashion-mnist](https://github.com/zalandoresearch/fashion-mnist).
+* [ImageNet](https://surfdrive.surf.nl/files/index.php/s/EkjTCi2M6s4Gelo) 1.281.167x128, with labels. Original from [ZJULearning/AtSNE](https://github.com/ZJULearning/AtSNE).
+* [Word2Vec](https://surfdrive.surf.nl/files/index.php/s/O1lrFqYq4e1Y80o) 3.000.000x128, without labels. Original from the [Word2Vec website](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?resourcekey=0-wjGZdNAUop6WykTtMip30g).
 
 ## Citation
 Please cite the following paper if you found it useful in your research:
