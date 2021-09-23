@@ -4,14 +4,14 @@
 
 ## Introduction
 
-This repository contains a library and accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)).
+This repository contains a library and an accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)).
 
 In short, our method accelerates the t-SNE minimization by generating a pair of spatial hierarchies; one over the embedding, and another over a discretization of the embedding's space.
 We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations performed.
 Our method runs fully on the GPU using OpenGL/CUDA, and currently outperforms both the CUDA implementation of FIt-SNE as well as linear-complexity t-SNE
 Finally, it scales to 3D embeddings as well.
 
-For full details and performance comparisons, check out our recent [paper](...) "*An Efficient Dual-Hierarchy t-SNE Minimization*"!
+For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
 
 ## Prerequisites
 Ensure your system satisfies the following requirements:
@@ -19,7 +19,7 @@ Ensure your system satisfies the following requirements:
 * CMake 3.21 or later.
 * CUDA 10 or later.
 
-All other dependencies are bundled through vcpkg. Note that, for [GLFW](https://www.glfw.org), some Unix systems may require X11/Wayland development packages to be installed. Vcpkg should provide sufficient information for you to install these, but if you run into issues, refer to the [GLFW compilation page](https://www.glfw.org/docs/3.3/compile.html).
+All other dependencies are bundled through vcpkg. Note that some Unix systems may require X11/Wayland development packages to be installed for [GLFW](https://www.glfw.org). Vcpkg should provide sufficient information for you to install these, but if you run into any issues, refer to the [GLFW compilation page](https://www.glfw.org/docs/3.3/compile.html).
 
 ## Compilation
 First, clone the repository and include the required submodules.
@@ -41,8 +41,10 @@ Next, you should be able to generate a project and compile it. For example, by i
 
 **Library**
 
-The CMake project provides three library build targets: *utils*, *vis*, and *sne*. The *utils* library contains utility and boilerplate code. The optional *vis* library contains rendering code for the demo application discussed below. The *sne* library contains the only parts that really matter.
-
+The CMake project provides three library build targets: *utils*, *vis*, and *sne*.
+The *utils* library contains utility and boilerplate code.
+The optional *vis* library contains rendering code for the demo application discussed below.
+The *sne* library contains the only parts that really matter.
 Below is a minimal example showing its usage to minimize a small dataset:
 
 ```c++
@@ -90,14 +92,43 @@ int main() {
 
 The demo (build target: `sne_cmd`, file: `src/app/sne_cmd.cpp`) provides a command-line application which can run t-SNE on arbitrary datasets, if they are provided as raw binary data. It additionally allows for starting a tiny renderer (the `vis` library) that shows the embedding, minimization, and the used dual-hierarchies.
 
+Below is a basic example using an MNIST dataset with labels. The following line:
+
+```bash
+./sne_cmd <path/to/mnist.bin> 60000 784 2 --lbl --kld --visAfter
+```
+performs a 2D embedding of the 60.000x784 dataset, outputting something like the following:
+```bash
+KL-divergence : 1.28378
+Similarities runtime : 2248ms
+Minimization runtime : 1164ms
+```
+while spawning the following window:
+
+![minimization](resources/misc/readme_window.png)
+
+You can use `./sne_cmd -h` to list all program parameters. Common parameters are perplexity (`-p`), number of iterations (`-i`), and Barnes-Hut approximation (`-t`). Adding `--lbl` indicates the dataset contains labels, while `--kld` indicates KL-divergence should be computed afterwards. Finally, adding `--visDuring`/`--visAfter` spawns a renderer during/after minimization. Note that `--visDuring` may slow down the actual minimization. The renderer can visualize the dual-hierarchies used in our technique, if you check the `Embeding hierarchy`/`Field hierarchy` flags in the UI.
+
 **Datasets**
 
-...
+A simple MNIST test dataset (60.000 vectors, 784 dimensions, with labels) is provided in a compressed file in `/resources/data/mnist_labeled_60k_784d.zip`. We additionally used the following datasets
+
+* [Fashion-MNIST](https://surfdrive.surf.nl/files/index.php/s/ErqzvT1WdIk1tBp) 60.000 vectors, 784 dimensions, with labels. Original from [zalandoresearch/fashion-mnist](https://github.com/zalandoresearch/fashion-mnist).
+* [ImageNet](https://surfdrive.surf.nl/files/index.php/s/EkjTCi2M6s4Gelo) 1.281.167 vectors, 128 dimenions, with labels. Original from [ZJULearning/AtSNE](https://github.com/ZJULearning/AtSNE).
+* [Word2Vec](https://surfdrive.surf.nl/files/index.php/s/O1lrFqYq4e1Y80o) 3.000.000 vectors, 128 dimensions, without labels. Original from the [Word2Vec website](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?resourcekey=0-wjGZdNAUop6WykTtMip30g).
 
 ## Citation
-Please cite the following paper if you have applied it in your research:
+Please cite the following paper if you found it useful in your research:
 
-...
+```
+@article{
+  author = {van de Ruit, Mark and Billeter, Markus and Eisemann, Elmar},
+  title = {An Efficient Dual-Hierarchy t-SNE Minimization},
+  journal = {},
+  doi = {},
+  year = {2021}
+}
+```
 
 ## License and third-party software
 The source code in this repository is released under the MIT License. However, all used third-party software libraries are governed by their own respective licenes. Without the following libraries, this project would have been considerably harder:
