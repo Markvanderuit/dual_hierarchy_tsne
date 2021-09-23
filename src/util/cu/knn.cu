@@ -32,7 +32,7 @@
 namespace dh::util {
   // Tuning parameters for FAISS
   constexpr uint nProbe = 12;
-  constexpr uint nListMult = 4;
+  constexpr uint nListMult = 2;
   constexpr size_t addBatchSize = 32768;
   constexpr size_t searchBatchSize = 16384;
 
