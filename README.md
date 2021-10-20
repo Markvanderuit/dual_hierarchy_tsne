@@ -18,7 +18,7 @@ Ensure your system satisfies the following requirements:
 
 All other dependencies are bundled through vcpkg. Note that some Unix systems may require X11/Wayland development packages to be installed for [GLFW](https://www.glfw.org). Vcpkg tries to provide sufficient information for you to install these, but if you run into any issues, refer to the [GLFW compilation page](https://www.glfw.org/docs/3.3/compile.html).
 
-Next, clone the repository (include the required submodules) and configure it using CMake. Compilation using Make would happen as, for example:
+Next, clone the repository (including submodules) and configure it using CMake. For example:
 
 ```bash
   git clone --recurse-submodules https://github.com/Markvanderuit/dual_hierarchy_tsne
@@ -27,7 +27,7 @@ Next, clone the repository (include the required submodules) and configure it us
   cmake ..
   make
 ```
-Mote that, on the very first run of any application including the built libraries, CUDA's compute cache is still being built for FAISS. The KNN search hence may take a long time on a first run.
+Mote that, on the very first run of any application including the built libraries, CUDA's compute cache is still being built for FAISS. The KNN search hence may take a very long time on a first run.
 
 ## Usage
 
