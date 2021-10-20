@@ -32,8 +32,7 @@ namespace dh::sne {
     // Constants
     constexpr uint knode = (D == 2) ? 4 : 8;
     constexpr uint logk = (D == 2) ? 2 : 3;
-    constexpr uint fieldHierarchyInitLvl = (D == 2) ? 3 : 2;
-    constexpr uint embeddingHierarchyInitLvl = (D == 2) ? 3 : 2;
+    constexpr uint hierarchyInitLvl = (D == 2) ? DH_HIER_INIT_LVL_2D : DH_HIER_INIT_LVL_3D;
     
     auto& timer = _timers(TimerType::eField);
     timer.tick();
@@ -96,7 +95,7 @@ namespace dh::sne {
       DualHierarchyState state = DualHierarchyState::eDualSubdivide;
 
       // Perform traversal level by level until leaves are reached
-      for (uint i = fieldHierarchyInitLvl; i <= nrIters; ++i) {
+      for (uint i = hierarchyInitLvl; i <= nrIters; ++i) {
         // Update traversal state
         if (state == DualHierarchyState::eDualSubdivide && i == dualSubdivideLastLvl) {
           state = DualHierarchyState::eDualSubdivideLast;
@@ -257,7 +256,7 @@ namespace dh::sne {
 
       // Set uniforms
       program.template uniform<uint>("fLvls", fLayout.nLvls);
-      program.template uniform<uint>("startLvl", fieldHierarchyInitLvl);
+      program.template uniform<uint>("startLvl", hierarchyInitLvl);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::ePixelQueue));

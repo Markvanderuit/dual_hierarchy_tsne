@@ -32,11 +32,6 @@
 #include "dh/util/gl/metric.hpp"
 
 namespace dh::sne {
-  // Constants
-  constexpr uint hierarchyRebuildPadding = 150;
-  constexpr uint hierarchyRebuildIterations = 4;
-  constexpr int maxDualHierarchyLvlDiff = 4;
-  
   template <uint D>
   Field<D>::Field()
   : _isInit(false) {
@@ -82,7 +77,7 @@ namespace dh::sne {
     const int lvlDiff = static_cast<int>(eLayout.nLvls) - static_cast<int>(fLayout.nLvls);
     const bool fieldHierarchyActive = _useFieldHierarchy 
                                     && iteration >= _params.removeExaggerationIter
-                                    && lvlDiff < maxDualHierarchyLvlDiff;
+                                    && lvlDiff < DH_HIER_LVL_DIFFERENCE;
 
     // Build field hierarchy if necessary
     if (fieldHierarchyActive) {
@@ -103,8 +98,8 @@ namespace dh::sne {
 
     // Update hierarchy refit/rebuild countdown
     if (_useEmbeddingHierarchy) {
-      if (iteration <= (_params.removeExaggerationIter + hierarchyRebuildPadding)
-      || _hierarchyRebuildIterations >= hierarchyRebuildIterations) {
+      if (iteration <= (_params.removeExaggerationIter + DH_BVH_REFIT_PADDING)
+      || _hierarchyRebuildIterations >= DH_BVH_REFIT_ITERS) {
         _hierarchyRebuildIterations = 0;
       } else {
         _hierarchyRebuildIterations++;

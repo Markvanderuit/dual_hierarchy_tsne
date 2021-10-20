@@ -50,7 +50,7 @@
  * Settings for anything handled by dh::util::Logger
  */
 #define DH_LOG_TIMESTAMPS       // Prepend UTC timestmaps to every log as prefix
-#define DH_LOG_PREFIX_WIDTH 20   // Have a minimum padding for every log's prefix
+#define DH_LOG_PREFIX_WIDTH 20  // Have a minimum padding for every log's prefix
 
 
 /**
@@ -63,3 +63,13 @@
 #define DH_VIS_EMBEDDING_INIT true            // Enable embedding render task by default
 #define DH_VIS_EMBEDDING_HIERARCHY_INIT false // Enable embedding hierarchy render task by default
 #define DH_VIS_FIELD_HIERARCHY_INIT false     // Enable field hierarchy render task by default
+
+/**
+ * Settings for dual-hierarchy approximation
+ */
+#define DH_HIER_INIT_LVL_2D 3       // Top-down level at which dual-hierarchy traversal starts, 2D
+#define DH_HIER_INIT_LVL_3D 2       // Top-down level at which dual-hierarchy traversal starts, 3D
+#define DH_HIER_LVL_DIFFERENCE 4    // Max hierarchy depth difference where DH approximation is used
+#define DH_BVH_REFIT_ITERS 4        // Max nr. of refits for BVH before a full rebuild is performed
+#define DH_BVH_REFIT_PADDING 150    // Nr. of iters after early exagg. where refit is not allowed
+#define DH_WORKQUEUE_HIGHWATER 1024 // Graphics memory in mb that is unavailable for work queues

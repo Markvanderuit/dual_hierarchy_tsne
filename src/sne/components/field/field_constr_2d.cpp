@@ -40,17 +40,15 @@ namespace dh::sne {
   // Constants
   constexpr uint knode = 4;
   constexpr uint logk = 2;
-  constexpr uint embeddingHierarchyInitLvl = 3;
-  constexpr uint fieldHierarchyInitLvl = 3;
   constexpr util::AlignedVec<2, uint> fieldSizePrealloc(256);
-  constexpr uint queueHighWater = 1024 * 1024 * 1024;
+  constexpr uint queueHighWater = DH_WORKQUEUE_HIGHWATER * 1024 * 1024;
 
   // Initial set of node pairs used for dual hierarchy traversal
   constexpr auto initPairs = []() {
-    const uint fBegin = (0x2AAAAAAA >> (31u - logk * fieldHierarchyInitLvl));
-    const uint fNodes = 1u << (logk * fieldHierarchyInitLvl);
-    const uint eBegin = (0x2AAAAAAA >> (31u - logk * embeddingHierarchyInitLvl));
-    const uint eNodes = 1u << (logk * embeddingHierarchyInitLvl);
+    const uint fBegin = (0x2AAAAAAA >> (31u - logk * DH_HIER_INIT_LVL_2D));
+    const uint fNodes = 1u << (logk * DH_HIER_INIT_LVL_2D);
+    const uint eBegin = (0x2AAAAAAA >> (31u - logk * DH_HIER_INIT_LVL_2D));
+    const uint eNodes = 1u << (logk * DH_HIER_INIT_LVL_2D);
     std::array<glm::uvec2, fNodes * eNodes> a {};
     for (uint i = 0; i < fNodes; ++i) {
       for (uint j = 0; j < eNodes; ++j) {

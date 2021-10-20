@@ -48,7 +48,6 @@ namespace dh::sne {
     float rngRange = 0.1f;
     
     // Gradient descent iteration parameters
-    // TODO COMPARE TO CUDA-SNE for simplification
     uint momentumSwitchIter = 250;
     uint removeExaggerationIter = 250;
     uint exponentialDecayIter = 150;
@@ -58,14 +57,13 @@ namespace dh::sne {
     float eta = 200.f;
 
     // Original params
-    // float momentum = 0.2f;
-    // float finalMomentum = 0.5f;
-    // float exaggerationFactor = 4.0f;
+    float momentum = 0.2f;
+    float finalMomentum = 0.5f;
+    float exaggerationFactor = 4.0f;
 
-    // TODO Compare to TSNE-CUDA for simplification
-    // Params used by TSNE-CUDA, much better on *some* datasets
-    float momentum = 0.5f;
-    float finalMomentum = 0.8f;
-    float exaggerationFactor = 12.0f;
+    // Params used by TSNE-CUDA, much better on some datasets such as ImageNet
+    // float momentum = 0.5f;
+    // float finalMomentum = 0.8f;
+    // float exaggerationFactor = 12.0f;
   };
 } // dh::sne

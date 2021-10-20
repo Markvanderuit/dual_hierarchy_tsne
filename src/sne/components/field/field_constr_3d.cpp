@@ -40,10 +40,8 @@ namespace dh::sne {
   // Constants
   constexpr uint knode = 8;
   constexpr uint logk = 3;
-  constexpr uint embeddingHierarchyInitLvl = 2;
-  constexpr uint fieldHierarchyInitLvl = 2;
   constexpr util::AlignedVec<3, uint> fieldSizePrealloc(128);
-  constexpr uint queueHighWater = 1024 * 1024 * 1024;
+  constexpr uint queueHighWater = DH_WORKQUEUE_HIGHWATER * 1024 * 1024;
 
   // Incrementing bit flags for fast voxel grid computation
   constexpr auto initCellData = []() {  
@@ -57,10 +55,10 @@ namespace dh::sne {
   }();
 
   constexpr auto initPairs = []() {
-    const uint fBegin = (0x24924924u >> (32u - logk * fieldHierarchyInitLvl));
-    const uint fNodes = 1u << (logk * fieldHierarchyInitLvl);
-    const uint eBegin = (0x24924924u >> (32u - logk * embeddingHierarchyInitLvl));
-    const uint eNodes = 1u << (logk * embeddingHierarchyInitLvl);
+    const uint fBegin = (0x24924924u >> (32u - logk * DH_HIER_INIT_LVL_3D));
+    const uint fNodes = 1u << (logk * DH_HIER_INIT_LVL_3D);
+    const uint eBegin = (0x24924924u >> (32u - logk * DH_HIER_INIT_LVL_3D));
+    const uint eNodes = 1u << (logk * DH_HIER_INIT_LVL_3D);
     std::array<glm::uvec2, fNodes * eNodes> a {};
     for (uint i = 0; i < fNodes; ++i) {
       for (uint j = 0; j < eNodes; ++j) {
