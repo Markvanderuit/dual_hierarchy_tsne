@@ -12,7 +12,7 @@ Our method runs fully on the GPU using OpenGL/CUDA, and currently outperforms GP
 
 ## Compilation
 Ensure your system satisfies the following requirements:
-* A C++17 compiler; tested with MSVC 19.6, Clang 12, GCC 11.
+* A C++17 compiler. (tested with MSVC 19.6, Clang 12, GCC 11)
 * CMake 3.21 or later.
 * CUDA 10 or later.
 
@@ -27,7 +27,7 @@ Next, clone the repository (including submodules) and configure it using CMake. 
   cmake ..
   make
 ```
-Mote that, on the very first run of any application including the built libraries, CUDA's compute cache is still being built for FAISS. The KNN search hence may take a very long time on a first run.
+Note that, on the very first run of any application including the built libraries, CUDA's compute cache is still being built for FAISS. The KNN search hence may take a very long time on a first run.
 
 ## Usage
 
