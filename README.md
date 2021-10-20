@@ -4,9 +4,9 @@
 
 ## Introduction
 
-This repository contains a library and an accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)). For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](...), [preprint](...)).
+This repository contains a library and accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)). For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](https://ieeexplore.ieee.org/abstract/document/9552856), [author site](...)).
 
-In short, our method accelerates the t-SNE minimization by generating a pair of spatial hierarchies; one over the embedding, and another over a discretization of the embedding's space.
+Our method accelerates the t-SNE minimization by generating a pair of spatial hierarchies; one over the embedding, and another over a discretization of the embedding's space.
 We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations performed.
 Our method runs fully on the GPU using OpenGL/CUDA, and currently outperforms GPU implementations of both FIt-SNE [[1]](#1) and linear-complexity t-SNE [[2]](#2). Finally, it scales to 3D embeddings as well.
 
@@ -27,7 +27,7 @@ Next, clone the repository (include the required submodules) and configure it us
   cmake ..
   make
 ```
-Please note that on the very first run of any application including the built libraries, CUDA's compute cache is still being built for FAISS, which may take several minutes.
+Mote that, on the very first run of any application including the built libraries, CUDA's compute cache is still being built for FAISS. The KNN search hence may take a long time on a first run.
 
 ## Usage
 
@@ -105,7 +105,7 @@ You can use `./sne_cmd -h` to list all other program parameters. Common paramete
 
 **Datasets**
 
-A MNIST test file (60.000x784, with labels) is provided in a compressed file [here](resources/data). In our paper, we additionally used the following datasets:
+A test dataset (MNIST: 60.000x784 with labels) is provided in a compressed file [here](resources/data). In our paper, we additionally used the following datasets:
 
 * [Fashion-MNIST](https://surfdrive.surf.nl/files/index.php/s/ErqzvT1WdIk1tBp) 60.000x784, with labels. Original from [zalandoresearch/fashion-mnist](https://github.com/zalandoresearch/fashion-mnist).
 * [ImageNet](https://surfdrive.surf.nl/files/index.php/s/EkjTCi2M6s4Gelo) 1.281.167x128, with labels. Original from [ZJULearning/AtSNE](https://github.com/ZJULearning/AtSNE).
@@ -118,9 +118,9 @@ Please cite the following paper if you found it useful in your research:
 @article{
   author = {van de Ruit, Mark and Billeter, Markus and Eisemann, Elmar},
   title = {An Efficient Dual-Hierarchy t-SNE Minimization},
-  journal = {},
-  doi = {},
-  year = {2021}
+  journal={IEEE Transactions on Visualization and Computer Graphics}, 
+  year = {2021},
+  doi={10.1109/TVCG.2021.3114817}}
 }
 ```
 
