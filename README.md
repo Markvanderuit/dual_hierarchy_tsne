@@ -118,9 +118,9 @@ Please cite the following paper if you found it useful in your research:
 @article{
   author = {van de Ruit, Mark and Billeter, Markus and Eisemann, Elmar},
   title = {An Efficient Dual-Hierarchy t-SNE Minimization},
-  journal={IEEE Transactions on Visualization and Computer Graphics}, 
+  journal = {IEEE Transactions on Visualization and Computer Graphics}, 
   year = {2021},
-  doi={10.1109/TVCG.2021.3114817}}
+  doi = {10.1109/TVCG.2021.3114817}}
 }
 ```
 
