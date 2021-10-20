@@ -188,15 +188,8 @@ void sne() {
 
 int main(int argc, char** argv) {
   try {
-    // iptFilename = "C:/users/markv/documents/Repositories/dual_hierarchy_tsne/resources/data/mnist_labeled_60k_784d.bin";
-    // params.n = 60000;
-    // params.nHighDims = 784;
-    // params.nLowDims = 2;
-    // progDoVisAfter = true;
-    // progDoLabels = true;
-
-    cli(argc, argv); // Parse parameters from command line input
-    sne(); // Run rest of application
+    cli(argc, argv);
+    sne();
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
