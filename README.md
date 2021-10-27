@@ -4,7 +4,7 @@
 
 ## Introduction
 
-This repository contains a library and accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)). For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal](https://ieeexplore.ieee.org/abstract/document/9552856), [author site](...)).
+This repository contains a library and accompanying demo application implementing our dual-hierarchy acceleration of *t-distributed Stochastic Neighbor Embedding* ([t-SNE](https://lvdmaaten.github.io/tsne/)). For details and performance comparisons, check out our recent paper "*An Efficient Dual-Hierarchy t-SNE Minimization*" ([journal link](https://ieeexplore.ieee.org/abstract/document/9552856), [author link](https://graphics.tudelft.nl/Publications-new/2021/VBE21/)).
 
 Our method accelerates the t-SNE minimization by generating a pair of spatial hierarchies; one over the embedding, and another over a discretization of the embedding's space.
 We consider approximations of the interactions between these hierarchies, allowing us to significantly reduce the number of N-body computations performed.
