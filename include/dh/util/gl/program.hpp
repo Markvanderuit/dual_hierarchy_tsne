@@ -83,7 +83,7 @@ namespace dh::util {
     
     // Matrix type uniform function
     // Supports GLM-based 4x4 matrices of type float (others are unimplemented due to lack of use)
-    template <typename GenType, int M, uint N, glm::qualifier Q,
+    template <typename GenType, int M, int N, glm::qualifier Q,
               template <int, int, typename, glm::qualifier> class ImplType>
     void uniform(const std::string& s, ImplType<M, N, GenType, Q> t) {
       if (!implUniformValue(s, t)) implUniform<GenType, M, N>(implUniformLocation(s), &(t[0].x));
