@@ -33,10 +33,10 @@ namespace dh::util {
     inline 
     void cuAssertImpl(cudaError_t err, const char *file, int line) {
       if (err != cudaSuccess) {
-        RuntimeError error("CUDA error");
-        error.code = cudaGetErrorString(err);
-        error.file = file;
-        error.line = line;
+        RuntimeError error("CUDA assertion failed");
+        error.logs["code"] = cudaGetErrorString(err);
+        error.logs["file"] = file;
+        error.logs["line"] = line;
         throw error;
       }
     }

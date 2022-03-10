@@ -25,6 +25,7 @@
 #pragma once
 #include <exception>
 #include <iomanip>
+#include <map>
 #include <sstream>
 #include <string>
 #include "dh/constants.hpp"
@@ -32,37 +33,24 @@
 
 namespace dh::util {
   struct RuntimeError : public std::exception {
-    std::string message;  // Basic required message attached to error
-    std::string code;     // Optional error code provided by APIs (OpenGL/CUDA return codes)
-    std::string log;      // Optional log provided by APIs (OpenGL shader compilation)
-    std::string file;     // Optional file name, obtained during preprocessing
-    int line;             // Optional line nr, obtained during preprocessing
+    std::string message;                      // Basic required message attached to error
+    std::map<std::string, std::string> logs;  // Optional other attached data in key/value pairs
 
     // Constr
     RuntimeError(const std::string& message)
-    : std::exception(), message(message), line(-1) { }
+    : std::exception(), message(message) { }
 
     // Impl. of std::exception::what(), assembles detailed error from provided data
     const char* what() const noexcept override {
       std::stringstream ss;
 
-      ss << "\nRuntime error\n";
+      ss << "\nRuntime exception\n";
       ss << std::left << std::setw(16) << "  message:" << message << '\n';
 
-      if (!file.empty()) {
-        ss << std::left << std::setw(16) << "  file:" << file << '\n';
+      for (const auto& [key, code] : logs) {
+        std::string head = "  " + key + ":";
+        ss << std::left << std::setw(16) << head << code << '\n';
       }
-      if (line != -1) {
-        ss << std::left << std::setw(16) << "  line:" << line << '\n';
-      }
-      if (!code.empty()) {
-        ss << std::left << std::setw(16) << "  code:" << code << '\n';
-      }
-      if (!log.empty()) {
-        ss << "  log:" << log << '\n';
-      }
-
-      ss << '\n';
       
       _what = ss.str();
       return _what.c_str();
@@ -77,8 +65,8 @@ namespace dh::util {
     void runtimeAssertImpl(bool statement, const std::string& message, const char *file, int line) {
       if (!statement) {
         RuntimeError error(message);
-        error.file = file;
-        error.line = line;
+        error.logs["file"] = file;
+        error.logs["line"] = line;
         throw error;
       }
     }

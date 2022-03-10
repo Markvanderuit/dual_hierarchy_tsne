@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <array>
+#include <algorithm>
 #include <iostream>
 #include <glad/glad.h>
 #include "dh/constants.hpp"
@@ -56,18 +58,125 @@ namespace dh::util {
     }
   }
 
+  inline
+  std::string glReadableDebugSrc(GLenum src) {
+    switch (src) {
+    case GL_DEBUG_SOURCE_API:
+      return "GL_DEBUG_SOURCE_API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+      return "GL_DEBUG_SOURCE_WINDOW_SYSTEM";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+      return "GL_DEBUG_SOURCE_SHADER_COMPILER";
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+      return "GL_DEBUG_SOURCE_THIRD_PARTY";
+    case GL_DEBUG_SOURCE_APPLICATION:
+      return "GL_DEBUG_SOURCE_APPLICATION"; 
+    case GL_DEBUG_SOURCE_OTHER:
+      return "GL_DEBUG_SOURCE_OTHER";      
+    default:
+      return "unknown";
+    }
+  }
+
+  inline
+  std::string glReadableDebugType(GLenum type) {
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+      return "GL_DEBUG_TYPE_ERROR";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+      return "GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+      return "GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR";
+    case GL_DEBUG_TYPE_PORTABILITY:
+      return "GL_DEBUG_TYPE_PORTABILITY";
+    case GL_DEBUG_TYPE_PERFORMANCE:
+      return "GL_DEBUG_TYPE_PERFORMANCE";
+    case GL_DEBUG_TYPE_MARKER:
+      return "GL_DEBUG_TYPE_MARKER";
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+      return "GL_DEBUG_TYPE_PUSH_GROUP";
+    case GL_DEBUG_TYPE_POP_GROUP:
+      return "GL_DEBUG_TYPE_POP_GROUP";
+    case GL_DEBUG_TYPE_OTHER:
+      return "GL_DEBUG_TYPE_OTHER";
+    default:
+      return "unknown";
+    }
+  }
+
+  inline
+  std::string glReadableDebugSeverity(GLenum severity) {
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_HIGH: 
+      return "GL_DEBUG_SEVERITY_HIGH";
+    case GL_DEBUG_SEVERITY_MEDIUM: 
+      return "GL_DEBUG_SEVERITY_MEDIUM";
+    case GL_DEBUG_SEVERITY_LOW: 
+      return "GL_DEBUG_SEVERITY_LOW";
+    case GL_DEBUG_SEVERITY_NOTIFICATION: 
+      return "GL_DEBUG_SEVERITY_NOTIFICATION";
+    default:
+      return "unknown";
+    }
+  }
+
   namespace detail {
     inline
     void glAssertImpl(const char *file, int line) {
       GLenum err;
       while ((err = glGetError()) != GL_NO_ERROR) {
-        RuntimeError error("OpenGL error");
-        error.code = glReadableError(err);
-        error.file = file;
-        error.line = line;
+        RuntimeError error("OpenGL assertion failed");
+        error.logs["code"] = glReadableError(err);
+        error.logs["file"] = std::string(file);
+        error.logs["line"] = std::to_string(line);
         throw error;
       }
     }
+
+    inline
+    void APIENTRY glDebugImpl(GLenum src, GLenum type, uint err, GLenum severity, GLsizei length,
+                              const char *msg, const void *userParam) {         
+        // Filter out insignificant codes
+        std::array<uint, 4> ignored = { 131169, 131185, 131218, 131204 };
+        if (std::find(ignored.begin(), ignored.end(), err) != ignored.end()) {
+          return;
+        }
+
+        RuntimeError error("OpenGL debug callback");
+        error.logs["code"] = std::to_string(err);
+        error.logs["type"] = glReadableDebugType(type);
+        error.logs["svr"] = glReadableDebugSeverity(severity);
+        error.logs["src"] = glReadableDebugSrc(src);
+        error.logs["msg"] = std::string(msg);
+        throw error;
+    }
+  }
+
+  inline
+  void glInitDebug() {
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(detail::glDebugImpl, nullptr);
+
+    // Enable all SEVERITY_HIGH messages
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_PERFORMANCE, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_MARKER, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_PUSH_GROUP, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_POP_GROUP, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+    // glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_OTHER, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+
+    // Enable select SEVERITY_MEDIUM messages
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM, 0, nullptr, GL_FALSE);
+    glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_ERROR, GL_DEBUG_SEVERITY_MEDIUM, 0, nullptr, GL_TRUE);
+    glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR, GL_DEBUG_SEVERITY_MEDIUM, 0, nullptr, GL_TRUE);
+
+    // Disable others
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW, 0, nullptr, GL_FALSE);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
   }
 } // dh::util
 
