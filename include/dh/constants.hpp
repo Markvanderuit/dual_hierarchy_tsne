@@ -47,6 +47,14 @@
 #define DH_ENABLE_ASSERT
 
 /**
+ * Enable OpenGL debug output and throw an exception on failure. In addition:
+ * - Also support warnings
+ */
+#define DH_ENABLE_DEBUG
+#define DH_ENABLE_DEBUG_WARNINGS
+
+
+/**
  * Settings for anything handled by dh::util::Logger
  */
 #define DH_LOG_TIMESTAMPS       // Prepend UTC timestmaps to every log as prefix

@@ -27,7 +27,9 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include "dh/constants.hpp"
 #include "dh/util/error.hpp"
+#include "dh/util/gl/error.hpp"
 #include "dh/util/gl/window.hpp"
 
 namespace dh::util {
@@ -62,6 +64,11 @@ namespace dh::util {
     glfwWindowHint(GLFW_FOCUSED, (windowInfo.flags & GLWindowInfo::bFocused) != 0);
     glfwWindowHint(GLFW_RESIZABLE, (windowInfo.flags & GLWindowInfo::bResizable) != 0);
     
+    // Set debug context creation hint
+#ifdef DH_ENABLE_DEBUG
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+#endif
+
     if ((windowInfo.flags & GLWindowInfo::bFullscreen) != 0) {
       // Create fullscreen window
       GLFWmonitor* pMonitor = glfwGetPrimaryMonitor();
@@ -87,6 +94,10 @@ namespace dh::util {
       makeCurrent();
       runtimeAssert(gladLoadGL(), "gladLoadGL() failed");
     }
+
+#ifdef DH_ENABLE_DEBUG
+    util::glInitDebug();
+#endif
 
     _nrHandles++;
     _isInit = true;
