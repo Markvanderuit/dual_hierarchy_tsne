@@ -101,17 +101,28 @@ namespace dh::util {
       std::string info(length, ' ');
       glGetShaderInfoLog(handle, GLint(info.size()), nullptr, info.data());
 
-      // Construct error message with attached error log
-      RuntimeError error("Shader compilation failed");
-      std::stringstream ss;
+      // Format compilation log
+      std::stringstream ss_log;
       std::stringstream infss(info);
       for (std::string line; std::getline(infss, line);) {
-        if (!line.empty() && line.find_first_not_of(' ') != std::string::npos) {
-          ss << '\n' << std::string(16, ' ') << line;
+        if (line.length() < 3) {
+          continue;
         }
+        ss_log << '\n' << std::left << std::setw(16) << " " << line;
       }
-      error.log = ss.str();
 
+      // Format shader source
+      std::stringstream ss_shdr;
+      infss = std::stringstream(src);
+      for (std::string line; std::getline(infss, line);) {
+        ss_shdr << '\n' << std::left << std::setw(16) << " " << line;
+      }
+
+      // Construct error with attached compilation log
+      RuntimeError error("Shader compilation failed");
+      error.logs["log"] = ss_log.str();
+      error.logs["shdr"] = to_string(type);
+      error.logs["src"] = ss_shdr.str();
       throw error;
     }
 
@@ -138,16 +149,19 @@ namespace dh::util {
       std::string info(length, ' ');
       glGetProgramInfoLog(_handle, GLint(info.size()), nullptr, info.data());
 
-      // Construct error message with attached error log
-      RuntimeError error("Program linking failed");
+      // Format linking log
       std::stringstream ss;
       std::stringstream infss(info);
       for (std::string line; std::getline(infss, line);) {
-        if (!line.empty() && line.find_first_not_of(' ') != std::string::npos) {
-          ss << '\n' << std::string(16, ' ') << line;
+        if (line.length() < 3) {
+          continue;
         }
+        ss << '\n' << std::left << std::setw(16) << " " << line;
       }
-      error.log = ss.str();
+
+      // Construct error with attached compilation log
+      RuntimeError error("Program linking failed");
+      error.logs["log"] = ss.str();
 
       throw error;
     }
