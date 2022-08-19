@@ -93,25 +93,27 @@ namespace dh::util {
     size_t file_size = static_cast<size_t>(ifs.tellg());
     ifs.seekg(0);
 
-    // Read input length as first unit
+    // Read nr. of vectors as first 8 bytes
     size_t n;
     ifs.read((char *) &n, sizeof(size_t));
 
-    // Read remainder of file into a temporary buffer; 
+    // Read remainder of file into temporary buffer and close file stream 
+    // after as we now operate on this buffer only
     std::vector<std::byte> buffer(file_size - ifs.tellg());
-    ifs.read((char*) buffer.data(), buffer.size());
+    ifs.read((char *) buffer.data(), buffer.size());
     ifs.close();
 
     // Read block region layout into secondary buffers
-    std::vector<size_t> blockSizeB(n), blockOffsB(n);
+    std::vector<size_t> blockSizeB(n, sizeof(NXPair)), 
+                        blockOffsB(n, sizeof(size_t));
     for (size_t i = 0, b = 0; i < n && b < buffer.size(); ++i) {
-      // Read first 8 bytes as size of block
+      // Read vector length as first 8 bytes, i.e. the size of the block
       size_t d;
       std::memcpy(&d, buffer.data() + b, sizeof(size_t));
 
       // Store byte size, and build exclusive prefix sum to start of block
-      blockSizeB[i] = sizeof(NXPair) * d;
-      blockOffsB[i] = sizeof(size_t) + ((i == 0) ? 0 : (blockOffsB[i - 1] + blockSizeB[i]));
+      blockSizeB[i] *= d;
+      blockOffsB[i] += ((i == 0) ? 0 : (blockOffsB[i - 1] + blockSizeB[i - 1]));
       
       // advance to next block start
       b += sizeof(size_t) + blockSizeB[i]; 
@@ -132,8 +134,33 @@ namespace dh::util {
     }
   }
 
-  void readBinFileNXMap(const std::string &fileName, std::vector<NXBlock> &out) {
-    // TODO impl...
+  void readBinFileNXOld(const std::string &fileName, std::vector<NXBlock> &out) {
+    // Attempt to open file stream to provided file at file's end
+    std::ifstream ifs(fileName, std::ios::in | std::ios::binary);
+    if (!ifs) {
+      throw std::runtime_error("Input file cannot be accessed: " + fileName);
+    }
+    
+    // Read input length as first unit
+    size_t n;
+    ifs.read((char*) &n, sizeof(decltype(n)));
+    out.resize(n);
+
+    for (int i = 0; i < n; i++) {
+      size_t d;
+      ifs.read((char*) &d, sizeof(decltype(d)));
+      out[i].resize(d);
+
+      for (int j = 0; j < d; j++) {
+        uint32_t id;
+        float transVal;
+        ifs.read((char*)&id, sizeof(decltype(id)));
+        ifs.read((char*)&transVal, sizeof(decltype(transVal)));
+        out[i][j] = { id , transVal };
+      }
+    }
+
+    ifs.close();
   }
   
   void writeTextValuesFile(const std::string &fileName, const std::vector<std::string> &values)

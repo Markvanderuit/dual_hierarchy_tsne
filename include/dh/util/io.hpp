@@ -66,7 +66,7 @@ namespace dh::util {
    */
   void readBinFileNX(const std::string &fileName, std::vector<NXBlock> &out);
   // Memory-mapped version; potentially more efficient for large files
-  void readBinFileNXMap(const std::string &fileName, std::vector<NXBlock> &out);
+  void readBinFileNXOld(const std::string &fileName, std::vector<NXBlock> &out);
 
   /**
    * writeTextValuesFile
