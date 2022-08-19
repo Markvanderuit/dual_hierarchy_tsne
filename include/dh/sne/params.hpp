@@ -38,8 +38,8 @@ namespace dh::sne {
     float perplexity = 30.f;
 
     // Approximation parameters
-    float singleHierarchyTheta = 0.5f;
-    float dualHierarchyTheta = 0.25f;
+    float singleHierarchyTheta = 0.f;
+    float dualHierarchyTheta = 0.f;
     float fieldScaling2D = 2.0f;
     float fieldScaling3D = 1.2f;
 
@@ -57,13 +57,13 @@ namespace dh::sne {
     float eta = 200.f;
 
     // Original params
-    float momentum = 0.2f;
-    float finalMomentum = 0.5f;
-    float exaggerationFactor = 4.0f;
+    // float momentum = 0.2f;
+    // float finalMomentum = 0.5f;
+    // float exaggerationFactor = 4.0f;
 
     // Params used by TSNE-CUDA, much better on some datasets such as ImageNet
-    // float momentum = 0.5f;
-    // float finalMomentum = 0.8f;
-    // float exaggerationFactor = 12.0f;
+    float momentum = 0.5f;
+    float finalMomentum = 0.8f;
+    float exaggerationFactor = 12.0f;
   };
 } // dh::sne

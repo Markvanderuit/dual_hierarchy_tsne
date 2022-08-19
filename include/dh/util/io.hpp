@@ -29,31 +29,44 @@
 #include "dh/types.hpp"
 
 namespace dh::util {
+  using NXPair  = std::pair<uint32_t, float>;
+  using NXBlock = std::vector<NXPair>;
+
  /**
-   * readBinFile(...)
+   * readBinFileND(...)
    * 
    * Read a binary data file and interpret it as N D-dimensional vectors. Should the data file
    * contain labels for each vector, these can be read assuming they are stored as 32 bit uints.
    */
-  void readBinFile(const std::string &fileName, 
-                   std::vector<float> &data,
-                   std::vector<uint> &labels, 
-                   uint n,
-                   uint d,
-                   bool withLabels = false);
+  void readBinFileND(const std::string &fileName, 
+                     std::vector<float> &data,
+                     std::vector<uint> &labels, 
+                     uint n,
+                     uint d,
+                     bool withLabels = false);
   
   /**
-   * writeBinFile(...)
+   * writeBinFileND(...)
    * 
    * Write a binary data file, storing N D-dimensional vectors. Should labels be available for
    * each vector, these can be interleaved with the data as 32 bit uints.
    */
-  void writeBinFile(const std::string &fileName,
-                    const std::vector<float> &data,
-                    const std::vector<uint> &labels,
-                    uint n,
-                    uint d,
-                    bool withLabels = false);
+  void writeBinFileND(const std::string &fileName,
+                      const std::vector<float> &data,
+                      const std::vector<uint> &labels,
+                      uint n,
+                      uint d,
+                      bool withLabels = false);
+
+  /**
+   * readBinFileNX(...)
+   * 
+   * Read a binary data file and interpret it as an Nx* sparse matrix with pairs of 
+   * (a) reference indices and (b) reference similarities.
+   */
+  void readBinFileNX(const std::string &fileName, std::vector<NXBlock> &out);
+  // Memory-mapped version; potentially more efficient for large files
+  void readBinFileNXMap(const std::string &fileName, std::vector<NXBlock> &out);
 
   /**
    * writeTextValuesFile

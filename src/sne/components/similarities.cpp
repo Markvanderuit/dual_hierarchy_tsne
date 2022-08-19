@@ -29,6 +29,10 @@
 #include "dh/util/gl/metric.hpp"
 #include "dh/util/cu/inclusive_scan.cuh"
 #include "dh/util/cu/knn.cuh"
+#include <algorithm>
+#include <execution>
+#include <numeric>
+#include <span>
 
 namespace dh::sne {
   // Logging shorthands
@@ -44,7 +48,33 @@ namespace dh::sne {
   }
 
   Similarities::Similarities(const float * dataPtr, Params params)
-  : _isInit(false), _dataPtr(dataPtr), _params(params) {
+  : _isInit(false), _dataPtr(dataPtr), _blockPtr(nullptr), _params(params) {
+    Logger::newt() << prefix << "Initializing...";
+
+    // Initialize shader programs
+    {
+      _programs(ProgramType::eSimilaritiesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/similarities.comp"));
+      _programs(ProgramType::eExpandComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/expand.comp"));
+      _programs(ProgramType::eLayoutComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/layout.comp"));
+      _programs(ProgramType::eNeighborsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/neighbors.comp"));
+      
+      for (auto& program : _programs) {
+        program.link();
+      }
+      glAssert();
+    }
+
+    // Initialize buffer object handles
+    // Allocation is performed in Similarities::comp() as the required memory size is not yet known
+    glCreateBuffers(_buffers.size(), _buffers.data());
+    glAssert();
+
+    _isInit = true;
+    Logger::rest() << prefix << "Initialized";
+  }
+
+  Similarities::Similarities(const util::NXBlock * dataPtr, Params params)
+  : _isInit(false), _dataPtr(nullptr), _blockPtr(dataPtr), _params(params) {
     Logger::newt() << prefix << "Initializing...";
 
     // Initialize shader programs
@@ -86,6 +116,16 @@ namespace dh::sne {
 
   void Similarities::comp() {
     runtimeAssert(isInit(), "Similarities::comp() called without proper initialization");
+    if (_dataPtr) {
+      comp_full();
+    } else if (_blockPtr) {
+      comp_part();
+    }
+  }
+  
+  void Similarities::comp_full() {
+    runtimeAssert(isInit(), "Similarities::comp_full() called without proper initialization");
+    runtimeAssert(_dataPtr, "Simiarities::comp_full() called without proper input data");
 
     // Actual k for KNN is limited to kMax, and is otherwise (3 * perplexity + 1)
     const uint k = std::min(kMax, 3 * static_cast<uint>(_params.perplexity) + 1);
@@ -98,11 +138,11 @@ namespace dh::sne {
     {
       const std::vector<uint> zeroes(_params.n * k, 0);
       glCreateBuffers(tempBuffers.size(), tempBuffers.data());
-      glNamedBufferStorage(tempBuffers(TBufferType::eDistances), _params.n * k * sizeof(float), nullptr, 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors), _params.n * k * sizeof(uint), nullptr, 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eDistances),    _params.n * k * sizeof(float), nullptr,       0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eNeighbors),    _params.n * k * sizeof(uint), nullptr,        0);
       glNamedBufferStorage(tempBuffers(TBufferType::eSimilarities), _params.n * k * sizeof(float), zeroes.data(), 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eSizes), _params.n * sizeof(uint), zeroes.data(), 0);
-      glNamedBufferStorage(tempBuffers(TBufferType::eScan), _params.n * sizeof(uint), nullptr, 0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eSizes),        _params.n * sizeof(uint), zeroes.data(),      0);
+      glNamedBufferStorage(tempBuffers(TBufferType::eScan),         _params.n * sizeof(uint), nullptr,            0);
       glAssert();
     }
     
@@ -279,6 +319,142 @@ namespace dh::sne {
     // Delete temporary buffers
     glDeleteBuffers(tempBuffers.size(), tempBuffers.data());
     glAssert();
+
+    // Output memory use of persistent OpenGL buffer objects
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::curt() << prefix << "Completed, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
+
+    // Poll twice so front/back timers are swapped
+    glPollTimers(_timers.size(), _timers.data());
+    glPollTimers(_timers.size(), _timers.data());
+  }
+
+  /* template <typename T>
+  class BufferMap {
+    bool   m_is_mapped = false;
+    GLuint m_i         = 0;
+
+  public: 
+    BufferMap() = default;
+
+    ~BufferMap() {
+      if (!m_is_mapped) return;
+      unmap();
+    }
+
+    std::span<T> map(GLuint i, uint flags) {
+      m_is_mapped = true;
+      m_i         = i;
+      
+      GLint params;
+      glGetNamedBufferParameteriv(i, GL_BUFFER_SIZE, &params);
+      return std::span<T>((T *) glMapNamedBuffer(m_i, flags), static_cast<size_t>(params));
+    }
+
+    void unmap() {
+      if (!m_is_mapped) return;
+      glUnmapNamedBuffer(m_i);
+      m_is_mapped = false;
+      m_i         = 0;
+    }
+  }; */
+
+  template <typename T>
+  std::span<T> buffer_map_sp(GLuint i, uint flags) {
+    GLint params;
+    glGetNamedBufferParameteriv(i, GL_BUFFER_SIZE, &params);
+    return std::span<T>((T *) glMapNamedBuffer(i, flags), 
+                        static_cast<size_t>(params) / sizeof(T));
+  }
+
+  void Similarities::comp_part() {
+    runtimeAssert(isInit(), "Similarities::comp_part() called without proper initialization");
+    runtimeAssert(_blockPtr, "Simiarities::comp_part() called without proper input data");
+
+    // Actual k for KNN is limited to kMax, and is otherwise (3 * perplexity + 1)
+    const uint k = std::min(kMax, 3 * static_cast<uint>(_params.perplexity) + 1);
+
+    // Span over input data
+    auto block_sp = std::span(_blockPtr, static_cast<size_t>(_params.n));
+    
+    // Placeholder type and buffer to describe layout block data
+    struct LayoutType  {
+      uint offset;
+      uint size;
+    };
+    
+    // Progress bar for logging steps of the similarity computation
+    Logger::newl();
+    util::ProgressBar progressBar(prefix + "Computing...");
+
+    // Set progress bar value
+    progressBar.setPostfix("Copying matrix layout");
+    progressBar.setProgress(0.0f);
+
+    // Transfer symmetric layout size into temporary buffer
+    std::vector<LayoutType> blockLayout(block_sp.size());
+    std::transform(std::execution::par_unseq,
+      block_sp.begin(), block_sp.end(), blockLayout.begin(), 
+      [](const util::NXBlock &b) { return LayoutType { 0u, static_cast<uint>(b.size()) }; });
+
+    // Compute symmetric layout offsets using an out-of-place prefix sum
+    std::vector<uint> tempBlockOffs(block_sp.size());
+    std::transform(std::execution::par_unseq,
+      block_sp.begin(), block_sp.end(), tempBlockOffs.begin(), 
+      [](const auto &b) { return static_cast<uint>(b.size()); });
+    std::exclusive_scan(std::execution::par_unseq,
+      tempBlockOffs.begin(), tempBlockOffs.end(), tempBlockOffs.begin(), 0);
+    std::transform(std::execution::par_unseq,
+      tempBlockOffs.begin(), tempBlockOffs.end(), blockLayout.begin(), blockLayout.begin(),
+      [](uint offs, const auto &l) { return LayoutType { offs, l.size }; });
+    tempBlockOffs.clear();
+
+    // Set progress bar value
+    progressBar.setPostfix("Allocating buffers");
+    progressBar.setProgress(1.f / 3.f);
+
+    // Initialize permanent, mappable buffer objects for symmetric data
+    const uint symmetricSize = blockLayout[_params.n - 1].offset + blockLayout[_params.n - 1].size;
+    const auto buff_flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
+    const auto mapp_flags = GL_READ_WRITE;
+    glNamedBufferStorage(_buffers(BufferType::eLayout),       _params.n * sizeof(LayoutType), blockLayout.data(), buff_flags);
+    glNamedBufferStorage(_buffers(BufferType::eNeighbors),    symmetricSize * sizeof(uint),   nullptr,            buff_flags);
+    glNamedBufferStorage(_buffers(BufferType::eSimilarities), symmetricSize * sizeof(float),  nullptr,            buff_flags);
+    glAssert(); 
+
+    // Set progress bar value
+    progressBar.setPostfix("Copying matrix values");
+    progressBar.setProgress(2.f / 3.f);
+
+    // Acquire mapped access to neighbour/similarity data
+    auto neighbours_sp = buffer_map_sp<uint>(_buffers(BufferType::eNeighbors), mapp_flags);
+    auto similarity_sp = buffer_map_sp<float>(_buffers(BufferType::eSimilarities), mapp_flags);
+    glAssert();
+
+    // Perform scatter of SOA similarity/neighbour buffers to acquired AOS buffer maps
+    #pragma omp parallel for
+    for (size_t i = 0; i < _params.n; ++i) {
+      // Acquire block data
+      auto &layout = blockLayout[i];
+      auto &block  = block_sp[i];
+
+      // Scatter operands
+      constexpr auto scatter_1 = [](const auto &p) -> uint  { return p.first;  };
+      constexpr auto scatter_2 = [](const auto &p) -> float { return p.second; };
+
+      // Perform sequential scatter copy
+      std::transform(block.begin(), block.end(), (neighbours_sp.begin() + layout.offset), scatter_1);
+      std::transform(block.begin(), block.end(), (similarity_sp.begin() + layout.offset), scatter_2);
+    }
+
+    // Release mapped access
+    glUnmapNamedBuffer(_buffers(BufferType::eNeighbors));
+    glUnmapNamedBuffer(_buffers(BufferType::eSimilarities));
+    glAssert();
+
+    // Update progress bar
+    progressBar.setPostfix("Done!");
+    progressBar.setProgress(1.0f);
 
     // Output memory use of persistent OpenGL buffer objects
     const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());

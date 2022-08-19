@@ -48,9 +48,10 @@ dh::sne::Params params;
 
 // Program parameters, set by cli(...)
 bool progDoKlDivergence = false;
-bool progDoLabels = false;
-bool progDoVisDuring = false;
-bool progDoVisAfter = false;
+bool progDoLabels       = false;
+bool progDoVisDuring    = false;
+bool progDoVisAfter     = false;
+bool progDoSimLoad      = false;
 
 void cli(int argc, char** argv) {
   // Configure command line options
@@ -73,6 +74,7 @@ void cli(int argc, char** argv) {
     ("kld", "Compute KL-Divergence", cxxopts::value<bool>())
     ("visDuring", "Visualize embedding during/after minimization", cxxopts::value<bool>())
     ("visAfter", "Visualize embedding after minimization", cxxopts::value<bool>())
+    ("sim", "Input file provides similarities", cxxopts::value<bool>())
     ("h,help", "Print this help message and exit");
 
   options.parse_positional({"iptFilename", "nPoints", "nHighDims", "nLowDims"});
@@ -93,10 +95,10 @@ void cli(int argc, char** argv) {
   }
 
   // Parse required arguments
-  iptFilename = result["iptFilename"].as<std::string>();
-  params.n = result["nPoints"].as<uint>();
+  iptFilename      = result["iptFilename"].as<std::string>();
+  params.n         = result["nPoints"].as<uint>();
   params.nHighDims = result["nHighDims"].as<uint>();
-  params.nLowDims = result["nLowDims"].as<uint>();
+  params.nLowDims  = result["nLowDims"].as<uint>();
 
   // Check for and parse optional arguments
   if (result.count("optFilename")) { optFilename = result["optFilename"].as<std::string>(); }
@@ -105,20 +107,60 @@ void cli(int argc, char** argv) {
   if (result.count("theta")) { params.dualHierarchyTheta = result["theta"].as<float>(); }
   if (result.count("kld")) { progDoKlDivergence = true; }
   if (result.count("lbl")) { progDoLabels = true; }
+  if (result.count("sim")) { progDoSimLoad = true; }
   if (result.count("visDuring")) { progDoVisDuring = true; }
   if (result.count("visAfter")) { progDoVisAfter = true; }
 }
 
+
+/*{ // Begin scope
+    using namespace dh;
+
+    // Optional components
+    util::Logger::init(std::cout);          // Forward an output stream to DH-SNE's logger
+    auto ctx = util::GLWindow::Offscreen(); // Establish OpenGL context if you don't have one
+
+    // Load similarity data
+    std::vector<util::NXBlock> data;
+    util::readBinFileNX("<path/to/file.bin>", data);
+
+    // Initialize t-SNE object with the right parameters;
+    // See 'include/dh/sne/params.hpp' for the full list
+    sne::SNE obj(data, {
+      .n                    = 60000, // n
+      .nHighDims            = 768,   // d
+      .nLowDims             = 2,     // or 3; shaders statically dispatched to 2/3
+      .iterations           = 1000,
+      .perplexity           = 30.f,
+      .singleHierarchyTheta = 0.5f,  // 0.5 is a good maximum, don't go over
+      .dualHierarchyTheta   = 0.0f,  // overkill and too much error in 2d
+    });
+
+    // (1) Either run the entire t-SNE computation and get coffee
+    obj.comp();
+    // (2) Or set up your own render loop and do other stuff as well
+    // sne.compSimilarities();
+    // for (uint i = 0; i < 1000; ++i) {
+    //   sne.compMinimizationStep();
+    //   <other stuff here...?>
+    // }
+
+    // Obtain KL-divergence and embedding data once you're done
+    // Note: if you want gpu embedding data during minimization,
+    // that uhh... can be hacked in with some work
+    float kld = sne.klDivergence();
+    std::vector<float> embedding = sne.embedding();
+  } //End scope */
+
 void sne() {
    // Set up logger to use standard output stream for demo
-  dh::util::Logger::init(&std::cout);
+  dh::util::Logger::init(std::cout);
 
   // Load dataset
-  std::vector<float> data;
-  std::vector<uint> labels;
-  dh::util::readBinFile(iptFilename, data, labels, params.n, params.nHighDims, progDoLabels);
+  // std::vector<float> data;
+  // dh::util::readBinFileND(iptFilename, data, labels, params.n, params.nHighDims, progDoLabels);
 
-  // Create OpenGL context (and accompanying invisible window)
+  // Create OpenGL context (and accompanying invisible window/renderer)
   dh::util::GLWindowInfo info;
   {
     using namespace dh::util;
@@ -131,9 +173,34 @@ void sne() {
   }
   dh::util::GLWindow window(info);
 
-  // Create necessary components
-  dh::vis::Renderer renderer(window, params, labels);    
-  dh::sne::SNE sne(data, params);
+  // Runtime components
+  dh::sne::SNE sne;
+  dh::vis::Renderer renderer;
+
+  // Data objects
+  std::vector<uint> labels;
+  std::vector<float> data;
+  std::vector<dh::util::NXBlock> sim_data;
+
+  if (progDoSimLoad) {
+    // Load similarity dataset
+    dh::util::readBinFileNX(iptFilename, sim_data);
+    dh::util::Logger::newt() << "Loaded similarity data: size=" << sim_data.size();
+    dh::util::Logger::newt() << "Loaded similarity data: parm=" << params.n;
+    dh::util::Logger::newt() << "Data " << sim_data.data();
+    
+    // Setup components
+    sne      = dh::sne::SNE(sim_data, params);
+    labels   = std::vector<uint>(params.n, 0);
+    renderer = dh::vis::Renderer(window, params, labels);
+  } else {
+    // Load original dataset and labels
+    dh::util::readBinFileND(iptFilename, data, labels, params.n, params.nHighDims, progDoLabels);
+
+    // Setup components
+    sne      = dh::sne::SNE(data, params);
+    renderer = dh::vis::Renderer(window, params, labels);
+  }
 
   // If visualization is requested, minimize and render at the same time
   if (progDoVisDuring) {
@@ -146,10 +213,10 @@ void sne() {
 
     // Render loop, one minimization step between frames
     for (uint i = 0; i < params.iterations; ++i) {
-      window.processEvents();
       sne.compMinimizationStep();
       renderer.render();
       window.display();
+      window.processEvents();
     }
   } else {
     sne.comp();
@@ -167,7 +234,7 @@ void sne() {
 
   // If requested, output embedding to file 
   if (!optFilename.empty()) {
-    dh::util::writeBinFile(optFilename, sne.embedding(), labels, params.n, params.nLowDims, progDoLabels);
+    dh::util::writeBinFileND(optFilename, sne.embedding(), labels, params.n, params.nLowDims, progDoLabels);
   }
 
   // If requested, run visualization after minimization is completed

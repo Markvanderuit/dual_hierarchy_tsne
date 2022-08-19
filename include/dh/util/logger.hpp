@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <chrono>
+// #include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -38,18 +38,18 @@ namespace dh::util {
   private:
     // State
     bool _isFirstLine;
-    std::ostream* _stream;
+    std::ostream *_stream;
     
     // Constr, hidden for singleton
     Logger() : _isFirstLine(true), _stream(nullptr) { }
-    Logger(std::ostream* stream) :  _isFirstLine(true), _stream(stream) { }
+    Logger(std::ostream &stream) :  _isFirstLine(true), _stream(&stream) { }
 
   public:
     // Singleton direct accessor
     static Logger& instance();
 
     // Singleton setup/teardown functions
-    static void init(std::ostream* stream) { instance() = Logger(stream); }
+    static void init(std::ostream &stream) { instance() = Logger(stream); }
     static void dstr() { instance() = Logger(); }
 
     // Obtain pointer to registered stream
@@ -94,16 +94,16 @@ namespace dh::util {
     // Accept generic input and forward to stream
     template <typename T>
     Logger& operator<<(const T& t) {
-      using namespace date;
+      // using namespace date;
       using namespace std::chrono;
-      if (_stream) { *_stream << t; }
+      if (_stream) { (*_stream) << t; }
       return *this;
     }
 
     // Accept ostream function manipulators and forward
     using manip = std::ostream& (*)(std::ostream&);
     Logger& operator<<(manip fp) {
-      if (_stream) { *_stream << fp; }
+      if (_stream) { (*_stream) << fp; }
       return *this;
     }
     

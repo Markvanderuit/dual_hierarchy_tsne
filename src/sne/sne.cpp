@@ -47,6 +47,14 @@ namespace dh::sne {
     // ...
   }
 
+  SNE::SNE(const std::vector<dh::util::NXBlock>& data, Params params)
+  : _params(params),
+    _similarities(data.data(), params),
+    _isInit(true) {
+    // ...
+  }
+
+
   SNE::~SNE() {
     // ...
   }

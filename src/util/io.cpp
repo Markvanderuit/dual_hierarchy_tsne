@@ -26,15 +26,18 @@
 #include <fstream>
 #include <stdexcept>
 #include "dh/util/io.hpp"
+#include "dh/util/logger.hpp"
 
 namespace dh::util {
-  void readBinFile(const std::string &fileName, 
-                   std::vector<float> &data,
-                   std::vector<uint> &labels, 
-                   uint n,
-                   uint d,
-                   bool withLabels)
-  {
+  // Logging shorthands
+  const std::string prefix = genLoggerPrefix("[KLDivergence]");
+
+  void readBinFileND(const std::string &fileName, 
+                     std::vector<float> &data,
+                     std::vector<uint> &labels, 
+                     uint n,
+                     uint d,
+                     bool withLabels) {
     std::ifstream ifs(fileName, std::ios::in | std::ios::binary);
     if (!ifs) {
       throw std::runtime_error("Input file cannot be accessed: " + fileName);
@@ -57,12 +60,12 @@ namespace dh::util {
     }
   }
 
-  void writeBinFile(const std::string &fileName,
-                    const std::vector<float> &data,
-                    const std::vector<uint> &labels,
-                    uint n,
-                    uint d,
-                    bool withLabels)
+  void writeBinFileND(const std::string &fileName,
+                      const std::vector<float> &data,
+                      const std::vector<uint> &labels,
+                      uint n,
+                      uint d,
+                      bool withLabels)
   {
     std::ofstream ofs(fileName, std::ios::out | std::ios::binary);
     if (!ofs) {
@@ -79,6 +82,59 @@ namespace dh::util {
     }
   }
 
+  void readBinFileNX(const std::string &fileName, std::vector<NXBlock> &out) {
+    // Attempt to open file stream to provided file at file's end
+    std::ifstream ifs(fileName, std::ios::in | std::ios::ate | std::ios::binary);
+    if (!ifs) {
+      throw std::runtime_error("Input file cannot be accessed: " + fileName);
+    }
+
+    // Read file size, then set character position to begin
+    size_t file_size = static_cast<size_t>(ifs.tellg());
+    ifs.seekg(0);
+
+    // Read input length as first unit
+    size_t n;
+    ifs.read((char *) &n, sizeof(size_t));
+
+    // Read remainder of file into a temporary buffer; 
+    std::vector<std::byte> buffer(file_size - ifs.tellg());
+    ifs.read((char*) buffer.data(), buffer.size());
+    ifs.close();
+
+    // Read block region layout into secondary buffers
+    std::vector<size_t> blockSizeB(n), blockOffsB(n);
+    for (size_t i = 0, b = 0; i < n && b < buffer.size(); ++i) {
+      // Read first 8 bytes as size of block
+      size_t d;
+      std::memcpy(&d, buffer.data() + b, sizeof(size_t));
+
+      // Store byte size, and build exclusive prefix sum to start of block
+      blockSizeB[i] = sizeof(NXPair) * d;
+      blockOffsB[i] = sizeof(size_t) + ((i == 0) ? 0 : (blockOffsB[i - 1] + blockSizeB[i]));
+      
+      // advance to next block start
+      b += sizeof(size_t) + blockSizeB[i]; 
+    }
+
+    // Perform multithreaded copy into output blocks
+    out.resize(n);
+    #pragma omp parallel for
+    for (uint i = 0; i < n; ++i) {
+      // Get current block
+      size_t sizeb = blockSizeB[i];
+      size_t offsb = blockOffsB[i];
+      auto & block = out[i];
+      
+      // Copy appropriate region data from buffer into block
+      block.resize(sizeb / sizeof(NXPair));
+      std::memcpy(block.data(), buffer.data() + offsb, sizeb);
+    }
+  }
+
+  void readBinFileNXMap(const std::string &fileName, std::vector<NXBlock> &out) {
+    // TODO impl...
+  }
   
   void writeTextValuesFile(const std::string &fileName, const std::vector<std::string> &values)
   {

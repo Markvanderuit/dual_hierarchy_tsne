@@ -26,6 +26,7 @@
 
 #include <vector>
 #include "dh/types.hpp"
+#include "dh/util/io.hpp"
 #include "dh/util/enum.hpp"
 #include "dh/util/gl/timer.hpp"
 #include "dh/util/gl/program.hpp"
@@ -38,7 +39,8 @@ namespace dh::sne {
   public:
     // Constr/destr
     Similarities();
-    Similarities(const float * dataPtr, Params params);
+    Similarities(const float         * dataPtr, Params params);
+    Similarities(const util::NXBlock * dataPtr, Params params);
     ~Similarities();
 
     // Copy constr/assignment is explicitly deleted
@@ -53,6 +55,9 @@ namespace dh::sne {
     void comp();
 
   private:
+    void comp_full();
+    void comp_part();
+
     enum class BufferType {
       eSimilarities,
       eLayout,
@@ -82,7 +87,10 @@ namespace dh::sne {
     // State
     bool _isInit;
     Params _params;
-    const float* _dataPtr;
+
+    // Input
+    const float         * _dataPtr;
+    const util::NXBlock *_blockPtr;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
@@ -107,6 +115,7 @@ namespace dh::sne {
       swap(a._isInit, b._isInit);
       swap(a._params, b._params);
       swap(a._dataPtr, b._dataPtr);
+      swap(a._blockPtr, b._blockPtr);
       swap(a._buffers, b._buffers);
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);

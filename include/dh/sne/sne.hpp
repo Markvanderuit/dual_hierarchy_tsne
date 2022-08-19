@@ -27,6 +27,7 @@
 #include <variant>
 #include <vector>
 #include "dh/types.hpp"
+#include "dh/util/io.hpp"
 #include "dh/util/timer.hpp"
 #include "dh/sne/params.hpp"
 #include "dh/sne/components/similarities.hpp"
@@ -41,6 +42,7 @@ namespace dh::sne {
     // Constr/destr
     SNE();
     SNE(const std::vector<float>& data, Params params);
+    SNE(const std::vector<dh::util::NXBlock>& data, Params params);
     SNE(const float * dataPtr, Params params);
     ~SNE();
 

@@ -53,7 +53,7 @@ function(add_library_recurse target srcDir inclDir)
   file(GLOB_RECURSE srcs ${srcDir}/*.cpp  ${srcDir}/*.cu)
   message("Added library ${target} using sources ${srcs}")
   add_library(${target} ${srcs})
-  target_compile_features(${target} PRIVATE cxx_std_17)
+  target_compile_features(${target} PRIVATE cxx_std_20)
   target_include_directories(${target} PUBLIC include)
 endfunction()
 
@@ -66,13 +66,13 @@ target_link_libraries(util PUBLIC cub glad::glad glfw glm::glm indicators::indic
 
 # Specify sne library
 add_library_recurse(sne ${CMAKE_SOURCE_DIR}/src/sne ${CMAKE_SOURCE_DIR}/include/dh/sne)
-target_link_libraries(sne PRIVATE util ResourceEmbed)
+target_link_libraries(sne PRIVATE util ResourceEmbed indicators::indicators date::date)
 target_sources(sne PRIVATE ${shaders}) # Add shaders to sne library
 
 # Specify optional vis library
 if(BUILD_VIS OR BUILD_DEMO)
   add_library_recurse(vis ${CMAKE_SOURCE_DIR}/src/vis ${CMAKE_SOURCE_DIR}/include/dh/vis)
-  target_link_libraries(vis PRIVATE imgui::imgui util ResourceEmbed)
+  target_link_libraries(vis PRIVATE imgui::imgui util ResourceEmbed indicators::indicators date::date)
   target_sources(vis PRIVATE ${shaders}) # Add shaders to vis library
   target_link_libraries(sne PUBLIC vis) # Link vis library against sne as it is available
 endif()
@@ -81,5 +81,5 @@ endif()
 if(BUILD_VIS AND BUILD_DEMO)
   add_executable(sne_cmd ${CMAKE_SOURCE_DIR}/src/app/sne_cmd.cpp)
   target_link_libraries(sne_cmd PRIVATE cxxopts::cxxopts util sne vis)
-  target_compile_features(sne_cmd PRIVATE cxx_std_17)
+  target_compile_features(sne_cmd PRIVATE cxx_std_20)
 endif()

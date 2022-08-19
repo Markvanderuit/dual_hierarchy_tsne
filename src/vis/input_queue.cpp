@@ -77,10 +77,10 @@ namespace dh::vis {
     GLFWwindow *handle = (GLFWwindow *) window.handle();
     runtimeAssert(handle, "could not register GLFW input callbacks");
     glfwSetWindowUserPointer(handle, this);
-    glfwSetKeyCallback(handle, glfwKeyCallback);
-    glfwSetCursorPosCallback(handle, glfwMousePosCallback);
-    glfwSetMouseButtonCallback(handle, glfwMouseButtonCallback);
-    glfwSetScrollCallback(handle, glfwMouseScrollCallback);
+    // glfwSetKeyCallback(handle, glfwKeyCallback);
+    // glfwSetCursorPosCallback(handle, glfwMousePosCallback);
+    // glfwSetMouseButtonCallback(handle, glfwMouseButtonCallback);
+    // glfwSetScrollCallback(handle, glfwMouseScrollCallback);
     
     _queue = Queue(cmpInputTask);
     _windowHandle = &window;
@@ -118,10 +118,10 @@ namespace dh::vis {
     // Forward keyboard input to ImGui
     auto& io = ImGui::GetIO();
     io.KeysDown[key] = (action == GLFW_PRESS || action == GLFW_REPEAT);
-    io.KeyCtrl = ((mods & GLFW_MOD_CONTROL) != 0);
-    io.KeyAlt = ((mods & GLFW_MOD_ALT) != 0);
-    io.KeyShift = ((mods & GLFW_MOD_SHIFT) != 0);
-    io.KeySuper = ((mods & GLFW_MOD_SUPER) != 0);
+    io.KeyCtrl       = ((mods & GLFW_MOD_CONTROL) != 0);
+    io.KeyAlt        = ((mods & GLFW_MOD_ALT) != 0);
+    io.KeyShift      = ((mods & GLFW_MOD_SHIFT) != 0);
+    io.KeySuper      = ((mods & GLFW_MOD_SUPER) != 0);
 
     // Ignore, imgui takes keyboard callback
     if (io.WantCaptureKeyboard) {
@@ -137,6 +137,7 @@ namespace dh::vis {
   void InputQueue::fwdMousePosCallback(double xPos, double yPos) {
     // Do forward despite possible ImGui capture
     // The alternative is **severely annoying**
+
     for (auto& ptr : _queue) {
       ptr->mousePosInput(xPos, yPos);
     }
