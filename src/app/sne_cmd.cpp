@@ -63,11 +63,14 @@ void cli(int argc, char** argv) {
     ("nHighDims", "number of input dims (required)", cxxopts::value<uint>())
     ("nLowDims", "number of output dims (required)", cxxopts::value<uint>())
     
-    // Optional parameter arguments
+    // Optional minimization arguments
     ("o,optFilename", "Output data file (default: none)", cxxopts::value<std::string>())
     ("p,perplexity", "Perplexity parameter (default: 30)", cxxopts::value<float>())
     ("i,iterations", "Number of minimization steps (default: 1000)", cxxopts::value<uint>())
-    ("t,theta", "Approximation parameter (default: 0.25)", cxxopts::value<float>())
+
+    // Optional approximations arguments
+    ("theta1", "Emb.  hierarchy approximation parameter (default: 0.0)", cxxopts::value<float>())
+    ("theta2", "Field hierarchy approximation parameter (default: 0.0)", cxxopts::value<float>())
 
     // Optional program arguments
     ("lbl", "Input data file contains label data", cxxopts::value<bool>())
@@ -104,7 +107,8 @@ void cli(int argc, char** argv) {
   if (result.count("optFilename")) { optFilename = result["optFilename"].as<std::string>(); }
   if (result.count("perplexity")) { params.perplexity = result["perplexity"].as<float>(); }
   if (result.count("iterations")) { params.iterations = result["iterations"].as<uint>(); }
-  if (result.count("theta")) { params.dualHierarchyTheta = result["theta"].as<float>(); }
+  if (result.count("theta1")) { params.singleHierarchyTheta = result["theta1"].as<float>(); }
+  if (result.count("theta2")) { params.dualHierarchyTheta = result["theta2"].as<float>(); }
   if (result.count("kld")) { progDoKlDivergence = true; }
   if (result.count("lbl")) { progDoLabels = true; }
   if (result.count("sim")) { progDoSimLoad = true; }
@@ -155,19 +159,15 @@ void cli(int argc, char** argv) {
 void sne() {
    // Set up logger to use standard output stream for demo
   dh::util::Logger::init(std::cout);
-
-  // Load dataset
-  // std::vector<float> data;
-  // dh::util::readBinFileND(iptFilename, data, labels, params.n, params.nHighDims, progDoLabels);
-
+  
   // Create OpenGL context (and accompanying invisible window/renderer)
   dh::util::GLWindowInfo info;
   {
     using namespace dh::util;
-    info.title = windowTitle;
-    info.width = windowWidth;
+    info.title  = windowTitle;
+    info.width  = windowWidth;
     info.height = windowHeight;
-    info.flags = GLWindowInfo::bDecorated | GLWindowInfo::bFocused 
+    info.flags  = GLWindowInfo::bDecorated | GLWindowInfo::bFocused 
                 | GLWindowInfo::bSRGB | GLWindowInfo::bResizable
                 | GLWindowInfo::bOffscreen;
   }
@@ -183,15 +183,12 @@ void sne() {
   std::vector<dh::util::NXBlock> sim_data;
 
   if (progDoSimLoad) {
-    // Load similarity dataset
+    // Load similarity dataset, set labels to 0
     dh::util::readBinFileNX(iptFilename, sim_data);
-    dh::util::Logger::newt() << "Loaded similarity data: size=" << sim_data.size();
-    dh::util::Logger::newt() << "Loaded similarity data: parm=" << params.n;
-    dh::util::Logger::newt() << "Data " << sim_data.data();
+    labels = std::vector<uint>(params.n, 0);
     
     // Setup components
     sne      = dh::sne::SNE(sim_data, params);
-    labels   = std::vector<uint>(params.n, 0);
     renderer = dh::vis::Renderer(window, params, labels);
   } else {
     // Load original dataset and labels
@@ -224,8 +221,7 @@ void sne() {
 
   // If requested, compute and output KL-divergence (might take a while on large datasets)
   if (progDoKlDivergence) {
-    const float kld = sne.klDivergence();
-    dh::util::Logger::newl() << "KL-divergence : " << kld;
+    dh::util::Logger::newl() << "KL-divergence : " << sne.klDivergence();
   }
 
   // Output timings
