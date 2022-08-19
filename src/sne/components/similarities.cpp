@@ -329,36 +329,6 @@ namespace dh::sne {
     glPollTimers(_timers.size(), _timers.data());
   }
 
-  /* template <typename T>
-  class BufferMap {
-    bool   m_is_mapped = false;
-    GLuint m_i         = 0;
-
-  public: 
-    BufferMap() = default;
-
-    ~BufferMap() {
-      if (!m_is_mapped) return;
-      unmap();
-    }
-
-    std::span<T> map(GLuint i, uint flags) {
-      m_is_mapped = true;
-      m_i         = i;
-      
-      GLint params;
-      glGetNamedBufferParameteriv(i, GL_BUFFER_SIZE, &params);
-      return std::span<T>((T *) glMapNamedBuffer(m_i, flags), static_cast<size_t>(params));
-    }
-
-    void unmap() {
-      if (!m_is_mapped) return;
-      glUnmapNamedBuffer(m_i);
-      m_is_mapped = false;
-      m_i         = 0;
-    }
-  }; */
-
   template <typename T>
   std::span<T> buffer_map_sp(GLuint i, uint flags) {
     GLint params;
@@ -413,13 +383,12 @@ namespace dh::sne {
     progressBar.setPostfix("Allocating buffers");
     progressBar.setProgress(1.f / 3.f);
 
-    // Initialize permanent, mappable buffer objects for symmetric data
+    // Initialize temporary, mappable buffer objects for symmetrized data
     const uint symmetricSize = blockLayout[_params.n - 1].offset + blockLayout[_params.n - 1].size;
-    const auto buff_flags = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
-    const auto mapp_flags = GL_READ_WRITE;
-    glNamedBufferStorage(_buffers(BufferType::eLayout),       _params.n * sizeof(LayoutType), blockLayout.data(), buff_flags);
-    glNamedBufferStorage(_buffers(BufferType::eNeighbors),    symmetricSize * sizeof(uint),   nullptr,            buff_flags);
-    glNamedBufferStorage(_buffers(BufferType::eSimilarities), symmetricSize * sizeof(float),  nullptr,            buff_flags);
+    util::EnumArray<BufferType, GLuint> tempBuffers;
+    glCreateBuffers(tempBuffers.size(), tempBuffers.data());
+    glNamedBufferStorage(tempBuffers(BufferType::eNeighbors),    symmetricSize * sizeof(uint),   nullptr, GL_MAP_WRITE_BIT);
+    glNamedBufferStorage(tempBuffers(BufferType::eSimilarities), symmetricSize * sizeof(float),  nullptr, GL_MAP_WRITE_BIT);
     glAssert(); 
 
     // Set progress bar value
@@ -427,8 +396,8 @@ namespace dh::sne {
     progressBar.setProgress(2.f / 3.f);
 
     // Acquire mapped access to neighbour/similarity data
-    auto neighbours_sp = buffer_map_sp<uint>(_buffers(BufferType::eNeighbors), mapp_flags);
-    auto similarity_sp = buffer_map_sp<float>(_buffers(BufferType::eSimilarities), mapp_flags);
+    auto neighbours_sp = buffer_map_sp<uint>(tempBuffers(BufferType::eNeighbors), GL_WRITE_ONLY);
+    auto similarity_sp = buffer_map_sp<float>(tempBuffers(BufferType::eSimilarities), GL_WRITE_ONLY);
     glAssert();
 
     // Perform scatter of SOA similarity/neighbour buffers to acquired AOS buffer maps
@@ -448,8 +417,23 @@ namespace dh::sne {
     }
 
     // Release mapped access
-    glUnmapNamedBuffer(_buffers(BufferType::eNeighbors));
-    glUnmapNamedBuffer(_buffers(BufferType::eSimilarities));
+    glUnmapNamedBuffer(tempBuffers(BufferType::eNeighbors));
+    glUnmapNamedBuffer(tempBuffers(BufferType::eSimilarities));
+    glAssert();
+
+    // Initialize persistent buffers
+    glNamedBufferStorage(_buffers(BufferType::eLayout),       _params.n * sizeof(LayoutType), blockLayout.data(), 0);
+    glNamedBufferStorage(_buffers(BufferType::eNeighbors),    symmetricSize * sizeof(uint),   nullptr,            0);
+    glNamedBufferStorage(_buffers(BufferType::eSimilarities), symmetricSize * sizeof(float),  nullptr,            0);
+    glAssert();
+    
+    // Copy data to the persistent unmappable buffers (which seem to have better access time),
+    // and destroy mappable buffers after
+    glCopyNamedBufferSubData(tempBuffers(BufferType::eNeighbors), _buffers(BufferType::eNeighbors), 
+      0, 0, symmetricSize * sizeof(uint));
+    glCopyNamedBufferSubData(tempBuffers(BufferType::eSimilarities), _buffers(BufferType::eSimilarities), 
+      0, 0, symmetricSize * sizeof(uint));
+    glDeleteBuffers(tempBuffers.size(), tempBuffers.data());
     glAssert();
 
     // Update progress bar
