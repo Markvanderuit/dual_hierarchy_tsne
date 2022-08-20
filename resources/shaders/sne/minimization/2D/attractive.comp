@@ -42,8 +42,8 @@ layout(binding = 3, std430) restrict readonly buffer Simi { float similaritiesBu
 layout(binding = 4, std430) restrict writeonly buffer Att { vec2 attrForcesBuffer[]; };
 
 // Uniform values
-layout(location = 0) uniform uint nPos;
-layout(location = 1) uniform float invPos;
+layout(location = 0) uniform uint nPoints;
+layout(location = 1) uniform float invPoints;
 
 // Shorthand subgroup constants
 const uint thread = gl_SubgroupInvocationID;
@@ -51,7 +51,7 @@ const uint nThreads = gl_SubgroupSize;
 
 void main () {
   const uint i = (gl_WorkGroupSize.x * gl_WorkGroupID.x + gl_LocalInvocationID.x) / nThreads;
-  if (i >= nPos) {
+  if (i >= nPoints) {
     return;
   }
 
@@ -72,7 +72,7 @@ void main () {
     // Calculate the attractive force
     attrForce += p_ij * q_ij * diff;
   }
-  attrForce = subgroupAdd(attrForce * invPos);
+  attrForce = subgroupAdd(attrForce * invPoints);
 
   // Store result
   if (thread < 1) {

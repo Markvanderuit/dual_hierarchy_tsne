@@ -64,6 +64,7 @@ namespace dh::sne {
     enum class BufferType {
       eEmbedding,
       eBounds,
+      eBoundsMapped,
       eBoundsReduce,
       eZ,
       eZReduce,
@@ -103,6 +104,7 @@ namespace dh::sne {
     Params _params;
     SimilaritiesBuffers _similarities;
     uint _iteration;
+    Bounds *_bounds;
 
     // Objects
     util::EnumArray<BufferType, GLuint> _buffers;
@@ -130,6 +132,7 @@ namespace dh::sne {
       swap(a._params, b._params);
       swap(a._similarities, b._similarities);
       swap(a._iteration, b._iteration);
+      swap(a._bounds, b._bounds);
       swap(a._buffers, b._buffers);
       swap(a._programs, b._programs);
       swap(a._timers, b._timers);
