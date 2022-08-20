@@ -72,7 +72,7 @@ namespace dh::util {
 
     // Reset and reuse current line for writes
     static Logger& resl() {
-      return curl() << "\r\33[2K";
+      return curl() << "\33[2K\r";
     }
 
     // Start new line for writes, and prepend timestamp

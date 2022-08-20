@@ -69,7 +69,8 @@ namespace dh::sne {
     glAssert();
 
     _isInit = true;
-    Logger::rest() << prefix << "Initialized";
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::rest() << prefix << "Initialized, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
   }
 
   Similarities::Similarities(const util::NXBlock * dataPtr, Params params)
@@ -95,7 +96,8 @@ namespace dh::sne {
     glAssert();
 
     _isInit = true;
-    Logger::rest() << prefix << "Initialized";
+    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
+    Logger::rest() << prefix << "Initialized, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
   }
 
   Similarities::~Similarities() {

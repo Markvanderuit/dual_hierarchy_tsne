@@ -58,7 +58,7 @@
  * Settings for anything handled by dh::util::Logger
  */
 #define DH_LOG_TIMESTAMPS       // Prepend UTC timestmaps to every log as prefix
-#define DH_LOG_PREFIX_WIDTH 20  // Have a minimum padding for every log's prefix
+#define DH_LOG_PREFIX_WIDTH 16  // Have a minimum padding for every log's prefix
 
 
 /**

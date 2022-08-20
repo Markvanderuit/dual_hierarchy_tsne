@@ -33,7 +33,7 @@
 namespace dh::sne {
   // Logging shorthands
   using util::Logger;
-  const std::string prefix = util::genLoggerPrefix("[EmbeddingHierarchy]");
+  const std::string prefix = util::genLoggerPrefix("[EmbHierarchy]");
 
   template <uint D>
   EmbeddingHierarchy<D>::EmbeddingHierarchy()
