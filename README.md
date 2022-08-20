@@ -50,12 +50,13 @@ int main() {
   // 1. Create Params object 
   //    For all parameters, refer to: include/dh/sne/params.hpp
   Params params;
-  params.n = 60000;                   // Dataset size
-  params.nHighDims = 784;             // Dataset dimensionality
-  params.nLowDims = 2;                // Embedding dimensionality (2 or 3)
-  params.iterations = 1000;           // Nr. minimization iterations
-  params.perplexity = 30.0f;          // Perplexity parameter
-  params.dualHierarchyTheta = 0.25f;  // Approximation parameter
+  params.n = 60000;                    // Dataset size
+  params.nHighDims = 784;              // Dataset dimensionality
+  params.nLowDims = 2;                 // Embedding dimensionality (2 or 3)
+  params.iterations = 1000;            // Nr. minimization iterations
+  params.perplexity = 30.0f;           // Perplexity parameter
+  params.singleHierarchyTheta = 0.5f;  // Approximation parameter
+  params.dualHierarchyTheta   = 0.25f; // Approximation parameter
 
   // 2. Create and load high-dimensional dataset
   //    I'm skipping dataset loading code for this example
@@ -87,7 +88,7 @@ The demo (build target: `sne_cmd`, file: `src/app/sne_cmd.cpp`) provides a comma
 Below is a basic example using an MNIST dataset with labels. The following line:
 
 ```bash
-./sne_cmd <path/to/mnist.bin> 60000 784 2 --lbl --kld
+./sne_cmd <path/to/mnist.bin> 60000 784 2 --lbl --kld --theta1 0.5 --theta2 0.25
 ```
 performs a 2D embedding of the 60.000x784 dataset, outputting something like the following:
 ```bash
@@ -101,7 +102,7 @@ Adding either the `--visDuring` or `--visAfter` parameters spawns a renderer dur
 
 The renderer can visualize the dual-hierarchies used in our technique, if you check the `Embedding hierarchy`/`Field hierarchy` flags in the UI. Note that `--visDuring` may slow down the actual minimization, especially if large hierarchies are used.
 
-You can use `./sne_cmd -h` to list all other program parameters. Common parameters are perplexity (`-p`, default 30), number of iterations (`-i`, default 1000), Barnes-Hut approximation (`-t`, default 0.25), and output file (`-o`). Adding `--lbl` indicates the input dataset contains labels, while `--kld` indicates KL-divergence should be computed afterwards.
+You can use `./sne_cmd -h` to list all other program parameters. Common parameters are perplexity (`-p`, default 30), number of iterations (`-i`, default 1000), Barnes-Hut approximation (`--theta1` and `--theta2`, default 0.5 and 0.25), and output file (`-o`). Adding `--lbl` indicates the input dataset contains labels, while `--kld` indicates KL-divergence should be computed afterwards. Adding `--sim` indicates the input dataset is symmetrized similarities, instead of high-dimensional vectors.
 
 **Datasets**
 
