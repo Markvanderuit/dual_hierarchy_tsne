@@ -63,14 +63,10 @@ namespace dh::sne {
       auto& dsProgram = _programs(ProgramType::eDualHierarchyFieldDualSubdivideComp);
       dsProgram.template uniform<uint>("eLvls", eLayout.nLvls);
       dsProgram.template uniform<uint>("fLvls", fLayout.nLvls);
-      dsProgram.template uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
-      dsProgram.template uniform<uint>("doBhCrit", true);
 
       // Set uniforms (single-subdivision program)
       auto& ssProgram = _programs(ProgramType::eDualHierarchyFieldSingleSubdivideComp);
       ssProgram.template uniform<uint>("fLvls", fLayout.nLvls);
-      ssProgram.template uniform<float>("theta2", _params.dualHierarchyTheta * _params.dualHierarchyTheta);
-      ssProgram.template uniform<uint>("doBhCrit", true);
 
       // Set buffer bindings which are reused throughout traversal
       glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, _buffers(BufferType::eDispatch));

@@ -56,6 +56,7 @@ namespace dh::sne {
         _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/3D/leaves.comp"));
         _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field_hierarchy/3D/nodes.comp"));
       }
+      glAssert();
 
       for (auto& program : _programs) {
         program.link();

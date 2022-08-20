@@ -93,10 +93,26 @@ namespace dh::sne {
       _programs(ProgramType::eDualHierarchyFieldSingleSubdivideComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/3D/dualHierarchyFieldRest.comp"));
       _programs(ProgramType::eDualHierarchyFieldLeafComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/3D/dualHierarchyFieldLeaf.comp"));
       _programs(ProgramType::eDualHierarchyFieldAccumulateComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/field/3D/dualHierarchyFieldAccumulate.comp"));
+      glAssert();
       
       for (auto& program : _programs) {
         program.link();
       }
+      glAssert();
+
+      // Set these uniforms exactly once
+      const auto theta12 = _params.singleHierarchyTheta * _params.singleHierarchyTheta;
+      const auto theta22 = _params.dualHierarchyTheta * _params.dualHierarchyTheta;
+      _programs(ProgramType::eQueryFieldComp).template                        uniform<uint>("nPoints", _params.n);
+      _programs(ProgramType::eQueryFieldComp).template                        uniform<int>("fieldSampler", 0);
+      _programs(ProgramType::eFullCompactComp).template                       uniform<int>("stencilSampler", 0);
+      _programs(ProgramType::eFullFieldComp).template                         uniform<uint>("nPoints", _params.n);
+      _programs(ProgramType::eSingleHierarchyFieldComp).template              uniform<float>("theta2", theta12);
+      _programs(ProgramType::eSingleHierarchyFieldComp).template              uniform<bool>("doBhCrit", true);
+      _programs(ProgramType::eDualHierarchyFieldDualSubdivideComp).template   uniform<float>("theta2", theta22);
+      _programs(ProgramType::eDualHierarchyFieldDualSubdivideComp).template   uniform<bool>("doBhCrit", true);
+      _programs(ProgramType::eDualHierarchyFieldSingleSubdivideComp).template uniform<float>("theta2", theta22);
+      _programs(ProgramType::eDualHierarchyFieldSingleSubdivideComp).template uniform<bool>("doBhCrit", true);
       glAssert();
     }
 

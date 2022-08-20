@@ -90,7 +90,6 @@ namespace dh::sne {
 
       // Set uniforms
       program.template uniform<uint, D>("textureSize", _size);
-      program.template uniform<int>("stencilSampler", 0);
       if constexpr (D == 3) {
         program.template uniform<uint>("gridDepth", std::min(128u, _size.z));
       }
@@ -125,7 +124,6 @@ namespace dh::sne {
 
     // Set uniforms
     program.template uniform<uint, D>("textureSize", _size);
-    program.template uniform<uint>("nPoints", _params.n);
 
     // Bind buffers
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.embedding);

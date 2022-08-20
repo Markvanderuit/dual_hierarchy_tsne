@@ -47,7 +47,7 @@ namespace dh::sne {
     Logger::newt() << prefix << "Initializing...";
 
     // Constants
-    constexpr uint nodek = (D == 2) ? 4 : 8;
+    constexpr uint nodk = (D == 2) ? 4 : 8;
     constexpr uint logk = (D == 2) ? 2 : 3;
     
     // Initialize shader programs
@@ -66,11 +66,17 @@ namespace dh::sne {
         _programs(ProgramType::eLeavesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/leaves.comp"));
         _programs(ProgramType::eNodesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/embedding_hierarchy/3D/nodes.comp"));
       }
+      glAssert();
 
       for (auto& program : _programs) {
         program.link();
       }
       glAssert();
+
+      // Set these uniforms exactly once
+      _programs(ProgramType::eMortonUnsortedComp).template  uniform<uint>("nPoints", _layout.nPos);
+      _programs(ProgramType::eEmbeddingSortedComp).template uniform<uint>("nPoints", _layout.nPos);
+      _programs(ProgramType::eDispatch).template uniform<uint>("div", 256);
     }
     
     // Initialize buffer objects
@@ -89,7 +95,7 @@ namespace dh::sne {
       glNamedBufferStorage(_buffers(BufferType::eEmbeddingSorted), _layout.nPos * sizeof(vec), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eLeafQueue), _layout.nNodes * sizeof(uint), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eLeafQueueHead), sizeof(glm::uvec4), glm::value_ptr(glm::uvec4(1)), 0);
-      glNamedBufferStorage(_buffers(BufferType::eNode0), _layout.nNodes * sizeof(glm::vec4), nodeData.data(), GL_DYNAMIC_STORAGE_BIT);
+      glNamedBufferStorage(_buffers(BufferType::eNode0), _layout.nNodes * sizeof(glm::vec4), nodeData.data(), 0);
       glNamedBufferStorage(_buffers(BufferType::eNode1), _layout.nNodes * sizeof(glm::vec4), nullptr, 0);
       glNamedBufferStorage(_buffers(BufferType::eMinB), _layout.nNodes * sizeof(vec), nullptr, 0);
       glAssert();      
@@ -141,7 +147,7 @@ namespace dh::sne {
   template <uint D>
   void EmbeddingHierarchy<D>::comp(bool rebuild) {
     // Constants
-    constexpr uint nodek = (D == 2) ? 4 : 8;
+    constexpr uint nodk = (D == 2) ? 4 : 8;
     constexpr uint logk = (D == 2) ? 2 : 3;
 
     if (rebuild) {
@@ -159,9 +165,6 @@ namespace dh::sne {
       if (rebuild) {
         auto& program = _programs(ProgramType::eMortonUnsortedComp);
         program.bind();
-
-        // Set uniforms
-        program.template uniform<uint>("nPoints", _layout.nPos);
 
         // Set buffer bindings
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.embedding);
@@ -184,9 +187,6 @@ namespace dh::sne {
       {
         auto& program = _programs(ProgramType::eEmbeddingSortedComp);
         program.bind();
-
-        // Set uniforms
-        program.template uniform<uint>("nPoints", _layout.nPos);
 
         // Set buffer bindings
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eIndicesSorted));
@@ -236,7 +236,7 @@ namespace dh::sne {
         program.template uniform<uint>("rangeEnd", end);
 
         // Dispatch shader
-        glDispatchCompute(ceilDiv(range, 256u / nodek), 1, 1);
+        glDispatchCompute(ceilDiv(range, 256u / nodk), 1, 1);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         begin = end + 1;
@@ -256,7 +256,6 @@ namespace dh::sne {
       if (rebuild) {
         auto &program = _programs(ProgramType::eDispatch);
         program.bind();
-        program.template uniform<uint>("div", 256);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eLeafQueueHead));
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _buffers(BufferType::eDispatch));
         glDispatchCompute(1, 1, 1);

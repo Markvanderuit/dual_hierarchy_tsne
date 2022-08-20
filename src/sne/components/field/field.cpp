@@ -27,7 +27,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <resource_embed/resource_embed.hpp>
-#include "dh/sne/components/field.hpp"
+#include "dh/sne/components/field.hpp"  
 #include "dh/util/gl/error.hpp"
 #include "dh/util/gl/metric.hpp"
 
@@ -115,12 +115,8 @@ namespace dh::sne {
     auto& program = _programs(ProgramType::eQueryFieldComp);
     program.bind();
 
-    // Set uniforms, bind texture unit
-    program.template uniform<uint>("nPoints", _params.n);
-    program.template uniform<int>("fieldSampler", 0);
+    // Bind buffers and texture units
     glBindTextureUnit(0, _textures(TextureType::eField));
-
-    // Bind buffers
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _minimization.embedding);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, _minimization.field);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, _minimization.bounds);

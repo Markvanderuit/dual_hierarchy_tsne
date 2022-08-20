@@ -137,7 +137,6 @@ namespace dh::sne {
     }
 
     // Setup map to bounds object
-    // _bounds = (Bounds *) glMapNamedBuffer(_buffers(BufferType::eBoundsMapped), GL_READ_ONLY);
     _bounds = (Bounds *) glMapNamedBufferRange(_buffers(BufferType::eBoundsMapped), 0, sizeof(Bounds), GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT);
     glAssert();
 
@@ -325,11 +324,6 @@ namespace dh::sne {
       glAssert();
     }
 
-    // Precompute instead of doing it in shader N times
-    const float iterMult = (static_cast<double>(_iteration) < _params.momentumSwitchIter) 
-                         ? _params.momentum 
-                         : _params.finalMomentum;
-
     // 6.
     // Update embedding
     {
@@ -339,8 +333,12 @@ namespace dh::sne {
       auto& program = _programs(ProgramType::eUpdateEmbeddingComp);
       program.bind();
 
-      // Set uniforms
-      program.template uniform<float>("iterMult", iterMult);
+      // Set once and switch later
+      if (_iteration == 0) {
+        program.template uniform<float>("iterMult", static_cast<float>(_params.momentum));
+      } else if (_iteration == _params.momentumSwitchIter) {
+        program.template uniform<float>("iterMult", static_cast<float>(_params.finalMomentum));
+      }
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));
@@ -359,13 +357,6 @@ namespace dh::sne {
     // 7.
     // Re-center embedding
     {
-      const vec boundsCenter = _bounds->center();
-      const vec boundsRange  = _bounds->range();
-      float scaling = 1.0f;
-      if (exaggeration > 1.2f && boundsRange.y < 0.1f) {
-        scaling = 0.1f / boundsRange.y;
-      }
-      
       auto& timer = _timers(TimerType::eCenterEmbeddingComp);
       timer.tick();
 
@@ -373,8 +364,7 @@ namespace dh::sne {
       program.bind();
 
       // Set uniforms
-      program.template uniform<float>("scaling", scaling);
-      program.template uniform<float, D>("center", boundsCenter);
+      program.template uniform<float>("exaggeration", exaggeration);
 
       // Set buffer bindings
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, _buffers(BufferType::eEmbedding));

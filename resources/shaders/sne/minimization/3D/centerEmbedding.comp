@@ -33,16 +33,18 @@ layout(binding = 1, std430) restrict readonly buffer Bounds {
   vec3 invRange;
 };
 layout(location = 0) uniform uint nPoints;
-layout(location = 1) uniform vec3 center;
-layout(location = 2) uniform float scaling;
+layout(location = 1) uniform float exaggeration;
 
 void main() {
-  uint i = gl_WorkGroupID.x 
-          * gl_WorkGroupSize.x
-          + gl_LocalInvocationIndex.x;
+  uint i = gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationIndex.x;
   if (i >= nPoints) {
     return;
   }
   
-  Positions[i] = scaling * (Positions[i] - center); 
+  vec3 center = 0.5f * (maxBounds + minBounds);
+  float scale = (exaggeration > 1.2f && range.y < 0.1f)
+              ? 0.1f / range.y
+              : 1.f;
+  
+  Positions[i] = scale * (Positions[i] - center); 
 }
