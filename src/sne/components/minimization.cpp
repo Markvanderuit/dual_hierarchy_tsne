@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <random>
 #include <vector>
+#include <omp.h>
 #include <resource_embed/resource_embed.hpp>
 #include "dh/constants.hpp"
 #include "dh/sne/components/minimization.hpp"
@@ -55,25 +56,29 @@ namespace dh::sne {
     // Generate randomized embedding data
     // TODO: look at CUDA-tSNE's approach, they have several options available for initialization
     std::vector<vec> embedding(_params.n, vec(0.f));
+    #pragma omp parallel
     {
-      // Seed the (bad) rng
-      std::srand(_params.seed);
+      // Set up random distribution across threads
+      std::random_device device;
+      std::mt19937 eng(device());
+      eng.seed(_params.seed + omp_get_thread_num());
+      std::uniform_real_distribution<float> dist(0.f, 1.f);
       
-      // Generate n random D-dimensional vectors
-      for (uint i = 0; i < _params.n; ++i) {
+      // Generate n random vectors
+      #pragma omp for
+      for (int i = 0; i < _params.n; ++i) {
         vec v;
         float r;
 
         do {
           r = 0.f;
           for (uint j = 0; j < D; ++j) {
-            v[j] = 2.f * (static_cast<float>(std::rand()) / (static_cast<float>(RAND_MAX) + 1.f)) - 1.f;
+            v[j] = dist(eng) * 2.f - 1.f;
           }
           r = dot(v, v);
         } while (r > 1.f || r == 0.f);
 
-        r = std::sqrt(-2.f * std::log(r) / r);
-        embedding[i] = v * r * _params.rngRange;
+        embedding[i] = v * std::sqrt(-2.f * std::log(r) / r) * _params.rngRange;
       }
     }
 
@@ -222,6 +227,7 @@ namespace dh::sne {
     // Insert fence object to wait until writes to Bounds have completed
     GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 1'000'000); // 1 ms
+    glDeleteSync(fence);
 
     // 2.
     // Perform field approximation in subcomponent

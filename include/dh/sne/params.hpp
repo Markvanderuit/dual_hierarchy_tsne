@@ -44,7 +44,7 @@ namespace dh::sne {
     float fieldScaling3D = 1.2f;
 
     // Embedding initialization parameters
-    int seed = 1;
+    int seed = 4;
     float rngRange = 0.1f;
     
     // Gradient descent iteration parameters

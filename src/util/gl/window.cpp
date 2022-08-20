@@ -221,7 +221,9 @@ namespace dh::util {
   {
     GLWindowInfo info;
     info.flags = GLWindowInfo::bOffscreen;
-    return GLWindow(info);
+    auto window = GLWindow(info);
+    window.setVsync(false);
+    return window;
   }
 
   GLWindow GLWindow::Decorated() 

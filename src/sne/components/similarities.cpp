@@ -32,7 +32,6 @@
 #include <algorithm>
 #include <execution>
 #include <numeric>
-#include <span>
 
 namespace dh::sne {
   // Logging shorthands
@@ -330,11 +329,53 @@ namespace dh::sne {
   }
 
   template <typename T>
-  std::span<T> buffer_map_sp(GLuint i, uint flags) {
-    GLint params;
-    glGetNamedBufferParameteriv(i, GL_BUFFER_SIZE, &params);
-    return std::span<T>((T *) glMapNamedBuffer(i, flags), 
-                        static_cast<size_t>(params) / sizeof(T));
+  class Span {
+    T*     m_data;
+    size_t m_size;
+    size_t m_size_bytes;
+
+  public:
+    Span(T *ptr, size_t size)
+    : m_data(ptr),
+      m_size(size),
+      m_size_bytes(size * sizeof(T))
+    { }
+
+    Span(std::byte *ptr, size_t size_bytes)
+    : m_data((T *) ptr),
+      m_size(size_bytes / sizeof(T)),
+      m_size_bytes(size_bytes)  
+    { }
+
+    T* data() {
+      return m_data;
+    }
+
+    T* begin() {
+      return m_data;
+    }
+
+    T* end() {
+      return m_data + m_size;
+    }
+
+    size_t size() {
+      return m_size;
+    }
+
+    size_t size_bytes() {
+      return m_size_bytes;
+    }
+
+    T &       operator[](int i)       { return m_data[i]; }
+    const T & operator[](int i) const { return m_data[i]; }
+  };
+
+  template <typename T>
+  Span<T> buffer_map_sp(GLuint i, uint flags) {
+    GLint size_bytes;
+    glGetNamedBufferParameteriv(i, GL_BUFFER_SIZE, &size_bytes);
+    return Span<T>((std::byte *) glMapNamedBuffer(i, flags), static_cast<size_t>(size_bytes));
   }
 
   void Similarities::comp_part() {
@@ -345,7 +386,7 @@ namespace dh::sne {
     const uint k = std::min(kMax, 3 * static_cast<uint>(_params.perplexity) + 1);
 
     // Span over input data
-    auto block_sp = std::span(_blockPtr, static_cast<size_t>(_params.n));
+    auto block_sp = Span<const util::NXBlock>(_blockPtr, static_cast<size_t>(_params.n));
     
     // Placeholder type and buffer to describe layout block data
     struct LayoutType  {
@@ -402,7 +443,7 @@ namespace dh::sne {
 
     // Perform scatter of SOA similarity/neighbour buffers to acquired AOS buffer maps
     #pragma omp parallel for
-    for (size_t i = 0; i < _params.n; ++i) {
+    for (int i = 0; i < _params.n; ++i) {
       // Acquire block data
       auto &layout = blockLayout[i];
       auto &block  = block_sp[i];
@@ -412,8 +453,8 @@ namespace dh::sne {
       constexpr auto scatter_2 = [](const auto &p) -> float { return p.second; };
 
       // Perform sequential scatter copy
-      std::transform(block.begin(), block.end(), (neighbours_sp.begin() + layout.offset), scatter_1);
-      std::transform(block.begin(), block.end(), (similarity_sp.begin() + layout.offset), scatter_2);
+      std::transform(block.begin(), block.end(), (neighbours_sp.data() + layout.offset), scatter_1);
+      std::transform(block.begin(), block.end(), (similarity_sp.data() + layout.offset), scatter_2);
     }
 
     // Release mapped access

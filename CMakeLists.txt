@@ -25,6 +25,9 @@ endif()
 # Specify C++/CUDA project
 project(DH-SNE LANGUAGES CXX CUDA)
 
+# Ensure OpenMP is available
+find_package(OpenMP REQUIRED)
+
 # Include cuda toolkit for linking against CUBlas
 find_package(CUDAToolkit REQUIRED)
 
@@ -53,7 +56,7 @@ function(add_library_recurse target srcDir inclDir)
   file(GLOB_RECURSE srcs ${srcDir}/*.cpp  ${srcDir}/*.cu)
   message("Added library ${target} using sources ${srcs}")
   add_library(${target} ${srcs})
-  target_compile_features(${target} PRIVATE cxx_std_20)
+  target_compile_features(${target} PRIVATE cxx_std_17)
   target_include_directories(${target} PUBLIC include)
 endfunction()
 
@@ -81,5 +84,12 @@ endif()
 if(BUILD_VIS AND BUILD_DEMO)
   add_executable(sne_cmd ${CMAKE_SOURCE_DIR}/src/app/sne_cmd.cpp)
   target_link_libraries(sne_cmd PRIVATE cxxopts::cxxopts util sne vis)
-  target_compile_features(sne_cmd PRIVATE cxx_std_20)
+  target_compile_features(sne_cmd PRIVATE cxx_std_17)
+endif()
+
+# Configure OpenMP
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(vis  PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(sne  PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(util PUBLIC OpenMP::OpenMP_CXX)
 endif()

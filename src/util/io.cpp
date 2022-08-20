@@ -122,7 +122,7 @@ namespace dh::util {
     // Perform multithreaded copy into output blocks
     out.resize(n);
     #pragma omp parallel for
-    for (uint i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
       // Get current block
       size_t sizeb = blockSizeB[i];
       size_t offsb = blockOffsB[i];

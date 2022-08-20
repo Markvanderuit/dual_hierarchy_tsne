@@ -247,6 +247,8 @@ void sne() {
       window.display();
     }
   }
+
+  dh::util::Logger::newl() << "Goodbye!";
 }
 
 int main(int argc, char** argv) {

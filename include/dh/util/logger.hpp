@@ -94,7 +94,7 @@ namespace dh::util {
     // Accept generic input and forward to stream
     template <typename T>
     Logger& operator<<(const T& t) {
-      // using namespace date;
+      using namespace date;
       using namespace std::chrono;
       if (_stream) { (*_stream) << t; }
       return *this;
