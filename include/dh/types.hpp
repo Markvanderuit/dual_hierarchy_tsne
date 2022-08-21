@@ -35,4 +35,26 @@ namespace dh {
   genType ceilDiv(genType n, genType div) {
     return (n + div - 1) / div;
   }
+
+  // Simple range-like syntactic sugar
+  #define range_iter(c) c.begin(), c.end()
+
+  // For enum class T, declare bitflag operators and has_flag(T, T) boolean operator
+  #define dh_declare_bitflag(T)                                                \
+    constexpr T operator~(T a) { return (T) (~ (uint) a); }                    \
+    constexpr T operator|(T a, T b) { return (T) ((uint) a | (uint) b); }      \
+    constexpr T operator&(T a, T b) { return (T) ((uint) a & (uint) b); }      \
+    constexpr T operator^(T a, T b) { return (T) ((uint) a ^ (uint) b); }      \
+    constexpr T& operator|=(T &a, T b) { return a = a | b; }                   \
+    constexpr T& operator&=(T &a, T b) { return a = a & b; }                   \
+    constexpr T& operator^=(T &a, T b) { return a = a ^ b; }                   \
+    constexpr bool has_flag(T flags, T t) { return (uint) (flags & t) != 0u; }
+
+  // For class T, declare swap-based move constr/operator
+  // and delete copy constr/operators, making T non-copyable
+  #define dh_declare_noncopyable(T)                                             \
+    T(const T &) = delete;                                                      \
+    T & operator= (const T &) = delete;                                         \
+    T(T &&o) noexcept { swap(*this, o); }                                 \
+    inline T & operator= (T &&o) noexcept { swap(*this, o); return *this; }
 } // dh

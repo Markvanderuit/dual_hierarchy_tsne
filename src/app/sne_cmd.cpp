@@ -145,14 +145,14 @@ void cli(int argc, char** argv) {
     // (2) Or set up your own render loop and do other stuff as well
     // sne.compSimilarities();
     // for (uint i = 0; i < 1000; ++i) {
-    //   sne.compMinimizationStep();
+    //   sne.runMinimizationStep();
     //   <other stuff here...?>
     // }
 
     // Obtain KL-divergence and embedding data once you're done
     // Note: if you want gpu embedding data during minimization,
     // that uhh... can be hacked in with some work
-    float kld = sne.klDivergence();
+    float kld = sne.getKLDivergence();
     std::vector<float> embedding = sne.embedding();
   } //End scope */
 
@@ -201,7 +201,7 @@ void sne() {
 
   // If visualization is requested, minimize and render at the same time
   if (progDoVisDuring) {
-    sne.compSimilarities();
+    sne.runSimilarities();
 
     // Spawn window, disabling vsync so the minimization is not locked to swap interval
     window.setVsync(false);
@@ -210,27 +210,27 @@ void sne() {
 
     // Render loop, one minimization step between frames
     for (uint i = 0; i < params.iterations; ++i) {
-      sne.compMinimizationStep();
+      sne.runMinimizationStep();
       renderer.render();
       window.display();
       window.processEvents();
     }
   } else {
-    sne.comp();
+    sne.run();
   }
 
   // If requested, compute and output KL-divergence (might take a while on large datasets)
   if (progDoKlDivergence) {
-    dh::util::Logger::newl() << "KL-divergence : " << sne.klDivergence();
+    dh::util::Logger::newl() << "KL-divergence : " << sne.getKLDivergence();
   }
 
   // Output timings
-  dh::util::Logger::newl() << "Similarities runtime : " << sne.similaritiesTime();
-  dh::util::Logger::newl() << "Minimization runtime : " << sne.minimizationTime();
+  dh::util::Logger::newl() << "Similarities runtime : " << sne.getSimilaritiesTime();
+  dh::util::Logger::newl() << "Minimization runtime : " << sne.getMinimizationTime();
 
   // If requested, output embedding to file 
   if (!optFilename.empty()) {
-    dh::util::writeBinFileND(optFilename, sne.embedding(), labels, params.n, params.nLowDims, progDoLabels);
+    dh::util::writeBinFileND(optFilename, sne.getEmbedding(), labels, params.n, params.nLowDims, progDoLabels);
   }
 
   // If requested, run visualization after minimization is completed

@@ -35,47 +35,64 @@
 #include "dh/sne/components/kl_divergence.hpp"
 
 namespace dh::sne {
-  class SNE {
-    using millis = std::chrono::milliseconds;
+  /**
+   * ResultFlags
+   * 
+   * Return object configuration. Allows you to request only specific results for 
+   * sne::SNE::getResult(...) and sne::run(...).
+   */
+  enum class ResultFlags {
+    eNone         = 0x000,
+    eKLDivergence = 0x001,
+    eTimings      = 0x002,
+    eEmbedding    = 0x004,
+    eAll          = ResultFlags::eKLDivergence | ResultFlags::eTimings | ResultFlags::eEmbedding
+  };
+  dh_declare_bitflag(ResultFlags);
+  
+  /**
+   * Result
+   * 
+   * Return object. Returned by sne::SNE::getResult(...) and sne::run(...); not all data may be 
+   * set, depending on which parameters were passed.
+   */
+  struct Result {
+    using Embedding = std::vector<float>;
+    using ms        = std::chrono::milliseconds;
 
+    Embedding embedding        = { };
+    float     klDivergence     = 0.f;
+    ms        similaritiesTime = ms::zero();
+    ms        minimizationTime = ms::zero();
+  };
+
+  /**
+   * SNE
+   * 
+   * Main object. Holds most state (buffers, shader programs, textures) in its subcomponents
+   * and is responsible for the underlying computation of the tSNE algorithm.
+   */
+  class SNE {
   public:
+    using InputSimilrs = std::vector<util::NXBlock>;
+    using InputVectors = std::vector<float>;
+    using Embedding    = std::vector<float>;
+
     // Constr/destr
     SNE();
-    SNE(const std::vector<float>& data, Params params);
-    SNE(const std::vector<dh::util::NXBlock>& data, Params params);
-    SNE(const float * dataPtr, Params params);
+    SNE(const InputSimilrs& inputSimilarities, Params params);
+    SNE(const InputVectors& inputVectors, Params params);
     ~SNE();
 
-    // Copy constr/assignment is explicitly deleted (no copying underlying handles)
-    SNE(const SNE&) = delete;
-    SNE& operator=(const SNE&) = delete;
-
-    // Move constr/operator moves handles
-    SNE(SNE&&) noexcept;
-    SNE& operator=(SNE&&) noexcept;
-    
-    // Main computation functions
-    void comp();                  // Compute similarities and then perform minimization
-    void compSimilarities();      // Only compute similarities
-    void compMinimization();      // Only perform minimization
-    void compMinimizationStep();  // Only perform a single step of minimization
-
-    // Getters
-    // Don't call some of these *while* minimizing unless you don't care about performance
-    float klDivergence();
-    std::vector<float> embedding() const;
-    millis similaritiesTime() const;
-    millis minimizationTime() const;
-
   private:
-    // sne::Minimization<D> uses template argument D to specify numbers of low dimensions
-    // but is identical in structure (on the CPU side, at least).
-    // Given that, we define both in the same place and use std::visit for runtime polymorphism 
+    // sne::Minimization<D> uses argument D to specify embedding dimensions but is identical in 
+    // structure (on the CPU side). Define both in the same place, use std::visit for polymorphism 
     using Minimization = std::variant<sne::Minimization<2>, sne::Minimization<3>>;
+    using ms           = std::chrono::milliseconds;
 
     // State
-    bool _isInit;
-    Params _params;
+    bool              _isInit = false;
+    Params            _params = { };
     util::ChronoTimer _similaritiesTimer;
     util::ChronoTimer _minimizationTimer;
 
@@ -83,9 +100,22 @@ namespace dh::sne {
     Similarities _similarities;
     Minimization _minimization;
     KLDivergence _klDivergence;
-
+    
   public:
-    bool isInit() const { return _isInit; }
+    // Main computation functions
+    void run();                  // Compute similarities and then perform minimization
+    void runSimilarities();      // Only compute similarities
+    void runMinimization();      // Only perform minimization
+    void runMinimizationStep();  // Only perform a single step of minimization
+
+    // Getters
+    // Don't call most of these *while* minimizing; poor runtime performance
+    bool      isInit() const { return _isInit; }
+    Result    getResult(ResultFlags flags = ResultFlags::eNone);
+    Embedding getEmbedding() const;
+    float     getKLDivergence();
+    ms        getSimilaritiesTime() const;
+    ms        getMinimizationTime() const;
 
     // Swap internals with another object
     friend void swap(SNE& a, SNE& b) noexcept {
@@ -98,5 +128,25 @@ namespace dh::sne {
       swap(a._minimization, b._minimization);
       swap(a._klDivergence, b._klDivergence);
     }
+
+    dh_declare_noncopyable(SNE);
   };
+
+  inline
+  Result run(const SNE::InputVectors& data, 
+             Params                   params, 
+             ResultFlags              flags = ResultFlags::eAll) {
+    SNE sne(data, params);
+    sne.run();
+    return sne.getResult(flags);
+  }
+
+  inline
+  Result run(const SNE::InputSimilrs& data, 
+             Params                   params, 
+             ResultFlags              flags = ResultFlags::eAll) {
+    SNE sne(data, params);
+    sne.run();
+    return sne.getResult(flags);
+  }
 } // dh::sne

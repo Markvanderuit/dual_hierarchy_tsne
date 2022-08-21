@@ -46,15 +46,7 @@ namespace dh::sne {
     // Constr/destr
     Minimization();
     Minimization(SimilaritiesBuffers similarities, Params params);  
-    ~Minimization(); 
-
-    // Copy constr/assignment is explicitly deleted
-    Minimization(const Minimization&) = delete;
-    Minimization& operator=(const Minimization&) = delete;
-
-    // Move constr/operator moves handles
-    Minimization(Minimization&&) noexcept;
-    Minimization& operator=(Minimization&&) noexcept;
+    ~Minimization();
 
     // Computation
     void comp();          // Compute full minimization (i.e. params.iterations)
@@ -100,22 +92,21 @@ namespace dh::sne {
     };
 
     // State
-    bool _isInit;
-    Params _params;
+    bool                _isInit;
+    Params              _params;
     SimilaritiesBuffers _similarities;
-    uint _iteration;
-    Bounds *_bounds;
+    uint                _iteration;
+    Bounds             *_bounds;
 
     // Objects
-    util::EnumArray<BufferType, GLuint> _buffers;
+    util::EnumArray<BufferType, GLuint>           _buffers;
     util::EnumArray<ProgramType, util::GLProgram> _programs;
-    util::EnumArray<TimerType, util::GLTimer> _timers;
-
-    // Subcomponents
-    Field<D> _field;
+    util::EnumArray<TimerType, util::GLTimer>      _timers;
+    Field<D>                                       _field;
 
   public:
-    // Getters
+    bool isInit() const { return _isInit; }
+    
     MinimizationBuffers buffers() const {
       return {
         _buffers(BufferType::eEmbedding),
@@ -123,7 +114,6 @@ namespace dh::sne {
         _buffers(BufferType::eBounds),
       };
     }
-    bool isInit() const { return _isInit; }
 
     // std::swap impl
     friend void swap(Minimization<D>& a, Minimization<D>& b) noexcept {
@@ -138,5 +128,7 @@ namespace dh::sne {
       swap(a._timers, b._timers);
       swap(a._field, b._field);
     }
+
+    dh_declare_noncopyable(Minimization<D>);
   };
 } // dh::sne

@@ -37,24 +37,21 @@
 namespace dh::sne {
   class Similarities {
   public:
+    using InputSimilrs = std::vector<util::NXBlock>;
+    using InputVectors = std::vector<float>;
+
     // Constr/destr
     Similarities();
-    Similarities(const float         * dataPtr, Params params);
-    Similarities(const util::NXBlock * dataPtr, Params params);
+    Similarities(const InputSimilrs& inputSimilarities, Params params);
+    Similarities(const InputVectors& inputVectors, Params params);
     ~Similarities();
-
-    // Copy constr/assignment is explicitly deleted
-    Similarities(const Similarities&) = delete;
-    Similarities& operator=(const Similarities&) = delete;
-
-    // Move constr/operator moves handles
-    Similarities(Similarities&&) noexcept;
-    Similarities& operator=(Similarities&&) noexcept;
 
     // Compute similarities
     void comp();
 
   private:
+    // Private delegating constructor handles components shared between the two data constructors
+    Similarities(Params params); 
     void comp_full();
     void comp_part();
 
@@ -85,22 +82,20 @@ namespace dh::sne {
     };
 
     // State
-    bool _isInit;
-    Params _params;
-
-    // Input
-    const float         * _dataPtr;
+    bool                 _isInit;
+    Params               _params;
+    const float         *_dataPtr;
     const util::NXBlock *_blockPtr;
-
+    
     // Objects
-    util::EnumArray<BufferType, GLuint> _buffers;
+    util::EnumArray<BufferType, GLuint>           _buffers;
     util::EnumArray<ProgramType, util::GLProgram> _programs;
-    util::EnumArray<TimerType, util::GLTimer> _timers;
-    util::CUTimer _knnTimer;
+    util::EnumArray<TimerType, util::GLTimer>     _timers;
+    util::CUTimer                                 _knnTimer;
   
   public:
-    // Getters
     bool isInit() const { return _isInit; }
+
     SimilaritiesBuffers buffers() const {
       return {
         _buffers(BufferType::eSimilarities),
@@ -109,7 +104,6 @@ namespace dh::sne {
       };
     }
 
-    // std::swap impl
     friend void swap(Similarities& a, Similarities& b) noexcept {
       using std::swap;
       swap(a._isInit, b._isInit);
@@ -121,5 +115,7 @@ namespace dh::sne {
       swap(a._timers, b._timers);
       swap(a._knnTimer, b._knnTimer);
     }
+
+    dh_declare_noncopyable(Similarities);
   };
 } // dh::sne

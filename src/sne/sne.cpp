@@ -29,54 +29,28 @@
 
 namespace dh::sne {
   SNE::SNE() 
-  : _isInit(false) {
-    // ...
-  }
+  : _isInit(false) { }
 
-  SNE::SNE(const std::vector<float>& data, Params params)
+  SNE::SNE(const InputVectors& inputVectors, Params params)
   : _params(params),
-    _similarities(data.data(), params),
-    _isInit(true) {
-    // ...
-  }
+    _similarities(inputVectors, params),
+    _isInit(true) { }
 
-  SNE::SNE(const float * data, Params params)
+  SNE::SNE(const InputSimilrs& inputSimilarities, Params params)
   : _params(params),
-    _similarities(data, params),
-    _isInit(true) {
-    // ...
+    _similarities(inputSimilarities, params),
+    _isInit(true) { }
+
+  SNE::~SNE() { }
+
+  void SNE::run() {
+    runtimeAssert(_isInit, "SNE::run() called before initialization");
+    runSimilarities();
+    runMinimization();
   }
 
-  SNE::SNE(const std::vector<dh::util::NXBlock>& data, Params params)
-  : _params(params),
-    _similarities(data.data(), params),
-    _isInit(true) {
-    // ...
-  }
-
-
-  SNE::~SNE() {
-    // ...
-  }
-
-  SNE::SNE(SNE&& other) noexcept {
-    swap(*this, other);
-  }
-
-  SNE& SNE::operator=(SNE&& other) noexcept {
-    swap(*this, other);
-    return *this;
-  }
-
-  void SNE::comp() {
-    runtimeAssert(_isInit, "SNE::comp() called before initialization");
-    
-    compSimilarities();
-    compMinimization();
-  }
-
-  void SNE::compSimilarities() {
-    runtimeAssert(_isInit, "SNE::compSimilarities() called before initialization");
+  void SNE::runSimilarities() {
+    runtimeAssert(_isInit, "SNE::runSimilarities() called before initialization");
 
     // Run timer to track full similarities computation
     _similaritiesTimer.tick();
@@ -84,64 +58,81 @@ namespace dh::sne {
     _similaritiesTimer.tock();
     _similaritiesTimer.poll();
 
-    // After similarities are available, initialize minimization subcomponent
+    // After similarities are available, initialize other subcomponents
     if (_params.nLowDims == 2) {
       _minimization = sne::Minimization<2>(_similarities.buffers(), _params);
     } else if (_params.nLowDims == 3) {
       _minimization = sne::Minimization<3>(_similarities.buffers(), _params);
     }
-
-    // After similarities are available, initialize KL-divergence subcomponent
-    const auto buffers = std::visit([](const auto& m) { return m.buffers(); }, _minimization);
-    _klDivergence = KLDivergence(_params, _similarities.buffers(), buffers);
+    constexpr auto visit_buffers = [](const auto& m) { return m.buffers(); };
+    _klDivergence = KLDivergence(_params, _similarities.buffers(), std::visit(visit_buffers, _minimization));
   }
 
-  void SNE::compMinimization() {
+  void SNE::runMinimization() {
     const bool mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
-    runtimeAssert(_isInit, "SNE::compMinimization() called before initialization");
-    runtimeAssert(mIsInit, "SNE::compMinimization() called before SNE::compSimilarities()");
+    runtimeAssert(_isInit, "SNE::runMinimization() called before initialization");
+    runtimeAssert(mIsInit, "SNE::runMinimization() called before SNE::runSimilarities()");
+    constexpr auto visit_comp = [](auto& m) { m.comp(); };
 
     // Run timer to track full minimization computation
     _minimizationTimer.tick();
-    std::visit([&](auto& m) { m.comp(); }, _minimization);
+    std::visit(visit_comp, _minimization);
     _minimizationTimer.tock();
     _minimizationTimer.poll();
   }
 
-  void SNE::compMinimizationStep() {
+  void SNE::runMinimizationStep() {
+    constexpr auto visit_comp = [](auto& m) { m.compIteration(); };
+    
     // Run timer to track full minimization computation
     _minimizationTimer.tick();
-    std::visit([&](auto& m) { m.compIteration(); }, _minimization);
+    std::visit(visit_comp, _minimization);
     _minimizationTimer.tock();
     _minimizationTimer.poll();
   }
 
-  std::chrono::milliseconds SNE::similaritiesTime() const {
-    runtimeAssert(_isInit, "SNE::similaritiesTime() called before initialization");
-
+  SNE::ms SNE::getSimilaritiesTime() const {
+    runtimeAssert(_isInit, "SNE::getSimilaritiesTime() called before initialization");
     return _similaritiesTimer.get<util::TimerValue::eTotal, std::chrono::milliseconds>();
   }
 
-  std::chrono::milliseconds SNE::minimizationTime() const {
+  SNE::ms SNE::getMinimizationTime() const {
     const auto mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
-    runtimeAssert(_isInit, "SNE::minimizationTime() called before initialization");
-    runtimeAssert(mIsInit, "SNE::minimizationTime() called before minimization");
-
+    runtimeAssert(_isInit, "SNE::getMinimizationTime() called before initialization");
+    runtimeAssert(mIsInit, "SNE::getMinimizationTime() called before minimization");
     return _minimizationTimer.get<util::TimerValue::eTotal, std::chrono::milliseconds>();
   }
 
-  float SNE::klDivergence() {
-    const auto mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
-    runtimeAssert(_isInit, "SNE::klDivergence() called before initialization");
-    runtimeAssert(mIsInit, "SNE::klDivergence() called before minimization");
+  Result SNE::getResult(ResultFlags flags) {
+    if (!_isInit || flags == ResultFlags::eNone) { 
+      return { };
+    }
 
+    Result result;
+    if (has_flag(flags, ResultFlags::eKLDivergence)) {
+      result.klDivergence = getKLDivergence();
+    }
+    if (has_flag(flags, ResultFlags::eEmbedding)) {
+      result.embedding = getEmbedding();
+    }
+    if (has_flag(flags, ResultFlags::eTimings)) {
+      result.similaritiesTime = getSimilaritiesTime();
+      result.minimizationTime = getMinimizationTime();
+    }
+    return result;
+  }
+
+  float SNE::getKLDivergence() {
+    const auto mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
+    runtimeAssert(_isInit, "SNE::getKLDivergence() called before initialization");
+    runtimeAssert(mIsInit, "SNE::getKLDivergence() called before minimization");
     return _klDivergence.comp();
   }
 
-  std::vector<float> SNE::embedding() const {
+  std::vector<float> SNE::getEmbedding() const {
     const auto mIsInit = std::visit([](const auto& m) { return m.isInit(); }, _minimization);
-    runtimeAssert(_isInit, "SNE::embedding() called before initialization");
-    runtimeAssert(mIsInit, "SNE::embedding() called before minimization");
+    runtimeAssert(_isInit, "SNE::getEmbedding() called before initialization");
+    runtimeAssert(mIsInit, "SNE::getEmbedding() called before minimization");
 
     const auto buffers = std::visit([](const auto& m) { return m.buffers(); }, _minimization);
     
@@ -150,7 +141,6 @@ namespace dh::sne {
       std::vector<float> buffer(_params.n * 2);
       glGetNamedBufferSubData(buffers.embedding, 0, buffer.size() * sizeof(float), buffer.data());
       glAssert();
-
       return buffer;
     } else if (_params.nLowDims == 3) {
       // Copy embedding data over to a padded type (technically 4 floats)
@@ -166,7 +156,7 @@ namespace dh::sne {
       std::memcpy(embedding.data(), buffer.data(), embedding.size() * sizeof(float));
       return embedding;
     }
-
-    return {};
+    
+    return { };
   }
 } // dh::sne

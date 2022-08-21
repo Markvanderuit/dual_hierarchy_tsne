@@ -172,17 +172,6 @@ namespace dh::sne {
   }
 
   template <uint D>
-  Minimization<D>::Minimization(Minimization<D>&& other) noexcept {
-    swap(*this, other);
-  }
-
-  template <uint D>
-  Minimization<D>& Minimization<D>::operator=(Minimization<D>&& other) noexcept {
-    swap(*this, other);
-    return *this;
-  }
-
-  template <uint D>
   void Minimization<D>::comp() {
     while (_iteration < _params.iterations) {
       compIteration();

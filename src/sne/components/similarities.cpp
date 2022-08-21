@@ -42,12 +42,20 @@ namespace dh::sne {
   constexpr uint kMax = 192; // Don't exceeed this value for big vector datasets unless you have a lot of coffee and memopry
   
   Similarities::Similarities()
-  : _isInit(false), _dataPtr(nullptr) {
-    // ...
+  : _isInit(false), _dataPtr(nullptr), _blockPtr(nullptr) { }
+
+  Similarities::Similarities(const InputSimilrs& inputSimilarities, Params params)
+  : Similarities(params) {
+    _blockPtr = inputSimilarities.data();
   }
 
-  Similarities::Similarities(const float * dataPtr, Params params)
-  : _isInit(false), _dataPtr(dataPtr), _blockPtr(nullptr), _params(params) {
+  Similarities::Similarities(const InputVectors& inputVectors, Params params)
+  : Similarities(params) {
+    _dataPtr = inputVectors.data();
+  }
+
+  Similarities::Similarities(Params params)
+  : _isInit(false), _params(params) {
     Logger::newt() << prefix << "Initializing...";
 
     // Initialize shader programs
@@ -56,33 +64,7 @@ namespace dh::sne {
       _programs(ProgramType::eExpandComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/expand.comp"));
       _programs(ProgramType::eLayoutComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/layout.comp"));
       _programs(ProgramType::eNeighborsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/neighbors.comp"));
-      
-      for (auto& program : _programs) {
-        program.link();
-      }
       glAssert();
-    }
-
-    // Initialize buffer object handles
-    // Allocation is performed in Similarities::comp() as the required memory size is not yet known
-    glCreateBuffers(_buffers.size(), _buffers.data());
-    glAssert();
-
-    _isInit = true;
-    const GLuint bufferSize = util::glGetBuffersSize(_buffers.size(), _buffers.data());
-    Logger::rest() << prefix << "Initialized, buffer storage : " << static_cast<float>(bufferSize) / 1'048'576.0f << " mb";
-  }
-
-  Similarities::Similarities(const util::NXBlock * dataPtr, Params params)
-  : _isInit(false), _dataPtr(nullptr), _blockPtr(dataPtr), _params(params) {
-    Logger::newt() << prefix << "Initializing...";
-
-    // Initialize shader programs
-    {
-      _programs(ProgramType::eSimilaritiesComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/similarities.comp"));
-      _programs(ProgramType::eExpandComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/expand.comp"));
-      _programs(ProgramType::eLayoutComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/layout.comp"));
-      _programs(ProgramType::eNeighborsComp).addShader(util::GLShaderType::eCompute, rsrc::get("sne/similarities/neighbors.comp"));
       
       for (auto& program : _programs) {
         program.link();
@@ -104,15 +86,6 @@ namespace dh::sne {
     if (isInit()) {
       glDeleteBuffers(_buffers.size(), _buffers.data());
     }
-  }
-
-  Similarities::Similarities(Similarities&& other) noexcept {
-    swap(*this, other);
-  }
-
-  Similarities& Similarities::operator=(Similarities&& other) noexcept {
-    swap(*this, other);
-    return *this;
   }
 
   void Similarities::comp() {
