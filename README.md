@@ -52,13 +52,13 @@ int main() {
   // 1. Create Params object 
   //    For all parameters, refer to: include/dh/sne/params.hpp
   sne::Params params;
-  params.n                    = 60000; // Dataset size
-  params.nHighDims            = 784;   // Dataset dimensionality
-  params.nLowDims             = 2;     // Embedding dimensionality (2 or 3)
-  params.iterations           = 1000;  // Nr. minimization iterations
-  params.perplexity           = 30.0f; // Perplexity parameter
-  params.singleHierarchyTheta = 0.5f;  // Approximation parameter
-  params.dualHierarchyTheta   = 0.25f; // Approximation parameter
+  params.n          = 60000; // Dataset size
+  params.nHighDims  = 784;   // Dataset dimensionality
+  params.nLowDims   = 2;     // Embedding dimensionality (2 or 3)
+  params.iterations = 1000;  // Nr. minimization iterations
+  params.perplexity = 30.0f; // Perplexity parameter
+  params.theta1     = 0.5f;  // Approximation parameter
+  params.theta2     = 0.25f; // Approximation parameter
 
   // 2. Provide or load high-dimensional dataset of size 60.000x784
   //    There's IO code for binary datasets in include/util/io.hpp, 
@@ -67,12 +67,12 @@ int main() {
   util::readBinFileND("<path/to/input/file.bin>", input, params.n, params.nHighDims);
 
   // 3. Run SNE computation
-  //    Use ResultFlags::* to specifies which output you want, as e.g. KL-Divergence 
+  //    Use ResultFlags::* to specify which output you want, as e.g. KL-Divergence 
   //    introduces overhead. For expanded examples, such as doing minimizations 
   //    step-by-step or integrating these into a render loop, refer to:
   //    a. the SNE header: include/dh/sne/sne.hpp
-  //    b. the demo application: src/app/sne_cmd.cpp
-  Result result = run(input, params, ResultFlags::eAll);
+  //    b. the demo app:   src/app/sne_cmd.cpp
+  Result result = sne::run(input, params, ResultFlags::eAll);
 
   // 4. Obtain KL-divergence and output embedding data to file
   std::cout << "Error   : " << result.klDivergence << '\n'

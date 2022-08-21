@@ -65,8 +65,8 @@ namespace dh::sne {
     _params(params),
     _hierarchyRebuildIterations(0),
     _size(0),
-    _useEmbeddingHierarchy(params.singleHierarchyTheta > 0.0f),
-    _useFieldHierarchy(params.dualHierarchyTheta > 0.0f) {
+    _useEmbeddingHierarchy(params.theta1 > 0.0f),
+    _useFieldHierarchy(params.theta2 > 0.0f) {
     Logger::newt() << prefix << "Initializing...";
     
     // Initialize shader programs
@@ -91,8 +91,8 @@ namespace dh::sne {
       glAssert();
 
       // Set these uniforms exactly once
-      const auto theta12 = _params.singleHierarchyTheta * _params.singleHierarchyTheta;
-      const auto theta22 = _params.dualHierarchyTheta * _params.dualHierarchyTheta;
+      const auto theta12 = _params.theta1 * _params.theta1;
+      const auto theta22 = _params.theta2 * _params.theta2;
       _programs(ProgramType::eQueryFieldComp).template                        uniform<uint>("nPoints", _params.n);
       _programs(ProgramType::eQueryFieldComp).template                        uniform<int>("fieldSampler", 0);
       _programs(ProgramType::eFullCompactComp).template                       uniform<int>("stencilSampler", 0);
