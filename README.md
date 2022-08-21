@@ -72,7 +72,7 @@ int main() {
   //    step-by-step or integrating these into a render loop, refer to:
   //    a. the SNE header: include/dh/sne/sne.hpp
   //    b. the demo app:   src/app/sne_cmd.cpp
-  Result result = sne::run(input, params, ResultFlags::eAll);
+  auto result = sne::run(input, params, ResultFlags::eAll);
 
   // 4. Obtain KL-divergence and output embedding data to file
   std::cout << "Error   : " << result.klDivergence << '\n'
