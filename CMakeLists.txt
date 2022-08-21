@@ -61,20 +61,20 @@ function(add_library_recurse target srcDir inclDir)
 endfunction()
 
 # Gather shader resources 
-rsrcs_embed(shaders ${CMAKE_SOURCE_DIR}/resources/shaders)
+rsrcs_embed(shaders ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders)
 
 # Specify util library
-add_library_recurse(dh_util ${CMAKE_SOURCE_DIR}/src/util ${CMAKE_SOURCE_DIR}/include/dh/util)
+add_library_recurse(dh_util ${CMAKE_CURRENT_SOURCE_DIR}/src/util ${CMAKE_CURRENT_SOURCE_DIR}/include/dh/util)
 target_link_libraries(dh_util PUBLIC cub glad::glad glfw glm::glm indicators::indicators date::date faiss)
 
 # Specify sne library
-add_library_recurse(dh_sne ${CMAKE_SOURCE_DIR}/src/sne ${CMAKE_SOURCE_DIR}/include/dh/sne)
+add_library_recurse(dh_sne ${CMAKE_CURRENT_SOURCE_DIR}/src/sne ${CMAKE_CURRENT_SOURCE_DIR}/include/dh/sne)
 target_link_libraries(dh_sne PRIVATE dh_util ResourceEmbed indicators::indicators date::date)
 target_sources(dh_sne PRIVATE ${shaders}) # Add shaders to sne library
 
 # Specify optional vis library
 if(BUILD_VIS OR BUILD_DEMO)
-  add_library_recurse(dh_vis ${CMAKE_SOURCE_DIR}/src/vis ${CMAKE_SOURCE_DIR}/include/dh/vis)
+  add_library_recurse(dh_vis ${CMAKE_CURRENT_SOURCE_DIR}/src/vis ${CMAKE_CURRENT_SOURCE_DIR}/include/dh/vis)
   target_link_libraries(dh_vis PRIVATE imgui::imgui dh_util ResourceEmbed indicators::indicators date::date)
   target_sources(dh_vis PRIVATE ${shaders}) # Add shaders to vis library
   target_link_libraries(dh_sne PUBLIC dh_vis) # Link vis library against sne as it is available
@@ -82,14 +82,14 @@ endif()
 
 # Specify optional dh_sne_cmd demo application
 if(BUILD_VIS AND BUILD_DEMO)
-  add_executable(dh_sne_cmd ${CMAKE_SOURCE_DIR}/src/app/sne_cmd.cpp)
+  add_executable(dh_sne_cmd ${CMAKE_CURRENT_SOURCE_DIR}/src/app/sne_cmd.cpp)
   target_link_libraries(dh_sne_cmd PRIVATE cxxopts::cxxopts dh_util dh_sne dh_vis)
   target_compile_features(dh_sne_cmd PRIVATE cxx_std_17)
 endif()
 
 # Specify optional sne_example demo application
 if (BUILD_DEMO)
-  add_executable(dh_sne_example ${CMAKE_SOURCE_DIR}/src/app/sne_example.cpp)
+  add_executable(dh_sne_example ${CMAKE_CURRENT_SOURCE_DIR}/src/app/sne_example.cpp)
   target_link_libraries(dh_sne_example PRIVATE dh_util dh_sne)
   target_compile_features(dh_sne_example PRIVATE cxx_std_20)
 endif()
