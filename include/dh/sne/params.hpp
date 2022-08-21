@@ -38,8 +38,8 @@ namespace dh::sne {
     float perplexity = 30.f;
 
     // Approximation parameters
-    float theta1         = 0.f;
-    float theta2         = 0.f;
+    float theta1         = 0.5f;
+    float theta2         = 0.25f;
     float fieldScaling2D = 2.0f;
     float fieldScaling3D = 1.2f;
 

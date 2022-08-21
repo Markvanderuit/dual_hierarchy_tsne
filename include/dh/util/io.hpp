@@ -84,8 +84,8 @@ namespace dh::util {
    * Read a binary data file and interpret it as an Nx* sparse matrix with pairs of 
    * (a) reference indices and (b) reference similarities.
    */
+  std::vector<NXBlock> readBinFileNX(const std::string &fileName);
   void readBinFileNX(const std::string &fileName, std::vector<NXBlock> &out);
-  // Memory-mapped version; potentially more efficient for large files
   void readBinFileNXOld(const std::string &fileName, std::vector<NXBlock> &out);
 
   /**

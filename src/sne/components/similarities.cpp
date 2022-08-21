@@ -42,15 +42,17 @@ namespace dh::sne {
   constexpr uint kMax = 192; // Don't exceeed this value for big vector datasets unless you have a lot of coffee and memopry
   
   Similarities::Similarities()
-  : _isInit(false), _dataPtr(nullptr), _blockPtr(nullptr) { }
+  : _isInit(false),_dataPtr(nullptr), _blockPtr(nullptr) { }
 
   Similarities::Similarities(const InputSimilrs& inputSimilarities, Params params)
   : Similarities(params) {
+    _dataPtr  = nullptr;
     _blockPtr = inputSimilarities.data();
   }
 
   Similarities::Similarities(const InputVectors& inputVectors, Params params)
   : Similarities(params) {
+    _blockPtr  = nullptr;
     _dataPtr = inputVectors.data();
   }
 

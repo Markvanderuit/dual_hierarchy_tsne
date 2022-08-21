@@ -112,6 +112,12 @@ namespace dh::util {
     ofs.close();
   }
 
+  std::vector<NXBlock> readBinFileNX(const std::string &fileName) {
+    std::vector<NXBlock> data;
+    readBinFileNX(fileName, data);
+    return data;
+  }
+
   void readBinFileNX(const std::string &fileName, std::vector<NXBlock> &out) {
     // Attempt to open file stream to provided file at file's end
     std::ifstream ifs(fileName, std::ios::in | std::ios::ate | std::ios::binary);
