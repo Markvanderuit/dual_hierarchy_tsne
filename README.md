@@ -40,42 +40,44 @@ The *sne* library contains the only parts that really matter.
 Below is a minimal example showing its usage to minimize a small dataset:
 
 ```c++
+#include <iostream>
 #include <vector>
+#include "dh/util/io.hpp"
 #include "dh/sne/params.hpp"
 #include "dh/sne/sne.hpp"
 
 int main() {
-  using namespace dh::sne;
+  using namespace dh;
 
   // 1. Create Params object 
   //    For all parameters, refer to: include/dh/sne/params.hpp
-  Params params;
-  params.n = 60000;                    // Dataset size
-  params.nHighDims = 784;              // Dataset dimensionality
-  params.nLowDims = 2;                 // Embedding dimensionality (2 or 3)
-  params.iterations = 1000;            // Nr. minimization iterations
-  params.perplexity = 30.0f;           // Perplexity parameter
+  sne::Params params;
+  params.n                    = 60000; // Dataset size
+  params.nHighDims            = 784;   // Dataset dimensionality
+  params.nLowDims             = 2;     // Embedding dimensionality (2 or 3)
+  params.iterations           = 1000;  // Nr. minimization iterations
+  params.perplexity           = 30.0f; // Perplexity parameter
   params.singleHierarchyTheta = 0.5f;  // Approximation parameter
   params.dualHierarchyTheta   = 0.25f; // Approximation parameter
 
-  // 2. Create and load high-dimensional dataset
-  //    I'm skipping dataset loading code for this example
-  std::vector<float> dataset(params.n * params.nHighDims);
+  // 2. Provide or load high-dimensional dataset of size 60.000x784
+  //    There's IO code for binary datasets in include/util/io.hpp, 
+  //    but you'll probably want to use your own input
+  std::vector<float> input;
+  util::readBinFileND("<path/to/input/file.bin>", input, params.n, params.nHighDims);
 
-  // 3. Construct SNE object
-  //    This manages all gpu objects, state, computation, etc.
-  SNE sne(dataset, params);
-
-  // 4. Perform similarities computation and minimization
-  //    For expanded examples of using the SNE class, such as
-  //    doing minimizations step-by-step, refer to:
+  // 3. Run SNE computation
+  //    Use ResultFlags::* to specifies which output you want, as e.g. KL-Divergence 
+  //    introduces overhead. For expanded examples, such as doing minimizations 
+  //    step-by-step or integrating these into a render loop, refer to:
   //    a. the SNE header: include/dh/sne/sne.hpp
   //    b. the demo application: src/app/sne_cmd.cpp
-  sne.comp();
+  Result result = run(input, params, ResultFlags::eAll);
 
-  // 5. Obtain KL-divergence and embedding data
-  float kld = sne.klDivergence();
-  std::vector<float> embedding = sne.embedding();
+  // 4. Obtain KL-divergence and output embedding data to file
+  std::cout << "Error   : " << result.klDivergence << '\n'
+            << "Runtime : " << result.totalTime    << std::endl;
+  util::writeBinFileND("<path/to/output/file.bin>", result.embedding);
 
   return 0;
 }
