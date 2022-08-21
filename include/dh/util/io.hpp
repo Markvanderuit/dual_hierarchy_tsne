@@ -35,6 +35,16 @@ namespace dh::util {
  /**
    * readBinFileND(...)
    * 
+   * Read a binary data file and interpret it as N D-dimensional vectors.
+   */
+  void readBinFileND(const std::string &fileName, 
+                     std::vector<float> &data, 
+                     uint n,
+                     uint d);
+
+ /**
+   * readBinFileND(...)
+   * 
    * Read a binary data file and interpret it as N D-dimensional vectors. Should the data file
    * contain labels for each vector, these can be read assuming they are stored as 32 bit uints.
    */
@@ -44,6 +54,16 @@ namespace dh::util {
                      uint n,
                      uint d,
                      bool withLabels = false);
+  
+  /**
+   * writeBinFileND(...)
+   * 
+   * Write a binary data file, storing N D-dimensional vectors.
+   */
+  void writeBinFileND(const std::string &fileName,
+                      const std::vector<float> &data,
+                      uint n,
+                      uint d);
   
   /**
    * writeBinFileND(...)

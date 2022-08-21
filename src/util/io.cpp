@@ -29,8 +29,22 @@
 #include "dh/util/logger.hpp"
 
 namespace dh::util {
-  // Logging shorthands
-  const std::string prefix = genLoggerPrefix("[KLDivergence]");
+  void readBinFileND(const std::string &fileName, 
+                     std::vector<float> &data,
+                     uint n,
+                     uint d) {
+    std::ifstream ifs(fileName, std::ios::in | std::ios::binary);
+    if (!ifs) {
+      throw std::runtime_error("Input file cannot be accessed: " + fileName);
+    }
+
+    // Clear vectors and create space to store data in
+    data = std::vector<float>(n * d);
+
+    // Read data in a single call
+    ifs.read((char *) data.data(), data.size() * sizeof(float));
+    ifs.close();
+  }
 
   void readBinFileND(const std::string &fileName, 
                      std::vector<float> &data,
@@ -58,6 +72,21 @@ namespace dh::util {
     } else {
       ifs.read((char *) data.data(), data.size() * sizeof(float));
     }
+    ifs.close();
+  }
+
+  void writeBinFileND(const std::string &fileName,
+                      const std::vector<float> &data,
+                      uint n,
+                      uint d)
+  {
+    std::ofstream ofs(fileName, std::ios::out | std::ios::binary);
+    if (!ofs) {
+      throw std::runtime_error("Output file cannot be accessed: " + fileName);
+    }
+
+    ofs.write((char *) data.data(), data.size() * sizeof(float));
+    ofs.close();
   }
 
   void writeBinFileND(const std::string &fileName,
@@ -80,6 +109,7 @@ namespace dh::util {
     } else {
       ofs.write((char *) data.data(), data.size() * sizeof(float));
     }
+    ofs.close();
   }
 
   void readBinFileNX(const std::string &fileName, std::vector<NXBlock> &out) {
@@ -173,5 +203,7 @@ namespace dh::util {
     for (const auto &v : values) {
       ofs << v << '\n';
     }
+    
+    ofs.close();
   }
 } // dh::util

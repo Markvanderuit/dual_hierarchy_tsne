@@ -118,6 +118,7 @@ namespace dh::sne {
     if (has_flag(flags, ResultFlags::eTimings)) {
       result.similaritiesTime = getSimilaritiesTime();
       result.minimizationTime = getMinimizationTime();
+      result.totalTime = result.similaritiesTime + result.minimizationTime;
     }
     return result;
   }

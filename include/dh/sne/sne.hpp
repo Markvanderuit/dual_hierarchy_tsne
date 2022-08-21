@@ -64,6 +64,7 @@ namespace dh::sne {
     float     klDivergence     = 0.f;
     ms        similaritiesTime = ms::zero();
     ms        minimizationTime = ms::zero();
+    ms        totalTime        = ms::zero();
   };
 
   /**
