@@ -87,7 +87,15 @@ namespace dh::util {
     GLWindow& operator=(GLWindow&&) noexcept;
 
     // Swap internals with another window object
-    friend void swap(GLWindow& a, GLWindow& b) noexcept;
+    friend void swap(GLWindow& a, GLWindow& b) noexcept {
+      using std::swap;
+      swap(a._isInit, b._isInit);
+      swap(a._handle, b._handle);
+      swap(a._size, b._size);
+      if (a._currentWindow == &b) {
+        a._currentWindow = &a;
+      }
+    }
 
     // Render loop
     void makeCurrent();

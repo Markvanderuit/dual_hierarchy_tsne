@@ -36,7 +36,7 @@ namespace dh::util {
   unsigned GLWindow::_nrHandles = 0u;
   GLWindow * GLWindow::_currentWindow = nullptr;
 
-  GLWindow::GLWindow() : _isInit(false) { }
+  GLWindow::GLWindow() : _isInit(false), _handle(nullptr) { }
 
   GLWindow::GLWindow(GLWindowInfo windowInfo, GLContextInfo contextInfo)
   : _isInit(false)  {
@@ -133,7 +133,7 @@ namespace dh::util {
     return *this;
   }
 
-  void swap(GLWindow& a, GLWindow& b) noexcept
+ /*  void swap(GLWindow& a, GLWindow& b) noexcept
   {
     using std::swap;
     swap(a._isInit, b._isInit);
@@ -142,7 +142,7 @@ namespace dh::util {
     if (a._currentWindow == &b) {
       a._currentWindow = &a;
     }
-  }
+  } */
 
   void GLWindow::makeCurrent()
   {
@@ -221,9 +221,7 @@ namespace dh::util {
   {
     GLWindowInfo info;
     info.flags = GLWindowInfo::bOffscreen;
-    auto window = GLWindow(info);
-    window.setVsync(false);
-    return window;
+    return GLWindow(info);
   }
 
   GLWindow GLWindow::Decorated() 
