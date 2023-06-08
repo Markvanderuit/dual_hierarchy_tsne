@@ -100,3 +100,7 @@ if(OpenMP_CXX_FOUND)
   target_link_libraries(dh_sne  PUBLIC OpenMP::OpenMP_CXX)
   target_link_libraries(dh_util PUBLIC OpenMP::OpenMP_CXX)
 endif()
+
+add_executable(dh_sne_test ${CMAKE_CURRENT_SOURCE_DIR}/src/app/sne_test.cpp)
+target_link_libraries(dh_sne_test PRIVATE cxxopts::cxxopts dh_util dh_sne dh_vis)
+target_compile_features(dh_sne_test PRIVATE cxx_std_23)
